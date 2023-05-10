@@ -113,7 +113,7 @@ task clean(type: Delete) {
 
 subprojects {
     tasks.withType(Test) {
-        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        maxParallelForks = Runtime.runtime.availableProcessors()
     }
 }
 

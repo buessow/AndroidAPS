@@ -2,7 +2,7 @@ package info.nightscout.database.impl.transactions
 
 import info.nightscout.database.entities.HeartRate
 
-class InsertOrUpdateHeartRateTransaction(private val heartRate: HeartRate):
+data class InsertOrUpdateHeartRateTransaction(private val heartRate: HeartRate):
     Transaction<InsertOrUpdateHeartRateTransaction.TransactionResult>() {
 
     override fun run(): TransactionResult {

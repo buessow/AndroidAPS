@@ -108,6 +108,7 @@ class UserEntryPresentationHelperImpl @Inject constructor(
         Sources.Overview            -> info.nightscout.core.ui.R.drawable.ic_home
         Sources.Aaps                -> R.drawable.ic_aaps
         Sources.Unknown             -> info.nightscout.core.ui.R.drawable.ic_generic_icon
+        Sources.GarminDevice        -> R.drawable.ic_watch
     }
 
     override fun actionToColoredString(action: Action): Spanned = when (action) {

@@ -2,7 +2,6 @@ package info.nightscout.plugins.general.garmin
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
-import androidx.preference.PreferenceFragmentCompat
 import com.google.gson.JsonObject
 import dagger.android.HasAndroidInjector
 import info.nightscout.database.entities.GlucoseValue
@@ -34,6 +33,12 @@ import javax.inject.Singleton
 import kotlin.concurrent.withLock
 import kotlin.math.roundToInt
 
+/** Support communication with Garmin devices.
+ *
+ * This plugin supports sending glucose values to Garmin devices and receiving
+ * carbs, heart rate and pump disconnect events from the device. It communicates
+ * via HTTP on localhost or Garmin's native CIQ library.
+ */
 @Singleton
 class GarminPlugin @Inject constructor(
     injector: HasAndroidInjector,
@@ -57,7 +62,6 @@ class GarminPlugin @Inject constructor(
 
     /** Garmin ConnectIQ application id for native communication. Phone pushes values. */
     private val glucoseAppIds = mapOf(
-       "526ff91a542247a99e6656f3404156bb" to "GlucoseWatch",
        "c9e90ee7e6924829a8b45e7dafff5cb4" to "GlucoseWatch2",
        "1107ca6c2d5644b998d4bcb3793f2b7c" to "GlucoseDataField",
        "928fe19a4d3a4259b50cb6f9ddaf0f4a" to "GlucoseWidget",
@@ -66,23 +70,6 @@ class GarminPlugin @Inject constructor(
     @VisibleForTesting
     var ciqMessenger: ConnectIqMessenger? = null
     private val disposable = CompositeDisposable()
-
-    /** Profiles for automatic profile switch when active. */
-    @VisibleForTesting
-    val profileSwitchSettings = listOf(
-        ProfileSwitchSetting(
-            sp.getString("garmin_default_profile_name", "Default"),
-            "D",
-            sp.getInt("garmin_default_profile_hr", 80)),
-        ProfileSwitchSetting(
-            sp.getString("garmin_active_profile_name", "Sport_75"),
-            "A",
-            sp.getInt("garmin_active_profile_hr", 90)),
-        ProfileSwitchSetting(
-            sp.getString("garmin_sport_profile_name", "Sport_50"),
-            "S",
-            sp.getInt("garmin_sport_profile_hr", 110))
-    )
 
     @VisibleForTesting
     var clock: Clock = Clock.systemUTC()
@@ -96,11 +83,12 @@ class GarminPlugin @Inject constructor(
     private fun onPreferenceChange(event: EventPreferenceChange) {
         aapsLogger.info(LTag.GARMIN, "preferences change ${event.changedKey}")
         when (event.changedKey) {
-            "communication_debug_mode" -> initializeCiqMessenger()
+            "communication_debug_mode" -> setupCiqMessenger()
+            "communication_http", "communication_http_port" -> setupHttpServer()
         }
     }
 
-    private fun initializeCiqMessenger() {
+    private fun setupCiqMessenger() {
         val enableDebug = sp.getBoolean("communication_debug_mode", false)
         ciqMessenger?.dispose()
         ciqMessenger = null
@@ -127,26 +115,42 @@ class GarminPlugin @Inject constructor(
                 .observeOn(Schedulers.io())
                 .subscribe(::onNewBloodGlucose)
         )
-        server = HttpServer(aapsLogger, 28891)
-        server!!.registerEndpoint("/get", object : HttpServer.Endpoint {
-            override fun onRequest(
-                caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
-                return onGetBloodGlucose(caller, uri)
-            }
-        })
-        server!!.registerEndpoint("/carbs", object : HttpServer.Endpoint {
-            override fun onRequest(
-                caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
-                return onPostCarbs(caller, uri)
-            }
-        })
-        server!!.registerEndpoint("/connect", object : HttpServer.Endpoint {
-            override fun onRequest(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
-                return onConnectPump(caller, uri)
-            }
-        })
 
-       /* initializeCiqMessenger() */
+        setupHttpServer()
+        setupCiqMessenger()
+    }
+
+    private fun setupHttpServer() {
+        if (sp.getBoolean("communication_http", false)) {
+            val port = sp.getInt("communication_http_port", 28891)
+            if (server != null && server?.port == port) return
+            aapsLogger.info(LTag.GARMIN, "starting HTTP server on $port")
+            server?.close()
+            server = HttpServer(aapsLogger, port).apply {
+                registerEndpoint("/get", object : HttpServer.Endpoint {
+                    override fun onRequest(
+                        caller: SocketAddress, uri: URI, requestBody: String?
+                    ): CharSequence {
+                        return onGetBloodGlucose(caller, uri)
+                    }
+                })
+            }
+            server!!.registerEndpoint("/carbs", object : HttpServer.Endpoint {
+                override fun onRequest(
+                    caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
+                    return onPostCarbs(caller, uri)
+                }
+            })
+            server!!.registerEndpoint("/connect", object : HttpServer.Endpoint {
+                override fun onRequest(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
+                    return onConnectPump(caller, uri)
+                }
+            })
+        } else if (server != null) {
+            aapsLogger.info(LTag.GARMIN, "stopping HTTP server")
+            server?.close()
+            server = null
+        }
     }
 
     override fun onStop() {
@@ -160,8 +164,8 @@ class GarminPlugin @Inject constructor(
     /** Receive new blood glucose events.
      *
      * Stores new blood glucose values in lastGlucoseValue to make sure we return
-     * these values immediately when values are requested by Garmin device. Also
-     * sends a message to the Garmin devices via the ciqMessenger. */
+     * these values immediately when values are requested by Garmin device.
+     * Sends a message to the Garmin devices via the ciqMessenger. */
     @VisibleForTesting
     fun onNewBloodGlucose(event: EventNewBG) {
         val timestamp = event.glucoseValueTimestamp ?: return
@@ -215,7 +219,7 @@ class GarminPlugin @Inject constructor(
     @VisibleForTesting
     fun getGlucoseMessage() = mapOf<String, Any>(
         "command" to "glucose",
-        "profile" to getProfileSwitchSetting(loopHub.currentProfileName).mnemonic,
+        "profile" to loopHub.currentProfileName.first().toString(),
         "encodedGlucose" to encodedGlucose(getGlucoseValues()),
         "remainingInsulin" to loopHub.insulinOnboard,
         "glucoseUnit" to glucoseUnitStr,
@@ -267,13 +271,13 @@ class GarminPlugin @Inject constructor(
 
     /** Responses to get glucose value request by the device.
      *
-     * Also, gets the heart rate readings from the device and adjusts the insulin profile
-     * accordingly.
+     * Also, gets the heart rate readings from the device.
      */
     @VisibleForTesting
     fun onGetBloodGlucose(caller: SocketAddress, uri: URI): CharSequence {
         aapsLogger.info(LTag.GARMIN, "get from $caller resp , req: $uri")
-        val profileMnemonic = receiveHeartRate(uri)
+        receiveHeartRate(uri)
+        val profileName = loopHub.currentProfileName
         val waitSec = getQueryParameter(uri, "wait", 0L)
         val glucoseValues = getGlucoseValues(Duration.ofSeconds(waitSec))
         val jo = JsonObject()
@@ -283,45 +287,14 @@ class GarminPlugin @Inject constructor(
         loopHub.temporaryBasal.also {
             if (!it.isNaN()) jo.addProperty("temporaryBasalRate", it)
         }
-        jo.addProperty("profile", profileMnemonic)
+        jo.addProperty("profile", profileName.first().toString())
         jo.addProperty("connected", loopHub.isConnected)
         return jo.toString().also {
             aapsLogger.info(LTag.GARMIN, "get from $caller resp , req: $uri, result: $it")
         }
     }
 
-    private fun getProfileSwitchSetting(name: String) =
-        profileSwitchSettings.firstOrNull { it.name.equals(name, true) }
-            ?: profileSwitchSettings.first()
-
-    /** Computes the new target profile based on the current profile and the heart rate. */
-    @VisibleForTesting
-    fun computeNewProfile(current: ProfileSwitchSetting, hr: Int): ProfileSwitchSetting {
-        if (hr < 10) return current
-        val lowerTo = profileSwitchSettings.firstOrNull {
-            current.triggerHeartRate > it.triggerHeartRate &&  it.triggerHeartRate > hr }
-        val raiseTo = profileSwitchSettings.lastOrNull {
-            current.triggerHeartRate < it.triggerHeartRate && it.triggerHeartRate < hr }
-        val target = raiseTo ?: lowerTo ?: current
-        if (current != target) {
-            aapsLogger.info(LTag.GARMIN, "HR: $hr profile: $current ->$target")
-        }
-        return target
-    }
-
-    private fun updateProfile(hr: Int): String {
-        val current = getProfileSwitchSetting(loopHub.currentProfileName)
-        return updateProfile(current, computeNewProfile(current, hr))
-    }
-
-    @VisibleForTesting
-    fun updateProfile(current: ProfileSwitchSetting, target: ProfileSwitchSetting): String {
-        if (current == target || loopHub.isTemporaryProfile) return current.mnemonic
-        loopHub.switchProfile(target.name)
-        return target.mnemonic
-    }
-
-    private fun getQueryParameter(uri: URI, name: String) = uri.query
+    private fun getQueryParameter(uri: URI, name: String) = (uri.query ?: "")
         .split("&")
         .map { kv -> kv.split("=") }
         .firstOrNull { kv -> kv.size == 2 && kv[0] == name }?.get(1)
@@ -359,28 +332,28 @@ class GarminPlugin @Inject constructor(
     }
 
     @VisibleForTesting
-    fun receiveHeartRate(msg: Map<String, Any>, test: Boolean): String {
+    fun receiveHeartRate(msg: Map<String, Any>, test: Boolean) {
         val avg: Int = msg.getOrDefault("hr", 0) as Int
         val samplingStart: Long = toLong(msg["hrStart"], 0L)
         val samplingEnd: Long = toLong(msg["hrEnd"], 0L)
         val device: String? = msg["device"] as String?
-        return receiveHeartRate(avg, samplingStart, samplingEnd, device, test)
+        receiveHeartRate(avg, samplingStart, samplingEnd, device, test)
     }
 
     @VisibleForTesting
-    fun receiveHeartRate(uri: URI): String {
+    fun receiveHeartRate(uri: URI) {
         val avg: Int = getQueryParameter(uri, "hr", 0L).toInt()
         val samplingStart: Long = getQueryParameter(uri, "hrStart", 0L)
         val samplingEnd: Long = getQueryParameter(uri, "hrEnd", 0L)
         val device: String? = getQueryParameter(uri, "device")
-        return receiveHeartRate(
+        receiveHeartRate(
             avg, samplingStart, samplingEnd, device,
             getQueryParameter(uri, "test", false)
         )
     }
 
     private fun receiveHeartRate(
-        avg: Int, samplingStart: Long, samplingEnd: Long, device: String?, test: Boolean): String {
+        avg: Int, samplingStart: Long, samplingEnd: Long, device: String?, test: Boolean) {
         aapsLogger.info(LTag.GARMIN, "average heart rate $avg BPM test=$test")
         if (avg > 10 && !test) {
             loopHub.storeHeartRate(
@@ -389,7 +362,6 @@ class GarminPlugin @Inject constructor(
                 avg,
                 device)
         }
-        return updateProfile(avg)
     }
 
     /** Handles carb notification from the device. */
@@ -420,19 +392,5 @@ class GarminPlugin @Inject constructor(
         val jo = JsonObject()
         jo.addProperty("connected", loopHub.isConnected)
         return jo.toString()
-    }
-
-    override fun preprocessPreferences(preferenceFragment: PreferenceFragmentCompat) {}
-
-    @VisibleForTesting
-    data class ProfileSwitchSetting(
-        /** Profile name. */
-        val name: String,
-        /** 1 letter abbreviation of the profile name, to be shown on the device. */
-        val mnemonic: String,
-        val triggerHeartRate: Int) {
-        override fun toString(): String {
-            return name
-        }
     }
 }

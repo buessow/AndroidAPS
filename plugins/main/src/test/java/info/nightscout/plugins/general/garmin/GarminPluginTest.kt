@@ -12,14 +12,14 @@ import info.nightscout.rx.bus.RxBus
 import info.nightscout.rx.events.EventNewBG
 import info.nightscout.shared.interfaces.ResourceHelper
 import info.nightscout.shared.sharedPreferences.SP
+import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.collection.IsMapContaining.hasEntry
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mock
 import org.mockito.Mockito.anyLong
@@ -55,14 +55,6 @@ class GarminPluginTest: TestBase() {
 
     @BeforeEach
     fun setup() {
-        val s = { key: String, name: String, hr: Int ->
-            `when`(sp.getString(eq("${key}_name") ?: "", anyString())).thenReturn(name)
-            `when`(sp.getInt(eq("${key}_hr") ?: "", anyInt())).thenReturn(hr)
-        }
-        s("garmin_default_profile", "Default", 80)
-        s("garmin_active_profile", "Sport_75", 100)
-        s("garmin_sport_profile", "Sport_50", 110)
-
         gp = GarminPlugin(injector, aapsLogger, rh, context, loopHub, rxBus, sp)
         gp.clock = clock
         `when`(loopHub.currentProfileName).thenReturn("Default")
@@ -109,56 +101,9 @@ class GarminPluginTest: TestBase() {
     }
 
     @Test
-    fun testGetNewProfileSettings() {
-        val pss = gp.profileSwitchSettings
-        assertEquals(3, pss.size)
-        assertEquals("Default", pss[0].name)
-        assertEquals("D", pss[0].mnemonic)
-        assertEquals(80, pss[0].triggerHeartRate)
-        assertEquals(100, pss[1].triggerHeartRate)
-        assertEquals(110, pss[2].triggerHeartRate)
-    }
-
-    @Test
-    fun testGetNewProfileZeroHR() {
-        val pss = gp.profileSwitchSettings
-        assertEquals(pss[0], gp.computeNewProfile(pss[0], 0))
-        assertEquals(pss[0], gp.computeNewProfile(pss[0], 9))
-        assertEquals(pss[1], gp.computeNewProfile(pss[1], 0))
-        assertEquals(pss[2], gp.computeNewProfile(pss[2], 0))
-    }
-
-    @Test
-    fun testGetNewProfileStay() {
-        val pss = gp.profileSwitchSettings
-        assertEquals(pss[0], gp.computeNewProfile(pss[0], 100))
-        assertEquals(pss[1], gp.computeNewProfile(pss[1], 90))
-        assertEquals(pss[0], gp.computeNewProfile(pss[0], 90))
-        assertEquals(pss[1], gp.computeNewProfile(pss[1], 105))
-        assertEquals(pss[2], gp.computeNewProfile(pss[2], 105))
-    }
-
-    @Test
-    fun testGetNewProfileRaise() {
-        val pss = gp.profileSwitchSettings
-        assertEquals(pss[0], gp.computeNewProfile(pss[0], 100))
-        assertEquals(pss[1], gp.computeNewProfile(pss[0], 101))
-        assertEquals(pss[2], gp.computeNewProfile(pss[0], 111))
-        assertEquals(pss[2], gp.computeNewProfile(pss[1], 111))
-    }
-
-    @Test
-    fun testGetNewProfileLower() {
-        val pss = gp.profileSwitchSettings
-        assertEquals(pss[0], gp.computeNewProfile(pss[1], 70))
-        assertEquals(pss[0], gp.computeNewProfile(pss[2], 70))
-        assertEquals(pss[1], gp.computeNewProfile(pss[2], 90))
-    }
-
-    @Test
     fun testReceiveHeartRateMap() {
         val hr = createHeartRate(80)
-        assertEquals("D", gp.receiveHeartRate(hr, false))
+        gp.receiveHeartRate(hr, false)
         verify(loopHub).storeHeartRate(
             Instant.ofEpochMilli(hr["hrStart"] as Long),
             Instant.ofEpochMilli(hr["hrEnd"] as Long),
@@ -167,36 +112,10 @@ class GarminPluginTest: TestBase() {
     }
 
     @Test
-    fun testReceiveHeartRateMap_SwitchProfile() {
-        val hr = createHeartRate(105)
-        assertEquals("A", gp.receiveHeartRate(hr, false))
-        verify(loopHub).isTemporaryProfile
-        verify(loopHub).storeHeartRate(
-            Instant.ofEpochMilli(hr["hrStart"] as Long),
-            Instant.ofEpochMilli(hr["hrEnd"] as Long),
-            105,
-            hr["device"] as String)
-        verify(loopHub).switchProfile("Sport_75")
-    }
-
-    @Test
-    fun testReceiveHeartRateMap_TemporaryProfile() {
-        `when`(loopHub.isTemporaryProfile).thenReturn(true)
-        val hr = createHeartRate(105)
-        assertEquals("D", gp.receiveHeartRate(hr, false))
-        verify(loopHub).isTemporaryProfile
-        verify(loopHub).storeHeartRate(
-            Instant.ofEpochMilli(hr["hrStart"] as Long),
-            Instant.ofEpochMilli(hr["hrEnd"] as Long),
-            105,
-            hr["device"] as String)
-    }
-
-    @Test
     fun testReceiveHeartRateUri() {
         val hr = createHeartRate(99)
         val uri = createUri(hr)
-        assertEquals("D", gp.receiveHeartRate(uri))
+        gp.receiveHeartRate(uri)
         verify(loopHub).storeHeartRate(
             Instant.ofEpochMilli(hr["hrStart"] as Long),
             Instant.ofEpochMilli(hr["hrEnd"] as Long),
@@ -209,7 +128,7 @@ class GarminPluginTest: TestBase() {
         val params = createHeartRate(99).toMutableMap()
         params["test"] = true
         val uri = createUri(params)
-        assertEquals("D", gp.receiveHeartRate(uri))
+        gp.receiveHeartRate(uri)
     }
 
     @Test
@@ -341,18 +260,16 @@ class GarminPluginTest: TestBase() {
         val captor = ArgumentCaptor.forClass(ByteArray::class.java)
         verify(app.client, timeout(1000))!!.sendMessage(
             eq(app) ?: app, captor.capture() ?: ByteArray(0))
-        assertEquals(
-            mapOf<String, Any>(
-                "command" to "glucose",
-                "profile" to "D",
-                "encodedGlucose" to "",
-                "remainingInsulin" to 0.0,
-                "glucoseUnit" to "mmoll",
-                "temporaryBasalRate" to 0.0,
-                "connected" to false,
-                "timestamp" to clock.instant().epochSecond
-            ),
-            ConnectIqSerializer.deserialize(captor.value))
+        @Suppress("UNCHECKED_CAST")
+        val r = ConnectIqSerializer.deserialize(captor.value) as Map<String, Any>
+        assertThat(r, hasEntry("command", "glucose"))
+        assertThat(r, hasEntry("profile", "D"))
+        assertThat(r, hasEntry("encodedGlucose", ""))
+        assertThat(r, hasEntry("remainingInsulin", 0.0))
+        assertThat(r, hasEntry("glucoseUnit", "mmoll"))
+        assertThat(r, hasEntry("temporaryBasalRate", 0.0))
+        assertThat(r, hasEntry("connected", false))
+        assertThat(r, hasEntry("timestamp", clock.instant().epochSecond))
         verify(loopHub).getGlucoseValues(getGlucoseValuesFrom, true)
         verify(loopHub).insulinOnboard
         verify(loopHub).temporaryBasal

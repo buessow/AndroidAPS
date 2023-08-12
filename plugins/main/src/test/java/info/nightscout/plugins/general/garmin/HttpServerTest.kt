@@ -73,7 +73,7 @@ internal class HttpServerTest: TestBase() {
     }
 
     @Test fun testRequest() {
-        val port = 28893
+        val port = 28895
         val reqUri = URI("http://127.0.0.1:$port/foo")
         HttpServer(aapsLogger, port).use { server ->
             server.registerEndpoint("/foo", object : HttpServer.Endpoint {
@@ -91,7 +91,7 @@ internal class HttpServerTest: TestBase() {
     }
 
     @Test fun testRequest_NotFound() {
-        val port = 28893
+        val port = 28895
         val reqUri = URI("http://127.0.0.1:$port/foo")
         HttpServer(aapsLogger, port).use { server ->
             assertTrue(server.awaitReady(Duration.ofSeconds(10)))

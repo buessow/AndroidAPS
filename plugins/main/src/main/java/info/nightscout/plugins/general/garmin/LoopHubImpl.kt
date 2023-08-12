@@ -17,10 +17,8 @@ import info.nightscout.interfaces.constraints.Constraint
 import info.nightscout.interfaces.constraints.Constraints
 import info.nightscout.interfaces.iob.IobCobCalculator
 import info.nightscout.interfaces.logging.UserEntryLogger
-import info.nightscout.interfaces.plugin.ActivePlugin
 import info.nightscout.interfaces.profile.Profile
 import info.nightscout.interfaces.profile.ProfileFunction
-import info.nightscout.interfaces.profile.ProfileStore
 import info.nightscout.interfaces.pump.DetailedBolusInfo
 import info.nightscout.interfaces.queue.CommandQueue
 import info.nightscout.rx.logging.AAPSLogger
@@ -36,7 +34,6 @@ import javax.inject.Singleton
  */
 class LoopHubImpl @Inject constructor(
     private val aapsLogger: AAPSLogger,
-    private val activePlugin: ActivePlugin,
     private val commandQueue: CommandQueue,
     private val constraintChecker: Constraints,
     private val iobCobCalculator: IobCobCalculator,
@@ -140,31 +137,5 @@ class LoopHubImpl @Inject constructor(
             device = device ?: "Garmin",
         )
         repo.runTransaction(InsertOrUpdateHeartRateTransaction(hr)).blockingAwait()
-    }
-
-    /** Switches the active insulin profile. */
-    override fun switchProfile(profileName: String): Boolean {
-        val store: ProfileStore? = activePlugin.activeProfileSource.profile
-        if (store == null) {
-            aapsLogger.error(LTag.GARMIN, "cannot get ProfileStore")
-            return false
-        }
-        val timestamp = clock.millis()
-        val success = profileFunction.createProfileSwitch(
-            store, profileName, 0, 100, 0, timestamp
-        )
-        if (success) {
-            userEntryLogger.log(
-                UserEntry.Action.PROFILE_SWITCH,
-                UserEntry.Sources.GarminDevice,
-                ValueWithUnit.Timestamp(timestamp),
-                ValueWithUnit.SimpleString(profileName),
-                ValueWithUnit.Percent(100)
-            )
-        } else {
-            aapsLogger.error(LTag.GARMIN, "cannot switch to profile: '$profileName'")
-            return false
-        }
-        return true
     }
 }

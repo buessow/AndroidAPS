@@ -18,7 +18,7 @@ import java.util.regex.Pattern
 import javax.annotation.Nonnull
 import kotlin.concurrent.withLock
 
-class HttpServer internal constructor(private var aapsLogger: AAPSLogger, private var port: Int): Closeable {
+class HttpServer internal constructor(private var aapsLogger: AAPSLogger, val port: Int): Closeable {
     private val serverThread: Thread
     private val workerExecutor: Executor = Executors.newCachedThreadPool()
     private val endpoints: MutableMap<String, Endpoint> = ConcurrentHashMap()

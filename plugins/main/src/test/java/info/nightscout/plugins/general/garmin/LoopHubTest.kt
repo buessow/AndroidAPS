@@ -21,11 +21,8 @@ import info.nightscout.interfaces.constraints.Constraints
 import info.nightscout.interfaces.iob.IobCobCalculator
 import info.nightscout.interfaces.iob.IobTotal
 import info.nightscout.interfaces.logging.UserEntryLogger
-import info.nightscout.interfaces.plugin.ActivePlugin
 import info.nightscout.interfaces.profile.Profile
 import info.nightscout.interfaces.profile.ProfileFunction
-import info.nightscout.interfaces.profile.ProfileSource
-import info.nightscout.interfaces.profile.ProfileStore
 import info.nightscout.interfaces.pump.DetailedBolusInfo
 import info.nightscout.interfaces.queue.CommandQueue
 import io.reactivex.rxjava3.core.Completable
@@ -33,7 +30,6 @@ import io.reactivex.rxjava3.core.Single
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -50,7 +46,6 @@ import java.time.Instant
 import java.time.ZoneId
 
 class LoopHubTest: TestBase() {
-    @Mock lateinit var activePlugin: ActivePlugin
     @Mock lateinit var commandQueue: CommandQueue
     @Mock lateinit var constraints: Constraints
     @Mock lateinit var iobCobCalculator: IobCobCalculator
@@ -65,14 +60,13 @@ class LoopHubTest: TestBase() {
     @BeforeEach
     fun setup() {
         loopHub = LoopHubImpl(
-            aapsLogger, activePlugin, commandQueue, constraints,
-            iobCobCalculator, loop, profileFunction, repo, userEntryLogger)
+            aapsLogger, commandQueue, constraints, iobCobCalculator, loop,
+            profileFunction, repo, userEntryLogger)
         loopHub.clock = clock
     }
 
     @AfterEach
     fun verifyNoFurtherInteractions() {
-        verifyNoMoreInteractions(activePlugin)
         verifyNoMoreInteractions(commandQueue)
         verifyNoMoreInteractions(constraints)
         verifyNoMoreInteractions(iobCobCalculator)
@@ -256,41 +250,5 @@ class LoopHubTest: TestBase() {
         loopHub.storeHeartRate(
             samplingStart, samplingEnd, 101, "Test Device")
         verify(repo).runTransaction(InsertOrUpdateHeartRateTransaction(hr))
-    }
-
-    @Test
-    fun testProfileSwitchSuccess() {
-        val profileSource = mock(ProfileSource::class.java)
-        val store = mock(ProfileStore::class.java)
-        `when`(activePlugin.activeProfileSource).thenReturn(profileSource)
-        `when`(profileSource.profile).thenReturn(store)
-        `when`(profileFunction.createProfileSwitch(
-            store, "Test", 0, 100, 0, clock.millis()))
-            .thenReturn(true)
-        assertTrue(loopHub.switchProfile("Test"))
-        verify(activePlugin).activeProfileSource
-        verify(profileFunction).createProfileSwitch(
-            store, "Test", 0, 100, 0, clock.millis())
-        verify(userEntryLogger, times(1)).log(
-            UserEntry.Action.PROFILE_SWITCH,
-            UserEntry.Sources.GarminDevice,
-            ValueWithUnit.Timestamp(clock.millis()),
-            ValueWithUnit.SimpleString("Test"),
-            ValueWithUnit.Percent(100))
-    }
-
-    @Test
-    fun testProfileSwitchFail() {
-        val profileSource = mock(ProfileSource::class.java)
-        val store = mock(ProfileStore::class.java)
-        `when`(activePlugin.activeProfileSource).thenReturn(profileSource)
-        `when`(profileSource.profile).thenReturn(store)
-        `when`(profileFunction.createProfileSwitch(
-            store, "Test", 0, 100, 0, clock.millis()))
-            .thenReturn(false)
-        assertFalse(loopHub.switchProfile("Test"))
-        verify(activePlugin).activeProfileSource
-        verify(profileFunction).createProfileSwitch(
-            store, "Test", 0, 100, 0, clock.millis())
     }
 }

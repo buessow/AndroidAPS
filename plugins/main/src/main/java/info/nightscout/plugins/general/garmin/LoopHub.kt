@@ -47,7 +47,4 @@ interface LoopHub {
         avgHeartRate: Int,
         device: String?
     )
-
-    /** Switches the active insulin profile. */
-    fun switchProfile(profileName: String): Boolean
 }

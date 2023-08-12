@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.android.ContributesAndroidInjector
 import info.nightscout.interfaces.iob.IobCobCalculator
 import info.nightscout.interfaces.smsCommunicator.SmsCommunicator
+import info.nightscout.plugins.general.garmin.GarminModule
 import info.nightscout.plugins.general.persistentNotification.DummyService
 import info.nightscout.plugins.general.smsCommunicator.SmsCommunicatorPlugin
 import info.nightscout.plugins.general.wear.WearFragment
@@ -22,7 +23,8 @@ import info.nightscout.plugins.iob.iobCobCalculator.data.AutosensDataObject
         SkinsUiModule::class,
         ActionsModule::class,
         WearModule::class,
-        OverviewModule::class
+        OverviewModule::class,
+        GarminModule::class,
     ]
 )
 

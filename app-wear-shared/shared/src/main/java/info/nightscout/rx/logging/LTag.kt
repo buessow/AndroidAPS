@@ -12,7 +12,7 @@ enum class LTag(val tag: String, val defaultValue : Boolean = true, val requires
     DATABASE("DATABASE"),
     DATATREATMENTS("DATATREATMENTS"),
     EVENTS("EVENTS", defaultValue = false, requiresRestart = true),
-    GARMIN("GARMIN", defaultValue = false),
+    GARMIN("GARMIN"),
     GLUCOSE("GLUCOSE", defaultValue = false),
     HTTP("HTTP"),
     LOCATION("LOCATION"),

@@ -32,6 +32,7 @@ import info.nightscout.plugins.constraints.signatureVerifier.SignatureVerifierPl
 import info.nightscout.plugins.general.actions.ActionsPlugin
 import info.nightscout.plugins.general.autotune.AutotunePlugin
 import info.nightscout.plugins.general.food.FoodPlugin
+import info.nightscout.plugins.general.garmin.GarminPlugin
 import info.nightscout.plugins.general.overview.OverviewPlugin
 import info.nightscout.plugins.general.persistentNotification.PersistentNotificationPlugin
 import info.nightscout.plugins.general.smsCommunicator.SmsCommunicatorPlugin
@@ -454,6 +455,12 @@ abstract class PluginsListModule {
     @IntoMap
     @IntKey(610)
     abstract fun bindAvgSmoothingPlugin(plugin: AvgSmoothingPlugin): PluginBase
+
+    @Binds
+    @AllConfigs
+    @IntoMap
+    @IntKey(623)
+    abstract fun bindGarminPlugin(plugin: GarminPlugin): PluginBase
 
     @Qualifier
     annotation class AllConfigs

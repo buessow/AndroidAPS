@@ -10,6 +10,7 @@ import info.nightscout.database.entities.EffectiveProfileSwitch
 import info.nightscout.database.entities.ExtendedBolus
 import info.nightscout.database.entities.Food
 import info.nightscout.database.entities.GlucoseValue
+import info.nightscout.database.entities.HeartRate
 import info.nightscout.database.entities.OfflineEvent
 import info.nightscout.database.entities.ProfileSwitch
 import info.nightscout.database.entities.TemporaryBasal
@@ -936,6 +937,14 @@ import kotlin.math.roundToInt
 
     fun getHeartRatesFromTimeToTime(startMillis: Long, endMillis: Long) =
         database.heartRateDao.getFromTimeToTime(startMillis, endMillis)
+
+    fun getLastHeartRateId(): Long? = database.heartRateDao.getLastId()
+
+    fun getNextSyncElementHeartRate(id: Long): Pair<HeartRate, HeartRate?>? {
+        val hr = database.heartRateDao.getNextAfter(id) ?: return null
+        val ref = hr.referenceId?.let { refId -> database.heartRateDao.findById(refId) }
+        return if (ref == null) (hr to null) else (ref to hr)
+    }
 
     suspend fun collectNewEntriesSince(since: Long, until: Long, limit: Int, offset: Int) = NewEntries(
         apsResults = database.apsResultDao.getNewEntriesSince(since, until, limit, offset),

@@ -26,6 +26,15 @@ import info.nightscout.plugins.sync.nsclient.workers.NSClientMbgWorker
 import info.nightscout.plugins.sync.nsclient.workers.NSClientUpdateRemoveAckWorker
 import info.nightscout.plugins.sync.nsclientV3.DataSyncSelectorV3Impl
 import info.nightscout.plugins.sync.nsclientV3.workers.*
+import info.nightscout.plugins.sync.nsclientV3.workers.DataSyncWorker
+import info.nightscout.plugins.sync.nsclientV3.workers.LoadBgWorker
+import info.nightscout.plugins.sync.nsclientV3.workers.LoadDeviceStatusWorker
+import info.nightscout.plugins.sync.nsclientV3.workers.LoadFoodsWorker
+import info.nightscout.plugins.sync.nsclientV3.workers.LoadHeartRateWorker
+import info.nightscout.plugins.sync.nsclientV3.workers.LoadLastModificationWorker
+import info.nightscout.plugins.sync.nsclientV3.workers.LoadProfileStoreWorker
+import info.nightscout.plugins.sync.nsclientV3.workers.LoadStatusWorker
+import info.nightscout.plugins.sync.nsclientV3.workers.LoadTreatmentsWorker
 import info.nightscout.plugins.sync.tidepool.TidepoolFragment
 import info.nightscout.plugins.sync.xdrip.DataSyncSelectorXdripImpl
 import info.nightscout.plugins.sync.xdrip.XdripFragment
@@ -62,6 +71,7 @@ abstract class SyncModule {
     @ContributesAndroidInjector abstract fun contributesTidepoolFragment(): TidepoolFragment
     @ContributesAndroidInjector abstract fun contributesXdripFragment(): XdripFragment
     @ContributesAndroidInjector abstract fun contributesXdripDataSyncWorker(): XdripDataSyncWorker
+    @ContributesAndroidInjector abstract fun contributesLoadHeartRateWorker(): LoadHeartRateWorker
 
     @Module
     open class Provide {

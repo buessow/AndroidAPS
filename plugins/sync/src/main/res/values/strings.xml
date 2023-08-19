@@ -7,6 +7,7 @@
     <string name="key_ns_therapy_event_last_synced_id" translatable="false">ns_therapy_event_last_sync</string>
     <string name="key_ns_bolus_calculator_result_last_synced_id" translatable="false">ns_bolus_calculator_result_last_synced_id</string>
     <string name="key_ns_carbs_last_synced_id" translatable="false">ns_carbs_last_synced_id</string>
+    <string name="key_ns_heart_rate_last_synced_id" translatable="false">ns_heart_rate_last_synced_id</string>
     <string name="key_ns_bolus_last_synced_id" translatable="false">ns_bolus_last_synced_id</string>
     <string name="key_ns_device_status_last_synced_id" translatable="false">ns_device_status_last_synced_id</string>
     <string name="key_ns_temporary_basal_last_synced_id" translatable="false">ns_temporary_basal_last_synced_id</string>
@@ -97,6 +98,9 @@
     <string name="ns_receive_therapy_events_summary">Accept therapy events (cannula, insulin, battery change etc) entered through NS or NSClient</string>
     <string name="ns_receive_cgm">Receive/backfill CGM data</string>
     <string name="ns_receive_cgm_summary">Accept CGM data from NS</string>
+    <string name="key_ns_receive_heart_rate">ns_receive_heart_rate</string>
+    <string name="ns_receive_heart_rate">Receive heart rate data</string>
+    <string name="ns_receive_heart_rate_summary">Accept heart rate data from NS</string>
     <string name="ns_sync_slow">Slow down uploads</string>
     <string name="ns_alarm_options">Alarm options</string>
     <string name="ns_alarms">Create notifications from NS alarms</string>

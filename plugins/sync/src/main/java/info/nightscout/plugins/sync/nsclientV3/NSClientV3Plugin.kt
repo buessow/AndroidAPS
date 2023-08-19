@@ -49,6 +49,7 @@ import info.nightscout.plugins.sync.nsclientV3.extensions.toNSDeviceStatus
 import info.nightscout.plugins.sync.nsclientV3.extensions.toNSEffectiveProfileSwitch
 import info.nightscout.plugins.sync.nsclientV3.extensions.toNSExtendedBolus
 import info.nightscout.plugins.sync.nsclientV3.extensions.toNSFood
+import info.nightscout.plugins.sync.nsclientV3.extensions.toNSHeartRate
 import info.nightscout.plugins.sync.nsclientV3.extensions.toNSOfflineEvent
 import info.nightscout.plugins.sync.nsclientV3.extensions.toNSProfileSwitch
 import info.nightscout.plugins.sync.nsclientV3.extensions.toNSSvgV3
@@ -59,6 +60,7 @@ import info.nightscout.plugins.sync.nsclientV3.workers.DataSyncWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadBgWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadDeviceStatusWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadFoodsWorker
+import info.nightscout.plugins.sync.nsclientV3.workers.LoadHeartRateWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadLastModificationWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadProfileStoreWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadStatusWorker
@@ -77,6 +79,7 @@ import info.nightscout.sdk.NSAndroidClientImpl
 import info.nightscout.sdk.interfaces.NSAndroidClient
 import info.nightscout.sdk.mapper.toNSDeviceStatus
 import info.nightscout.sdk.mapper.toNSFood
+import info.nightscout.sdk.mapper.toNSHeartRate
 import info.nightscout.sdk.mapper.toNSSgvV3
 import info.nightscout.sdk.mapper.toNSTreatment
 import info.nightscout.sdk.remotemodel.LastModified
@@ -170,6 +173,9 @@ class NSClientV3Plugin @Inject constructor(
     internal var newestDataOnServer: LastModified? = null // timestamp of last modification for every collection provided by server
     internal var lastLoadedSrvModified = LastModified(LastModified.Collections()) // max srvLastModified timestamp of last fetched data for every collection
     internal var firstLoadContinueTimestamp = LastModified(LastModified.Collections()) // timestamp of last fetched data for every collection during initial load
+
+    override val supportsHeartRate get() =
+        nsAndroidClient?.lastStatus?.apiPermissions?.heartRate?.full == true
 
     override fun onStart() {
         super.onStart()
@@ -300,7 +306,7 @@ class NSClientV3Plugin @Inject constructor(
 
     private fun setClient(reason: String) {
         nsAndroidClient = NSAndroidClientImpl(
-            baseUrl = sp.getString(info.nightscout.core.utils.R.string.key_nsclientinternal_url, "").lowercase().replace("https://", "").replace(Regex("/$"), ""),
+            baseUrl = sp.getString(info.nightscout.core.utils.R.string.key_nsclientinternal_url, "").lowercase(),
             accessToken = sp.getString(R.string.key_ns_client_token, ""),
             context = context,
             logging = true,
@@ -457,6 +463,11 @@ class NSClientV3Plugin @Inject constructor(
                 storeDataForDb.storeFoodsToDb()
             }
 
+            "heartrate"    -> docString.toNSHeartRate()?.let {
+                nsIncomingDataProcessor.processHeartRate(listOf(it))
+                storeDataForDb.storeHeartRatesToDb()
+            }
+
             "settings"     -> {}
         }
     }
@@ -585,6 +596,7 @@ class NSClientV3Plugin @Inject constructor(
             NsClient.Collection.TREATMENTS -> lastLoadedSrvModified.collections.treatments == 0L
             NsClient.Collection.FOODS      -> lastLoadedSrvModified.collections.foods == 0L
             NsClient.Collection.PROFILE    -> lastLoadedSrvModified.collections.profile == 0L
+            NsClient.Collection.HEART_RATE -> lastLoadedSrvModified.collections.heartRate == 0L
         }
 
     override fun updateLatestBgReceivedIfNewer(latestReceived: Long) {
@@ -759,6 +771,51 @@ class NSClientV3Plugin @Inject constructor(
         return true
     }
 
+    private suspend fun dbOperationHeartRate(
+        collection: String = "heartrate",
+        dataPair: DataSyncSelector.PairHeartRate,
+        progress: String,
+        operation: Operation): Boolean {
+        val aClient = nsAndroidClient ?: run {
+            aapsLogger.warn(LTag.NSCLIENT, "No nsclient to update HR")
+            return false
+        }
+        val call = when (operation) {
+            Operation.CREATE -> aClient::createHeartRate
+            Operation.UPDATE -> aClient::updateHeartRate
+        }
+        try {
+            val hr = dataPair.value
+            val nsHr = hr.toNSHeartRate()
+            rxBus.send(EventNSClientNewLog(
+                "$operation $collection",
+                "Sending ${dataPair.javaClass.simpleName} <i>${gson.toJson(nsHr)}</i> $progress"))
+
+            val result = call(nsHr)
+            val action = when(result.response) {
+                200 -> "UPDATED"
+                201 -> "ADDED"
+                400 -> "FAIL"
+                404 -> "NOT_FOUND"
+                else -> "ERROR"
+            }
+            rxBus.send(EventNSClientNewLog(
+                action,
+                "${hr.javaClass.simpleName} ${result.errorResponse ?: ""}"))
+            result.identifier?.let { nsId ->
+                hr.interfaceIDs.nightscoutId = nsId
+                storeDataForDb.nsIdHeartRates.add(hr)
+            }
+
+            return true
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.NSCLIENT, "Upload exception", e)
+            return false
+        } finally {
+            slowDown()
+        }
+    }
+
     private suspend fun dbOperationTreatments(collection: String = "treatments", dataPair: DataSyncSelector.DataPair, progress: String, operation: Operation, profile: Profile?): Boolean {
         val call = when (operation) {
             Operation.CREATE -> nsAndroidClient?.let { return@let it::createTreatment }
@@ -886,6 +943,7 @@ class NSClientV3Plugin @Inject constructor(
             "devicestatus" -> dbOperationDeviceStatus(dataPair = dataPair as DataSyncSelector.PairDeviceStatus, progress = progress)
             "entries"      -> dbOperationEntries(dataPair = dataPair as DataSyncSelector.PairGlucoseValue, progress = progress, operation = operation)
             "food"         -> dbOperationFood(dataPair = dataPair as DataSyncSelector.PairFood, progress = progress, operation = operation)
+            "heartrate"    -> dbOperationHeartRate(dataPair = dataPair as DataSyncSelector.PairHeartRate, progress= progress, operation = operation)
             "treatments"   -> dbOperationTreatments(dataPair = dataPair, progress = progress, operation = operation, profile = profile)
 
             else           -> false
@@ -926,6 +984,7 @@ class NSClientV3Plugin @Inject constructor(
             .then(OneTimeWorkRequest.Builder(LoadProfileStoreWorker::class.java).build())
             .then(OneTimeWorkRequest.Builder(LoadDeviceStatusWorker::class.java).build())
             .then(OneTimeWorkRequest.Builder(DataSyncWorker::class.java).build())
+            .then(OneTimeWorkRequest.Builder(LoadHeartRateWorker::class.java).build())
             .enqueue()
     }
 

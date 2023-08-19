@@ -13,14 +13,17 @@ import info.nightscout.sdk.localmodel.Status
 import info.nightscout.sdk.localmodel.devicestatus.NSDeviceStatus
 import info.nightscout.sdk.localmodel.entry.NSSgvV3
 import info.nightscout.sdk.localmodel.food.NSFood
+import info.nightscout.sdk.localmodel.heartrate.NSHeartRate
 import info.nightscout.sdk.localmodel.treatment.CreateUpdateResponse
 import info.nightscout.sdk.localmodel.treatment.NSTreatment
 import info.nightscout.sdk.mapper.toLocal
 import info.nightscout.sdk.mapper.toNSDeviceStatus
 import info.nightscout.sdk.mapper.toNSFood
+import info.nightscout.sdk.mapper.toNSHeartRate
 import info.nightscout.sdk.mapper.toRemoteDeviceStatus
 import info.nightscout.sdk.mapper.toRemoteEntry
 import info.nightscout.sdk.mapper.toRemoteFood
+import info.nightscout.sdk.mapper.toRemoteHeartRate
 import info.nightscout.sdk.mapper.toRemoteTreatment
 import info.nightscout.sdk.mapper.toSgv
 import info.nightscout.sdk.mapper.toTreatment
@@ -29,6 +32,7 @@ import info.nightscout.sdk.remotemodel.LastModified
 import info.nightscout.sdk.remotemodel.RemoteDeviceStatus
 import info.nightscout.sdk.remotemodel.RemoteEntry
 import info.nightscout.sdk.remotemodel.RemoteFood
+import info.nightscout.sdk.remotemodel.RemoteHeartRate
 import info.nightscout.sdk.remotemodel.RemoteTreatment
 import info.nightscout.sdk.utils.retry
 import info.nightscout.sdk.utils.toNotNull
@@ -37,6 +41,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.logging.HttpLoggingInterceptor
 import org.json.JSONObject
+import retrofit2.Response
 
 /**
  *
@@ -66,7 +71,8 @@ class NSAndroidClientImpl(
     context: Context,
     logging: Boolean,
     logger: HttpLoggingInterceptor.Logger,
-    private val dispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val retries: Int = 3
 ) : NSAndroidClient {
 
     internal val api = NetworkStackBuilder.getApi(
@@ -507,10 +513,79 @@ class NSAndroidClientImpl(
             throw UnsuccessfullNightscoutException()
     }
 
+    private fun <T> errorMessage(response: Response<T>) =
+        "${response.message()}/${response.code()} ${response.errorBody()?.string()}"
+
+    override suspend fun getHeartRatesModifiedSince(from: Long, limit: Int?): List<NSHeartRate> {
+        return callWrapper(dispatcher) {
+            val response = api.getHeartRateModifiedSince(from, limit)
+            if (response.isSuccessful) {
+                response.body()?.result?.map(RemoteHeartRate::toNSHeartRate).toNotNull()
+            } else {
+                if (response.code() in 400..499) {
+                    throw InvalidParameterNightscoutException(errorMessage(response))
+                } else {
+                    throw UnsuccessfullNightscoutException(errorMessage(response))
+                }
+            }
+        }
+    }
+
+    override suspend fun createHeartRate(nsHeartRate: NSHeartRate): CreateUpdateResponse {
+        val remoteHR = nsHeartRate.toRemoteHeartRate().apply { app = "AAPS" }
+        return callWrapper(dispatcher) {
+            val response = api.createHeartRate(remoteHR)
+            when (response.code()) {
+                200, 201 ->
+                    CreateUpdateResponse(
+                        response = response.code(),
+                        identifier = response.body()?.identifier,
+                        isDeduplication = response.body()?.isDeduplication,
+                        deduplicatedIdentifier = response.body()?.deduplicatedIdentifier,
+                        lastModified = response.body()?.lastModified)
+
+                in 400..499 ->
+                    CreateUpdateResponse(
+                        response = response.code(),
+                        identifier = null,
+                        errorResponse = errorMessage(response))
+
+                else -> throw UnsuccessfullNightscoutException(errorMessage(response))
+            }
+        }
+    }
+
+    override suspend fun updateHeartRate(nsHeartRate: NSHeartRate): CreateUpdateResponse {
+        val remoteHeartRate = nsHeartRate.toRemoteHeartRate()
+        val identifier = nsHeartRate.identifier ?: throw InvalidFormatNightscoutException()
+        return callWrapper(dispatcher) {
+            val response = if (nsHeartRate.isValid) {
+                api.updateHeartRate(remoteHeartRate, identifier)
+            } else {
+                api.deleteHeartRate(identifier)
+            }
+            when (response.code()) {
+                in 200..299, 404 ->
+                    CreateUpdateResponse(
+                        response = response.code(),
+                        identifier = null,
+                        isDeduplication = false)
+
+                in 400..499 ->
+                    CreateUpdateResponse(
+                        response = response.code(),
+                        identifier = null,
+                        errorResponse = errorMessage(response))
+
+                else -> throw UnsuccessfullNightscoutException(errorMessage(response))
+            }
+        }
+    }
+
     private suspend fun <T> callWrapper(dispatcher: CoroutineDispatcher, block: suspend () -> T): T =
         withContext(dispatcher) {
             retry(
-                numberOfRetries = RETRIES,
+                numberOfRetries = retries,
                 delayBetweenRetries = RETRY_DELAY,
                 excludedExceptions = listOf(
                     InvalidAccessTokenException::class,
@@ -525,7 +600,6 @@ class NSAndroidClientImpl(
     companion object {
 
         // TODO: Parameters?
-        private const val RETRIES = 3
         private const val RETRY_DELAY = 100L
     }
 }

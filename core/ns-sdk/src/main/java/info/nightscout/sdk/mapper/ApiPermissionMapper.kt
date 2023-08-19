@@ -13,7 +13,8 @@ internal fun RemoteApiPermissions.toLocal(): ApiPermissions =
         food = food.toLocal(),
         profile = profile.toLocal(),
         settings = settings.toLocal(),
-        treatments = treatments.toLocal()
+        treatments = treatments.toLocal(),
+        heartRate = heartRate?.toLocal() ?: ApiPermission(false, false, false, false)
     )
 
 internal fun RemoteApiPermission.toLocal(): ApiPermission =

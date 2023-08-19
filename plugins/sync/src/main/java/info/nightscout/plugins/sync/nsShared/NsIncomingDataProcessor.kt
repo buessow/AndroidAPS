@@ -24,6 +24,7 @@ import info.nightscout.rx.logging.AAPSLogger
 import info.nightscout.rx.logging.LTag
 import info.nightscout.sdk.localmodel.entry.NSSgvV3
 import info.nightscout.sdk.localmodel.food.NSFood
+import info.nightscout.sdk.localmodel.heartrate.NSHeartRate
 import info.nightscout.sdk.localmodel.treatment.*
 import info.nightscout.shared.sharedPreferences.SP
 import info.nightscout.shared.utils.DateUtil
@@ -227,6 +228,12 @@ class NsIncomingDataProcessor @Inject constructor(
                 profileSource.loadFromStore(store)
                 aapsLogger.debug(LTag.PROFILE, "Received profileStore: $profileJson")
             }
+        }
+    }
+
+    fun processHeartRate(nsHeartRates: List<NSHeartRate>) {
+        if (!sp.getBoolean(R.string.key_ns_receive_heart_rate, true)) {
+            storeDataForDb.heartRates.addAll(nsHeartRates.map { nsHr -> nsHr.toHeartRate() })
         }
     }
 }

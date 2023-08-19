@@ -20,7 +20,8 @@ data class LastModified(
         @SerializedName("profile") var profile: Long = 0,           // profile collection
         @SerializedName("treatments") var treatments: Long = 0,     // treatments collection
         @SerializedName("foods") var foods: Long = 0,               // foods collection
-        @SerializedName("settings") var settings: Long = 0          // settings collection
+        @SerializedName("settings") var settings: Long = 0,         // settings collection
+        @SerializedName("heartrate") var heartRate: Long = 0,       // heart rate collection
     )
 
     fun set(colName: String, value: Long) {
@@ -31,6 +32,7 @@ data class LastModified(
             "treatments"   -> collections.treatments = value
             "foods"        -> collections.foods = value
             "settings"     -> collections.settings = value
+            "heartrate"    -> collections.heartRate = value
         }
     }
 }

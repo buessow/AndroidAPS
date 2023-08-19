@@ -7,6 +7,7 @@ import info.nightscout.interfaces.nsclient.StoreDataForDb
 import info.nightscout.interfaces.plugin.ActivePlugin
 import info.nightscout.interfaces.profile.ProfileFunction
 import info.nightscout.interfaces.sync.DataSyncSelector
+import info.nightscout.interfaces.sync.NsClient
 import info.nightscout.interfaces.utils.JsonHelper
 import info.nightscout.plugins.sync.R
 import info.nightscout.plugins.sync.nsShared.events.EventNSClientUpdateGuiQueue
@@ -16,6 +17,7 @@ import info.nightscout.rx.logging.AAPSLogger
 import info.nightscout.rx.logging.LTag
 import info.nightscout.shared.sharedPreferences.SP
 import info.nightscout.shared.utils.DateUtil
+import org.jetbrains.annotations.VisibleForTesting
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -46,7 +48,8 @@ class DataSyncSelectorV3 @Inject constructor(
         var ebsRemaining: Long = -1L,
         var pssRemaining: Long = -1L,
         var epssRemaining: Long = -1L,
-        var oesRemaining: Long = -1L
+        var oesRemaining: Long = -1L,
+        var hrRemaining: Long = -1L
     ) {
 
         fun size(): Long =
@@ -62,7 +65,8 @@ class DataSyncSelectorV3 @Inject constructor(
                 ebsRemaining +
                 pssRemaining +
                 epssRemaining +
-                oesRemaining
+                oesRemaining +
+                hrRemaining
     }
 
     private val queueCounter = QueueCounter()
@@ -86,6 +90,7 @@ class DataSyncSelectorV3 @Inject constructor(
             queueCounter.pssRemaining = (appRepository.getLastProfileSwitchId() ?: 0L) - sp.getLong(R.string.key_ns_profile_switch_last_synced_id, 0)
             queueCounter.epssRemaining = (appRepository.getLastEffectiveProfileSwitchId() ?: 0L) - sp.getLong(R.string.key_ns_effective_profile_switch_last_synced_id, 0)
             queueCounter.oesRemaining = (appRepository.getLastOfflineEventId() ?: 0L) - sp.getLong(R.string.key_ns_offline_event_last_synced_id, 0)
+            queueCounter.hrRemaining = (appRepository.getLastHeartRateId() ?: 0L) - sp.getLong(R.string.key_ns_heart_rate_last_synced_id, 0)
             rxBus.send(EventNSClientUpdateGuiQueue())
             processChangedGlucoseValues()
             processChangedBoluses()
@@ -101,6 +106,7 @@ class DataSyncSelectorV3 @Inject constructor(
             processChangedDeviceStatuses()
             processChangedOfflineEvents()
             processChangedProfileStore()
+            processChangedHeartRate()
             storeDataForDb.updateNsIds()
         }
         rxBus.send(EventNSClientUpdateGuiStatus())
@@ -120,6 +126,7 @@ class DataSyncSelectorV3 @Inject constructor(
         sp.remove(R.string.key_ns_effective_profile_switch_last_synced_id)
         sp.remove(R.string.key_ns_offline_event_last_synced_id)
         sp.remove(R.string.key_ns_profile_store_last_synced_timestamp)
+        sp.remove(R.string.key_ns_heart_rate_last_synced_id)
 
         val lastDeviceStatusDbId = appRepository.getLastDeviceStatusId()
         if (lastDeviceStatusDbId != null) sp.putLong(R.string.key_ns_device_status_last_synced_id, lastDeviceStatusDbId)
@@ -209,6 +216,64 @@ class DataSyncSelectorV3 @Inject constructor(
             } ?: run {
                 cont = false
             }
+        }
+    }
+
+    private suspend fun updateOneHeartRate(id: Long, lastId: Long, nsClient: NsClient): Long? {
+        /* We get new and old if this was an updated and only new otherwise */
+        val (new, old) = appRepository.getNextSyncElementHeartRate(id) ?: return null
+
+        val success = if (new.interfaceIDs.nightscoutId == null) {
+            /* Entity not known to NS, add it. */
+            nsClient.nsAdd(
+                "heartrate",
+                DataSyncSelector.PairHeartRate(new, new.id),
+                "${new.id}/${lastId}")
+
+        } else if (old == null || new.contentEqualsTo(old)) {
+            /* No change (or only nightscout id was added. Ignore. */
+            true
+
+        } else {
+            /* Something changed and we have nightscout id: update the entity. */
+            nsClient.nsUpdate(
+                "heartrate",
+                DataSyncSelector.PairHeartRate(new, old.id),
+                "${old.id}/${lastId}")
+        }
+
+        if (!success) {
+            aapsLogger.warn(LTag.NSCLIENT, "add/update HR failed for $new")
+            return null
+        }
+        /* Since old.id > new.id, i.e. old was created after new as a copy of the old values.
+         * Therefore, we need to continue from old.id if it exists.*/
+        return old?.id ?: new.id
+    }
+
+    /** Retrieves new and modified heart rate events from local data base and updates Nightscout. */
+    @VisibleForTesting
+    suspend fun processChangedHeartRate() {
+        val nsClient = activePlugin.activeNsClient ?: run {
+            aapsLogger.warn(LTag.NSCLIENT, "No active nsclient, cannot sync HR")
+            return
+        }
+
+        // Get last db id and skip if there's no HR in database.
+        val lastDbId = appRepository.getLastHeartRateId() ?: return
+        if(!nsClient.supportsHeartRate) {
+            aapsLogger.warn(LTag.NSCLIENT, "Heart rate sync is not supported by Nightscout server")
+            return
+        }
+        var id: Long? = sp.getLong(R.string.key_ns_heart_rate_last_synced_id, 0L)
+        if (id!! > lastDbId) {
+            aapsLogger.info(LTag.NSCLIENT, "Resetting HR startId: $id lastDbId: $lastDbId")
+            id = 0
+        }
+        while (id != null) {
+            sp.putLong(R.string.key_ns_heart_rate_last_synced_id, id)
+            queueCounter.hrRemaining = lastDbId - id
+            id = updateOneHeartRate(id, lastDbId, nsClient)
         }
     }
 

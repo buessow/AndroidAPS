@@ -7,6 +7,7 @@ import info.nightscout.sdk.remotemodel.RemoteCreateUpdateResponse
 import info.nightscout.sdk.remotemodel.RemoteDeviceStatus
 import info.nightscout.sdk.remotemodel.RemoteEntry
 import info.nightscout.sdk.remotemodel.RemoteFood
+import info.nightscout.sdk.remotemodel.RemoteHeartRate
 import info.nightscout.sdk.remotemodel.RemoteStatusResponse
 import info.nightscout.sdk.remotemodel.RemoteTreatment
 import org.json.JSONObject
@@ -103,4 +104,17 @@ internal interface NightscoutRemoteService {
     @POST("v3/profile")
     suspend fun createProfile(@Body profile: JsonObject): Response<RemoteCreateUpdateResponse>
 
+    @GET("v3/heartrate/history/{from}")
+    suspend fun getHeartRateModifiedSince(@Path("from") from: Long, @Query("limit") limit: Int?):
+        Response<NSResponse<List<RemoteHeartRate>>>
+
+    @POST("v3/heartrate")
+    suspend fun createHeartRate(@Body remoteHeartRate: RemoteHeartRate): Response<RemoteCreateUpdateResponse>
+
+    @PATCH("v3/heartrate/{identifier}")
+    suspend fun updateHeartRate(@Body remoteHeartRate: RemoteHeartRate, @Path("identifier") identifier: String):
+        Response<RemoteCreateUpdateResponse>
+
+    @DELETE("v3/heartrate/{identifier}")
+    suspend fun deleteHeartRate(@Path("identifier") identifier: String): Response<RemoteCreateUpdateResponse>
 }

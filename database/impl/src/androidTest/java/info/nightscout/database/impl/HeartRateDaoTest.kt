@@ -11,6 +11,7 @@ import info.nightscout.database.entities.HeartRate
 import info.nightscout.database.entities.TABLE_HEART_RATE
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,6 +44,69 @@ internal class HeartRateDaoTest {
     @Test
     fun new_insertAndFind() {
         createDatabase().use { db -> insertAndFind(db) }
+    }
+
+    @Test
+    fun getLastId() {
+        createDatabase().use { db ->
+            assertNull(db.heartRateDao.getLastId())
+            val ids = (0 until 4).map { i ->
+                db.heartRateDao.insert(createHeartRate(1000L + i, 80.0 + i))
+            }
+            assertEquals(ids.last(), db.heartRateDao.getLastId())
+        }
+    }
+
+    @Test
+    fun getNextAfter() {
+        createDatabase().use { db ->
+            assertNull(db.heartRateDao.getNextAfter(0L))
+            val ids = (0 until 4).map { i ->
+                db.heartRateDao.insert(createHeartRate(1000L + i, 80.0 + i))
+            }
+            for (i in ids.indices) {
+                val hr = db.heartRateDao.getNextAfter(ids[i])
+                assertEquals(ids.getOrNull(i + 1), hr?.id)
+            }
+        }
+    }
+
+    @Test
+    fun getNewEntriesSince() {
+        createDatabase().use { db ->
+            assertNull(db.heartRateDao.getNextAfter(0L))
+            val hrs = (0 until 4).map { i ->
+                val hr = createHeartRate(1000L + i, 80.0 + i)
+                hr.id = db.heartRateDao.insert(hr)
+                hr
+            }
+            assertEquals(
+                emptyList<HeartRate>(),
+                db.heartRateDao.getNewEntriesSince(hrs.last().timestamp, Long.MAX_VALUE, 1, 0))
+            assertEquals(
+                listOf(hrs[1], hrs[2]),
+                db.heartRateDao.getNewEntriesSince(hrs[0].timestamp, hrs[2].timestamp, 10, 0))
+            assertEquals(
+                listOf(hrs[1]),
+                db.heartRateDao.getNewEntriesSince(hrs[0].timestamp, hrs[3].timestamp, 1, 0))
+            assertEquals(
+                listOf(hrs[2]),
+                db.heartRateDao.getNewEntriesSince(hrs[0].timestamp, hrs[3].timestamp, 1, 1))
+        }
+    }
+
+    fun getByNSId() {
+        createDatabase().use { db ->
+            val hrs = (0 until 4).map { i ->
+                val hr = createHeartRate(1000L + i, 80.0 + i)
+                hr.id = db.heartRateDao.insert(hr)
+                hr
+            }
+            for (hr in hrs) {
+                assertEquals(hr, db.heartRateDao.findByNSId(hr.interfaceIDs.nightscoutId!!))
+            }
+            assertNull(db.heartRateDao.findByNSId("foo"))
+        }
     }
 
     @Test
@@ -120,7 +184,6 @@ internal class HeartRateDaoTest {
                 duration = 60_0000L,
                 beatsPerMinute = beatsPerMinute,
                 device = "T",
-            )
-
+            ).apply { interfaceIDs.nightscoutId = "id:$timestamp"}
     }
 }

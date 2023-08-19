@@ -25,6 +25,7 @@ import info.nightscout.plugins.sync.nsclientV3.workers.DataSyncWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadBgWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadDeviceStatusWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadFoodsWorker
+import info.nightscout.plugins.sync.nsclientV3.workers.LoadHeartRateWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadLastModificationWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadProfileStoreWorker
 import info.nightscout.plugins.sync.nsclientV3.workers.LoadStatusWorker
@@ -65,6 +66,7 @@ abstract class SyncModule {
     @ContributesAndroidInjector abstract fun contributesTidepoolFragment(): TidepoolFragment
     @ContributesAndroidInjector abstract fun contributesXdripFragment(): XdripFragment
     @ContributesAndroidInjector abstract fun contributesXdripDataSyncWorker(): XdripDataSyncWorker
+    @ContributesAndroidInjector abstract fun contributesLoadHeartRateWorker(): LoadHeartRateWorker
 
     @Module
     open class Provide {

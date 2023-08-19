@@ -9,6 +9,7 @@ import info.nightscout.database.entities.EffectiveProfileSwitch
 import info.nightscout.database.entities.ExtendedBolus
 import info.nightscout.database.entities.Food
 import info.nightscout.database.entities.GlucoseValue
+import info.nightscout.database.entities.HeartRate
 import info.nightscout.database.entities.OfflineEvent
 import info.nightscout.database.entities.ProfileSwitch
 import info.nightscout.database.entities.TemporaryBasal
@@ -35,6 +36,7 @@ import info.nightscout.database.impl.transactions.SyncNsCarbsTransaction
 import info.nightscout.database.impl.transactions.SyncNsEffectiveProfileSwitchTransaction
 import info.nightscout.database.impl.transactions.SyncNsExtendedBolusTransaction
 import info.nightscout.database.impl.transactions.SyncNsFoodTransaction
+import info.nightscout.database.impl.transactions.SyncNsHeartRatesTransaction
 import info.nightscout.database.impl.transactions.SyncNsOfflineEventTransaction
 import info.nightscout.database.impl.transactions.SyncNsProfileSwitchTransaction
 import info.nightscout.database.impl.transactions.SyncNsTemporaryBasalTransaction
@@ -48,6 +50,7 @@ import info.nightscout.database.impl.transactions.UpdateNsIdEffectiveProfileSwit
 import info.nightscout.database.impl.transactions.UpdateNsIdExtendedBolusTransaction
 import info.nightscout.database.impl.transactions.UpdateNsIdFoodTransaction
 import info.nightscout.database.impl.transactions.UpdateNsIdGlucoseValueTransaction
+import info.nightscout.database.impl.transactions.UpdateNsIdHeartRateTransaction
 import info.nightscout.database.impl.transactions.UpdateNsIdOfflineEventTransaction
 import info.nightscout.database.impl.transactions.UpdateNsIdProfileSwitchTransaction
 import info.nightscout.database.impl.transactions.UpdateNsIdTemporaryBasalTransaction
@@ -101,6 +104,7 @@ class StoreDataForDbImpl @Inject constructor(
     override val profileSwitches: MutableList<ProfileSwitch> = mutableListOf()
     override val offlineEvents: MutableList<OfflineEvent> = mutableListOf()
     override val foods: MutableList<Food> = mutableListOf()
+    override val heartRates: MutableList<HeartRate> = mutableListOf()
 
     override val nsIdGlucoseValues: MutableList<GlucoseValue> = mutableListOf()
     override val nsIdBoluses: MutableList<Bolus> = mutableListOf()
@@ -115,6 +119,7 @@ class StoreDataForDbImpl @Inject constructor(
     override val nsIdOfflineEvents: MutableList<OfflineEvent> = mutableListOf()
     override val nsIdDeviceStatuses: MutableList<DeviceStatus> = mutableListOf()
     override val nsIdFoods: MutableList<Food> = mutableListOf()
+    override val nsIdHeartRates: MutableList<HeartRate> = mutableListOf()
 
     override val deleteTreatment: MutableList<String> = mutableListOf()
     override val deleteGlucoseValue: MutableList<String> = mutableListOf()
@@ -188,6 +193,35 @@ class StoreDataForDbImpl @Inject constructor(
                 }
 
         sendLog("Food", Food::class.java.simpleName)
+        SystemClock.sleep(pause)
+        rxBus.send(EventNSClientNewLog("● DONE PROCESSING FOOD", ""))
+    }
+
+    override fun storeHeartRatesToDb() {
+        if (heartRates.isNotEmpty()) {
+            val result = repository
+                .runTransactionForResult(SyncNsHeartRatesTransaction(heartRates))
+                .doOnError { e ->
+                    aapsLogger.error(LTag.DATABASE, "Error while saving heart rates", e)
+                }
+                .blockingGet()
+
+            heartRates.clear()
+            result.updated.forEach { hr ->
+                aapsLogger.debug(LTag.DATABASE, "Updated food $hr")
+                updated.inc(HeartRate::class.java.simpleName)
+            }
+            result.inserted.forEach { hr ->
+                aapsLogger.debug(LTag.DATABASE, "Inserted food $hr")
+                inserted.inc(HeartRate::class.java.simpleName)
+            }
+            result.invalidated.forEach { hr ->
+                aapsLogger.debug(LTag.DATABASE, "Invalidated food $hr")
+                invalidated.inc(HeartRate::class.java.simpleName)
+            }
+        }
+
+        sendLog("HeartRate", HeartRate::class.java.simpleName)
         SystemClock.sleep(pause)
         rxBus.send(EventNSClientNewLog("● DONE PROCESSING FOOD", ""))
     }
@@ -828,6 +862,19 @@ class StoreDataForDbImpl @Inject constructor(
                 nsIdFoods.clear()
                 result.updatedNsId.forEach {
                     aapsLogger.debug(LTag.DATABASE, "Updated nsId of Food $it")
+                    nsIdUpdated.inc(Food::class.java.simpleName)
+                }
+            }
+
+        repository.runTransactionForResult(UpdateNsIdHeartRateTransaction(nsIdHeartRates))
+            .doOnError { error ->
+                aapsLogger.error(LTag.DATABASE, "Updated nsId of heart rate failed", error)
+            }
+            .blockingGet()
+            .also { result ->
+                nsIdFoods.clear()
+                result.updatedNsId.forEach {
+                    aapsLogger.debug(LTag.DATABASE, "Updated nsId of heart rate $it")
                     nsIdUpdated.inc(Food::class.java.simpleName)
                 }
             }

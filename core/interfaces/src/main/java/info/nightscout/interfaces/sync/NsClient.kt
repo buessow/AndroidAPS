@@ -40,8 +40,11 @@ interface NsClient : Sync {
      */
     fun detectedNsVersion(): String?
 
-    enum class Collection { ENTRIES, TREATMENTS, FOODS, PROFILE }
+    enum class Collection { ENTRIES, TREATMENTS, FOODS, PROFILE, HEART_RATE }
 
+    /** Checks whether Nightscout gives us full (read, create, update) permission to
+     * the heart rate collection. */
+    val supportsHeartRate: Boolean
     /**
      * NSC v3 does first load of all data
      * next loads are using srvModified property for sync

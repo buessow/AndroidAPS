@@ -8,6 +8,7 @@ import info.nightscout.database.entities.EffectiveProfileSwitch
 import info.nightscout.database.entities.ExtendedBolus
 import info.nightscout.database.entities.Food
 import info.nightscout.database.entities.GlucoseValue
+import info.nightscout.database.entities.HeartRate
 import info.nightscout.database.entities.OfflineEvent
 import info.nightscout.database.entities.ProfileSwitch
 import info.nightscout.database.entities.TemporaryBasal
@@ -28,6 +29,7 @@ interface StoreDataForDb {
     val profileSwitches: MutableList<ProfileSwitch>
     val offlineEvents: MutableList<OfflineEvent>
     val foods: MutableList<Food>
+    val heartRates: MutableList<HeartRate>
 
     val nsIdGlucoseValues: MutableList<GlucoseValue>
     val nsIdBoluses: MutableList<Bolus>
@@ -42,6 +44,7 @@ interface StoreDataForDb {
     val nsIdOfflineEvents: MutableList<OfflineEvent>
     val nsIdDeviceStatuses: MutableList<DeviceStatus>
     val nsIdFoods: MutableList<Food>
+    val nsIdHeartRates: MutableList<HeartRate>
 
     val deleteTreatment: MutableList<String>
     val deleteGlucoseValue: MutableList<String>
@@ -51,6 +54,7 @@ interface StoreDataForDb {
     fun updateDeletedTreatmentsInDb()
     fun storeGlucoseValuesToDb()
     fun storeFoodsToDb()
+    fun storeHeartRatesToDb()
     fun scheduleNsIdUpdate()
     fun updateNsIds()
 }

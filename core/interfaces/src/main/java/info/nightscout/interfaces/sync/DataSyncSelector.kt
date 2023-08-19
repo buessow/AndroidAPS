@@ -8,6 +8,7 @@ import info.nightscout.database.entities.EffectiveProfileSwitch
 import info.nightscout.database.entities.ExtendedBolus
 import info.nightscout.database.entities.Food
 import info.nightscout.database.entities.GlucoseValue
+import info.nightscout.database.entities.HeartRate
 import info.nightscout.database.entities.OfflineEvent
 import info.nightscout.database.entities.ProfileSwitch
 import info.nightscout.database.entities.TemporaryBasal
@@ -38,6 +39,7 @@ interface DataSyncSelector {
     data class PairOfflineEvent(override val value: OfflineEvent, override val id: Long, override var confirmed: Boolean = false) : DataPair
     data class PairProfileStore(override val value: JSONObject, override val id: Long, override var confirmed: Boolean = false) : DataPair
     data class PairDeviceStatus(override val value: DeviceStatus, override val id: Long, override var confirmed: Boolean = false) : DataPair
+    data class PairHeartRate(override val value: HeartRate, override val id: Long, override var confirmed: Boolean = false) : DataPair
 
     fun queueSize(): Long
 

@@ -4,6 +4,7 @@ import info.nightscout.sdk.localmodel.Status
 import info.nightscout.sdk.localmodel.devicestatus.NSDeviceStatus
 import info.nightscout.sdk.localmodel.entry.NSSgvV3
 import info.nightscout.sdk.localmodel.food.NSFood
+import info.nightscout.sdk.localmodel.heartrate.NSHeartRate
 import info.nightscout.sdk.localmodel.treatment.CreateUpdateResponse
 import info.nightscout.sdk.localmodel.treatment.NSTreatment
 import info.nightscout.sdk.remotemodel.LastModified
@@ -45,4 +46,8 @@ interface NSAndroidClient {
     //suspend fun getFoodsModifiedSince(from: Long, limit: Int): ReadResponse<List<NSFood>>
     suspend fun createFood(nsFood: NSFood): CreateUpdateResponse
     suspend fun updateFood(nsFood: NSFood): CreateUpdateResponse
+
+    suspend fun createHeartRate(nsHeartRate: NSHeartRate): CreateUpdateResponse
+    suspend fun updateHeartRate(nsHeartRate: NSHeartRate): CreateUpdateResponse
+    suspend fun getHeartRatesModifiedSince(from: Long, limit: Int? = null): List<NSHeartRate>
 }

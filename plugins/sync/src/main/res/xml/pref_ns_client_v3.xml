@@ -101,6 +101,12 @@
                 android:summary="@string/ns_receive_tbr_eb_summary"
                 android:title="@string/ns_receive_tbr_eb" />
 
+            <SwitchPreference
+                android:defaultValue="false"
+                android:key="@string/key_ns_receive_heart_rate"
+                android:summary="@string/ns_receive_heart_rate_summary"
+                android:title="@string/ns_receive_heart_rate" />
+
         </androidx.preference.PreferenceScreen>>
 
         <androidx.preference.PreferenceScreen

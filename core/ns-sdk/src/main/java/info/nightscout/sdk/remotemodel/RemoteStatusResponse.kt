@@ -30,7 +30,8 @@ internal data class RemoteApiPermissions(
     @SerializedName("food") val food: RemoteApiPermission,
     @SerializedName("profile") val profile: RemoteApiPermission,
     @SerializedName("settings") val settings: RemoteApiPermission,
-    @SerializedName("treatments") val treatments: RemoteApiPermission
+    @SerializedName("treatments") val treatments: RemoteApiPermission,
+    @SerializedName("heartrate") val heartRate: RemoteApiPermission?,
 )
 
 internal typealias RemoteApiPermission = String

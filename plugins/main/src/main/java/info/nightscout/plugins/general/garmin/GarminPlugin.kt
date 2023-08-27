@@ -323,44 +323,39 @@ class GarminPlugin @Inject constructor(
         }
     }
 
-    private fun toLong(v: Any?, @Suppress("SameParameterValue") default: Long): Long {
-        return when (v) {
-            is Long -> v
-            is Int  -> v.toLong()
-            else    -> default
-        }
-    }
+    private fun toLong(v: Any?) = (v as? Number?)?.toLong() ?: 0L
 
     @VisibleForTesting
     fun receiveHeartRate(msg: Map<String, Any>, test: Boolean) {
         val avg: Int = msg.getOrDefault("hr", 0) as Int
-        val samplingStart: Long = toLong(msg["hrStart"], 0L)
-        val samplingEnd: Long = toLong(msg["hrEnd"], 0L)
+        val samplingStartSec: Long = toLong(msg["hrStart"])
+        val samplingEndSec: Long = toLong(msg["hrEnd"])
         val device: String? = msg["device"] as String?
-        receiveHeartRate(avg, samplingStart, samplingEnd, device, test)
+        receiveHeartRate(
+            Instant.ofEpochSecond(samplingStartSec), Instant.ofEpochSecond(samplingEndSec),
+            avg, device, test)
     }
 
     @VisibleForTesting
     fun receiveHeartRate(uri: URI) {
         val avg: Int = getQueryParameter(uri, "hr", 0L).toInt()
-        val samplingStart: Long = getQueryParameter(uri, "hrStart", 0L)
-        val samplingEnd: Long = getQueryParameter(uri, "hrEnd", 0L)
+        val samplingStartSec: Long = getQueryParameter(uri, "hrStart", 0L)
+        val samplingEndSec: Long = getQueryParameter(uri, "hrEnd", 0L)
         val device: String? = getQueryParameter(uri, "device")
         receiveHeartRate(
-            avg, samplingStart, samplingEnd, device,
-            getQueryParameter(uri, "test", false)
-        )
+            Instant.ofEpochSecond(samplingStartSec), Instant.ofEpochSecond(samplingEndSec),
+            avg, device, getQueryParameter(uri, "test", false))
     }
 
     private fun receiveHeartRate(
-        avg: Int, samplingStart: Long, samplingEnd: Long, device: String?, test: Boolean) {
+        samplingStart: Instant, samplingEnd: Instant,
+        avg: Int, device: String?, test: Boolean) {
         aapsLogger.info(LTag.GARMIN, "average heart rate $avg BPM test=$test")
-        if (avg > 10 && !test) {
-            loopHub.storeHeartRate(
-                Instant.ofEpochMilli(samplingStart),
-                Instant.ofEpochMilli(samplingEnd),
-                avg,
-                device)
+        if (test) return
+        if (avg > 10 && samplingStart > Instant.ofEpochMilli(0L) && samplingEnd > samplingStart) {
+            loopHub.storeHeartRate(samplingStart, samplingEnd, avg, device)
+        } else {
+            aapsLogger.warn(LTag.GARMIN, "Skip saving invalid HR $avg $samplingStart..$samplingEnd")
         }
     }
 

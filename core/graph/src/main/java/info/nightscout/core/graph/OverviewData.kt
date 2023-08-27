@@ -6,6 +6,7 @@ import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import com.jjoe64.graphview.series.BarGraphSeries
 import com.jjoe64.graphview.series.DataPoint
+import info.nightscout.core.graph.data.HorizontalBarGraphSeries
 import com.jjoe64.graphview.series.LineGraphSeries
 import info.nightscout.core.graph.data.DataPointWithLabelInterface
 import info.nightscout.core.graph.data.DeviationDataPoint
@@ -151,6 +152,6 @@ interface OverviewData {
     var dsMaxSeries: LineGraphSeries<ScaledDataPoint>
     var dsMinSeries: LineGraphSeries<ScaledDataPoint>
     var heartRateScale: Scale
-    var heartRateGraphSeries: PointsWithLabelGraphSeries<DataPointWithLabelInterface>
+    var heartRateGraphSeries: HorizontalBarGraphSeries
 
 }

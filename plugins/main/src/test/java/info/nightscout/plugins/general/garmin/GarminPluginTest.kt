@@ -105,8 +105,8 @@ class GarminPluginTest: TestBase() {
         val hr = createHeartRate(80)
         gp.receiveHeartRate(hr, false)
         verify(loopHub).storeHeartRate(
-            Instant.ofEpochMilli(hr["hrStart"] as Long),
-            Instant.ofEpochMilli(hr["hrEnd"] as Long),
+            Instant.ofEpochSecond(hr["hrStart"] as Long),
+            Instant.ofEpochSecond(hr["hrEnd"] as Long),
             80,
             hr["device"] as String)
     }
@@ -117,8 +117,8 @@ class GarminPluginTest: TestBase() {
         val uri = createUri(hr)
         gp.receiveHeartRate(uri)
         verify(loopHub).storeHeartRate(
-            Instant.ofEpochMilli(hr["hrStart"] as Long),
-            Instant.ofEpochMilli(hr["hrEnd"] as Long),
+            Instant.ofEpochSecond(hr["hrStart"] as Long),
+            Instant.ofEpochSecond(hr["hrEnd"] as Long),
             99,
             hr["device"] as String)
     }
@@ -177,8 +177,8 @@ class GarminPluginTest: TestBase() {
         verify(loopHub).isConnected
         verify(loopHub).glucoseUnit
         verify(loopHub).storeHeartRate(
-            Instant.ofEpochMilli(hr["hrStart"] as Long),
-            Instant.ofEpochMilli(hr["hrEnd"] as Long),
+            Instant.ofEpochSecond(hr["hrStart"] as Long),
+            Instant.ofEpochSecond(hr["hrEnd"] as Long),
             99,
             hr["device"] as String)
     }
@@ -210,8 +210,8 @@ class GarminPluginTest: TestBase() {
         verify(loopHub).isConnected
         verify(loopHub).glucoseUnit
         verify(loopHub).storeHeartRate(
-            Instant.ofEpochMilli(params["hrStart"] as Long),
-            Instant.ofEpochMilli(params["hrEnd"] as Long),
+            Instant.ofEpochSecond(params["hrStart"] as Long),
+            Instant.ofEpochSecond(params["hrEnd"] as Long),
             99,
             params["device"] as String)
     }
@@ -291,8 +291,8 @@ class GarminPluginTest: TestBase() {
         msg["command"] = "heartrate"
         gp.onMessage(app, msg)
         verify(loopHub, timeout(1000)).storeHeartRate(
-            Instant.ofEpochMilli(msg["hrStart"] as Long),
-            Instant.ofEpochMilli(msg["hrEnd"] as Long),
+            Instant.ofEpochSecond(msg["hrStart"] as Long),
+            Instant.ofEpochSecond(msg["hrEnd"] as Long),
             80,
             msg["device"] as String)
     }

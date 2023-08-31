@@ -1,6 +1,5 @@
 package info.nightscout.androidaps.activities
 
-import android.content.Context
 import dagger.android.HasAndroidInjector
 import info.nightscout.core.graph.OverviewData
 import info.nightscout.core.utils.fabric.FabricPrivacy
@@ -24,7 +23,6 @@ import javax.inject.Singleton
 class HistoryBrowserData @Inject constructor(
     injector: HasAndroidInjector,
     aapsSchedulers: AapsSchedulers,
-    context: Context,
     rxBus: RxBus,
     aapsLogger: AAPSLogger,
     rh: ResourceHelper,
@@ -46,7 +44,6 @@ class HistoryBrowserData @Inject constructor(
         overviewData =
             OverviewDataImpl(
                 aapsLogger,
-                context,
                 rh,
                 dateUtil,
                 sp,

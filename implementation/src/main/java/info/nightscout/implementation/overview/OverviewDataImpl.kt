@@ -6,7 +6,6 @@ import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import com.jjoe64.graphview.series.BarGraphSeries
 import com.jjoe64.graphview.series.DataPoint
-import info.nightscout.core.graph.data.HorizontalBarGraphSeries
 import com.jjoe64.graphview.series.LineGraphSeries
 import info.nightscout.core.extensions.convertedToPercent
 import info.nightscout.core.extensions.isInProgress
@@ -47,7 +46,6 @@ import javax.inject.Singleton
 @Singleton
 class OverviewDataImpl @Inject constructor(
     private val aapsLogger: AAPSLogger,
-    private val context: Context,
     private val rh: ResourceHelper,
     private val dateUtil: DateUtil,
     private val sp: SP,
@@ -102,7 +100,9 @@ class OverviewDataImpl @Inject constructor(
         treatmentsSeries = PointsWithLabelGraphSeries()
         maxEpsValue = 0.0
         epsSeries = PointsWithLabelGraphSeries()
-        heartRateGraphSeries = HorizontalBarGraphSeries(context)
+        maxTherapyEventValue = 0.0
+        therapyEventSeries = PointsWithLabelGraphSeries()
+        heartRateGraphSeries = PointsWithLabelGraphSeries()
     }
 
     override fun initRange() {
@@ -339,5 +339,5 @@ class OverviewDataImpl @Inject constructor(
     override var dsMaxSeries: LineGraphSeries<ScaledDataPoint> = LineGraphSeries()
     override var dsMinSeries: LineGraphSeries<ScaledDataPoint> = LineGraphSeries()
     override var heartRateScale = Scale()
-    override var heartRateGraphSeries = HorizontalBarGraphSeries(context)
+    override var heartRateGraphSeries: PointsWithLabelGraphSeries<DataPointWithLabelInterface> = PointsWithLabelGraphSeries()
 }

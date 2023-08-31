@@ -20,7 +20,5 @@ class HeartRateDataPoint(
     override val size = 10f
     override val paintStyle: Paint.Style = Paint.Style.FILL
 
-    override fun color(context: Context?): Int = rh.gac(
-        context?.let { rh.getThemedCtx(it) },
-        info.nightscout.core.ui.R.attr.heartRateColor)
+    override fun color(context: Context?): Int = rh.gac(context, info.nightscout.core.ui.R.attr.heartRateColor)
 }

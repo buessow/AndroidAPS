@@ -23,7 +23,7 @@ internal interface HeartRateDao : TraceableDao<HeartRate> {
     @Query("SELECT * FROM $TABLE_HEART_RATE WHERE timestamp >= :timestamp ORDER BY timestamp")
     fun getFromTime(timestamp: Long): List<HeartRate>
 
-    @Query("SELECT * FROM $TABLE_HEART_RATE WHERE timestamp BETWEEN :startMillis AND :endMillis ORDER BY timestamp")
+    @Query("SELECT * FROM $TABLE_HEART_RATE WHERE timestamp BETWEEN :startMillis AND :endMillis AND referenceId IS NULL ORDER BY timestamp")
     fun getFromTimeToTime(startMillis: Long, endMillis: Long): List<HeartRate>
 
     @Query("SELECT * FROM $TABLE_HEART_RATE WHERE timestamp > :since AND timestamp <= :until  ORDER BY TIMESTAMP LIMIT :limit OFFSET :offset")

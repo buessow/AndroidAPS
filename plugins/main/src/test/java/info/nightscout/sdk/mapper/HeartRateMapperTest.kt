@@ -1,7 +1,9 @@
 package info.nightscout.sdk.mapper
 
-import info.nightscout.sdk.localmodel.heartrate.NSHeartRate
-import info.nightscout.sdk.remotemodel.RemoteHeartRate
+import app.aaps.core.nssdk.mapper.toNSHeartRate
+import app.aaps.core.nssdk.mapper.toRemoteHeartRate
+import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
+import app.aaps.core.nssdk.remotemodel.RemoteHeartRate
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

@@ -1,9 +1,10 @@
 package info.nightscout.sdk
 
 import android.content.Context
-import info.nightscout.androidaps.TestBase
-import info.nightscout.rx.logging.LTag
-import info.nightscout.sdk.localmodel.heartrate.NSHeartRate
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.nssdk.NSAndroidClientImpl
+import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
+import app.aaps.shared.tests.TestBase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.Dispatcher

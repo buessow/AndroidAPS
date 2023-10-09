@@ -1,22 +1,24 @@
-package info.nightscout.plugins.general.garmin
+package app.aaps.plugins.main.general.garmin
 
 import android.content.Context
+import android.os.Parcel
+import android.os.Parcelable
 import androidx.annotation.VisibleForTesting
+import app.aaps.core.interfaces.db.GlucoseUnit
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.plugin.PluginBase
+import app.aaps.core.interfaces.plugin.PluginDescription
+import app.aaps.core.interfaces.plugin.PluginType
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventNewBG
+import app.aaps.core.interfaces.rx.events.EventPreferenceChange
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.database.entities.GlucoseValue
+import app.aaps.plugins.main.R
 import com.google.gson.JsonObject
 import dagger.android.HasAndroidInjector
-import info.nightscout.database.entities.GlucoseValue
-import info.nightscout.interfaces.GlucoseUnit
-import info.nightscout.interfaces.plugin.PluginBase
-import info.nightscout.interfaces.plugin.PluginDescription
-import info.nightscout.interfaces.plugin.PluginType
-import info.nightscout.plugins.R
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.rx.events.EventNewBG
-import info.nightscout.rx.events.EventPreferenceChange
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.interfaces.ResourceHelper
-import info.nightscout.shared.sharedPreferences.SP
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.net.SocketAddress
@@ -382,7 +384,7 @@ class GarminPlugin @Inject constructor(
             loopHub.disconnectPump(minutes)
         } else {
             loopHub.connectPump()
-       }
+        }
 
         val jo = JsonObject()
         jo.addProperty("connected", loopHub.isConnected)

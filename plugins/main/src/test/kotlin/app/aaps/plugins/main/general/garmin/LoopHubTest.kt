@@ -1,30 +1,30 @@
-package info.nightscout.plugins.general.garmin
+package app.aaps.plugins.main.general.garmin
 
 
-import info.nightscout.androidaps.TestBase
-import info.nightscout.database.ValueWrapper
-import info.nightscout.database.entities.EffectiveProfileSwitch
-import info.nightscout.database.entities.GlucoseValue
-import info.nightscout.database.entities.HeartRate
-import info.nightscout.database.entities.OfflineEvent
-import info.nightscout.database.entities.UserEntry
-import info.nightscout.database.entities.ValueWithUnit
-import info.nightscout.database.entities.embedments.InsulinConfiguration
-import info.nightscout.database.impl.AppRepository
-import info.nightscout.database.impl.transactions.CancelCurrentOfflineEventIfAnyTransaction
-import info.nightscout.database.impl.transactions.InsertOrUpdateHeartRateTransaction
-import info.nightscout.interfaces.GlucoseUnit
-import info.nightscout.interfaces.aps.APSResult
-import info.nightscout.interfaces.aps.Loop
-import info.nightscout.interfaces.constraints.Constraint
-import info.nightscout.interfaces.constraints.Constraints
-import info.nightscout.interfaces.iob.IobCobCalculator
-import info.nightscout.interfaces.iob.IobTotal
-import info.nightscout.interfaces.logging.UserEntryLogger
-import info.nightscout.interfaces.profile.Profile
-import info.nightscout.interfaces.profile.ProfileFunction
-import info.nightscout.interfaces.pump.DetailedBolusInfo
-import info.nightscout.interfaces.queue.CommandQueue
+import app.aaps.core.interfaces.queue.CommandQueue
+import  app.aaps.database.ValueWrapper
+import app.aaps.database.entities.EffectiveProfileSwitch
+import  app.aaps.database.entities.GlucoseValue
+import  app.aaps.database.entities.HeartRate
+import  app.aaps.database.entities.OfflineEvent
+import  app.aaps.database.entities.UserEntry
+import  app.aaps.database.entities.ValueWithUnit
+import  app.aaps.database.entities.embedments.InsulinConfiguration
+import  app.aaps.database.impl.AppRepository
+import  app.aaps.database.impl.transactions.CancelCurrentOfflineEventIfAnyTransaction
+import app.aaps.database.impl.transactions.InsertOrUpdateHeartRateTransaction
+import  app.aaps.core.interfaces.aps.APSResult
+import  app.aaps.core.interfaces.aps.Loop
+import  app.aaps.core.interfaces.constraints.Constraint
+import  app.aaps.core.interfaces.constraints.ConstraintsChecker
+import app.aaps.core.interfaces.db.GlucoseUnit
+import  app.aaps.core.interfaces.iob.IobCobCalculator
+import  app.aaps.core.interfaces.iob.IobTotal
+import  app.aaps.core.interfaces.logging.UserEntryLogger
+import  app.aaps.core.interfaces.profile.Profile
+import  app.aaps.core.interfaces.profile.ProfileFunction
+import  app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.shared.tests.TestBase
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 import org.junit.jupiter.api.AfterEach
@@ -47,7 +47,7 @@ import java.time.ZoneId
 
 class LoopHubTest: TestBase() {
     @Mock lateinit var commandQueue: CommandQueue
-    @Mock lateinit var constraints: Constraints
+    @Mock lateinit var constraints: ConstraintsChecker
     @Mock lateinit var iobCobCalculator: IobCobCalculator
     @Mock lateinit var loop: Loop
     @Mock lateinit var profileFunction: ProfileFunction
@@ -218,10 +218,11 @@ class LoopHubTest: TestBase() {
 
     @Test
     fun testPostCarbs() {
-        val constraint = { carbs: Int -> argThat<Constraint<Int>> { c -> c.value() == carbs } ?: Constraint(0)}
-        `when`(constraints.applyCarbsConstraints(constraint(100) )).thenReturn(Constraint(99))
+        val constraint = mock(Constraint::class.java) as Constraint<Int>
+        `when`(constraint.value()).thenReturn(99)
+        `when`(constraints.getMaxCarbsAllowed()).thenReturn(constraint)
         loopHub.postCarbs(100)
-        verify(constraints).applyCarbsConstraints(constraint(100))
+        verify(constraints).getMaxCarbsAllowed()
         verify(userEntryLogger).log(
             UserEntry.Action.CARBS,
             UserEntry.Sources.GarminDevice,

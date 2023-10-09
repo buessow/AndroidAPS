@@ -1,4 +1,4 @@
-package info.nightscout.plugins.general.garmin
+package app.aaps.plugins.main.general.garmin
 
 
 import com.garmin.monkeybrains.serialization.MonkeyString

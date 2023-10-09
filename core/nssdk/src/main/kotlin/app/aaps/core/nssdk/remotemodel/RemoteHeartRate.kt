@@ -1,4 +1,4 @@
-package info.nightscout.sdk.remotemodel
+package app.aaps.core.nssdk.remotemodel
 
 import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.Serializable

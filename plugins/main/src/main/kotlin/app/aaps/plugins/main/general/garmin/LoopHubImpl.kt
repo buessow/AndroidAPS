@@ -1,28 +1,27 @@
-package info.nightscout.plugins.general.garmin
+package app.aaps.plugins.main.general.garmin
 
 import androidx.annotation.VisibleForTesting
-import info.nightscout.database.ValueWrapper
-import info.nightscout.database.entities.EffectiveProfileSwitch
-import info.nightscout.database.entities.GlucoseValue
-import info.nightscout.database.entities.HeartRate
-import info.nightscout.database.entities.OfflineEvent
-import info.nightscout.database.entities.UserEntry
-import info.nightscout.database.entities.ValueWithUnit
-import info.nightscout.database.impl.AppRepository
-import info.nightscout.database.impl.transactions.CancelCurrentOfflineEventIfAnyTransaction
-import info.nightscout.database.impl.transactions.InsertOrUpdateHeartRateTransaction
-import info.nightscout.interfaces.GlucoseUnit
-import info.nightscout.interfaces.aps.Loop
-import info.nightscout.interfaces.constraints.Constraint
-import info.nightscout.interfaces.constraints.Constraints
-import info.nightscout.interfaces.iob.IobCobCalculator
-import info.nightscout.interfaces.logging.UserEntryLogger
-import info.nightscout.interfaces.profile.Profile
-import info.nightscout.interfaces.profile.ProfileFunction
-import info.nightscout.interfaces.pump.DetailedBolusInfo
-import info.nightscout.interfaces.queue.CommandQueue
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
+import app.aaps.core.interfaces.aps.Loop
+import app.aaps.core.interfaces.constraints.ConstraintsChecker
+import app.aaps.core.interfaces.db.GlucoseUnit
+import app.aaps.core.interfaces.iob.IobCobCalculator
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.logging.UserEntryLogger
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.queue.CommandQueue
+import app.aaps.database.ValueWrapper
+import app.aaps.database.entities.EffectiveProfileSwitch
+import app.aaps.database.entities.GlucoseValue
+import app.aaps.database.entities.HeartRate
+import app.aaps.database.entities.OfflineEvent
+import app.aaps.database.entities.UserEntry
+import app.aaps.database.entities.ValueWithUnit
+import app.aaps.database.impl.AppRepository
+import app.aaps.database.impl.transactions.CancelCurrentOfflineEventIfAnyTransaction
+import app.aaps.database.impl.transactions.InsertOrUpdateHeartRateTransaction
 import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
@@ -35,7 +34,7 @@ import javax.inject.Singleton
 class LoopHubImpl @Inject constructor(
     private val aapsLogger: AAPSLogger,
     private val commandQueue: CommandQueue,
-    private val constraintChecker: Constraints,
+    private val constraintChecker: ConstraintsChecker,
     private val iobCobCalculator: IobCobCalculator,
     private val loop: Loop,
     private val profileFunction: ProfileFunction,
@@ -111,7 +110,8 @@ class LoopHubImpl @Inject constructor(
     /** Notifies the system that carbs were eaten and stores the value. */
     override fun postCarbs(carbohydrates: Int) {
         aapsLogger.info(LTag.GARMIN, "post $carbohydrates g carbohydrates")
-        val carbsAfterConstraints = constraintChecker.applyCarbsConstraints(Constraint(carbohydrates)).value()
+        val carbsAfterConstraints =
+            carbohydrates.coerceAtMost(constraintChecker.getMaxCarbsAllowed().value())
         userEntryLogger.log(
             UserEntry.Action.CARBS,
             UserEntry.Sources.GarminDevice,

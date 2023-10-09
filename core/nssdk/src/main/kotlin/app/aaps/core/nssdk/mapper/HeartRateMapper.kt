@@ -1,8 +1,8 @@
-package info.nightscout.sdk.mapper
+package app.aaps.core.nssdk.mapper
 
+import app.aaps.core.nssdk.remotemodel.RemoteHeartRate
 import com.google.gson.Gson
-import info.nightscout.sdk.localmodel.heartrate.NSHeartRate
-import info.nightscout.sdk.remotemodel.RemoteHeartRate
+import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
 
 fun String.toNSHeartRate(): NSHeartRate? =
     Gson().fromJson(this, RemoteHeartRate::class.java)?.toNSHeartRate()

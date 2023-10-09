@@ -1,20 +1,24 @@
-package info.nightscout.plugins.sync.nsclientV3.workers
+package app.aaps.plugins.sync.nsclientV3.workers
 
+import android.content.Context
 import androidx.work.testing.TestListenableWorkerBuilder
 import dagger.android.AndroidInjector
-import info.nightscout.androidaps.TestBase
-import info.nightscout.database.entities.HeartRate
-import info.nightscout.interfaces.nsclient.StoreDataForDb
-import info.nightscout.interfaces.sync.NsClient
-import info.nightscout.plugins.sync.R
-import info.nightscout.plugins.sync.nsclientV3.NSClientV3Plugin
-import info.nightscout.plugins.sync.nsclientV3.extensions.toHeartRate
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.sdk.interfaces.NSAndroidClient
-import info.nightscout.sdk.localmodel.heartrate.NSHeartRate
-import info.nightscout.sdk.remotemodel.LastModified
-import info.nightscout.shared.sharedPreferences.SP
-import info.nightscout.shared.utils.DateUtil
+import app.aaps.database.entities.HeartRate
+import app.aaps.core.interfaces.nsclient.StoreDataForDb
+import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.core.interfaces.sync.NsClient
+import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.nssdk.interfaces.NSAndroidClient
+import app.aaps.plugins.sync.R
+import app.aaps.plugins.sync.nsclientV3.NSClientV3Plugin
+import app.aaps.plugins.sync.nsclientV3.extensions.toHeartRate
+import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
+import app.aaps.core.nssdk.remotemodel.LastModified
+import app.aaps.shared.impl.utils.DateUtilImpl
+import app.aaps.shared.tests.TestBase
+import dagger.android.HasAndroidInjector
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -22,6 +26,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
+import org.mockito.Mockito
 import org.mockito.Mockito.atLeast
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.mock
@@ -34,7 +39,14 @@ import java.time.Instant
 
 class LoadHeartRateWorkerTest: TestBase() {
 
+    abstract class ContextWithInjector : Context(), HasAndroidInjector
+
     @Mock private lateinit var androidClient: NSAndroidClient
+    @Mock private lateinit var context: ContextWithInjector
+    @Mock private lateinit var fabricPrivacy: FabricPrivacy
+    @Mock private lateinit var sp: SP
+    @Mock private lateinit var nsClientV3Plugin: NSClientV3Plugin
+    @Mock private lateinit var storeDataForDb: StoreDataForDb
     private lateinit var worker: LoadHeartRateWorker
     private lateinit var lastModified: LastModified
     private val hrToStore = mutableListOf<HeartRate>()
@@ -42,23 +54,32 @@ class LoadHeartRateWorkerTest: TestBase() {
     private val now = 100_000_000L
     private val maxAge = 10_000L
 
+    private val injector = HasAndroidInjector {
+        AndroidInjector {
+            if (it is LoadHeartRateWorker) {
+                it.aapsLogger = aapsLogger
+                it.fabricPrivacy = fabricPrivacy
+                it.sp = sp
+                it.rxBus = rxBus
+                it.dateUtil = spy(DateUtilImpl(context))
+                it.nsClientV3Plugin = nsClientV3Plugin
+                it.storeDataForDb = storeDataForDb
+            }
+        }
+    }
+
     @BeforeEach
     fun setup() {
         `when`(context.applicationContext).thenReturn(context)
-        `when`(context.androidInjector()).thenReturn(AndroidInjector { })
+        `when`(context.androidInjector()).thenReturn(injector.androidInjector())
         lastModified = LastModified(LastModified.Collections())
         worker = TestListenableWorkerBuilder<LoadHeartRateWorker>(context).build().apply {
-            rxBus = mock(RxBus::class.java)
-            sp = mock(SP::class.java)
             `when`(sp.getBoolean(R.string.key_ns_receive_heart_rate, false)).thenReturn(true)
-            nsClientV3Plugin = mock(NSClientV3Plugin::class.java)
             `when`(nsClientV3Plugin.supportsHeartRate).thenReturn(true)
             `when`(nsClientV3Plugin.nsAndroidClient).thenReturn(androidClient)
             `when`(nsClientV3Plugin.lastLoadedSrvModified).thenReturn(lastModified)
             `when`(nsClientV3Plugin.maxAge).thenReturn(maxAge)
-            dateUtil = spy(DateUtil(context))
             `when`(dateUtil.now()).thenReturn(now)
-            storeDataForDb = mock(StoreDataForDb::class.java)
             `when`(storeDataForDb.heartRates).thenReturn(hrToStore)
         }
     }

@@ -1,19 +1,16 @@
-package info.nightscout.plugins.general.garmin
+package app.aaps.plugins.main.general.garmin
 
 
 import android.content.Context
+import app.aaps.core.interfaces.db.GlucoseUnit
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.rx.events.EventNewBG
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.database.entities.GlucoseValue
+import app.aaps.shared.tests.TestBase
 import com.garmin.android.connectiq.IQApp
 import dagger.android.AndroidInjector
 import dagger.android.HasAndroidInjector
-import info.nightscout.androidaps.TestBase
-import info.nightscout.database.entities.GlucoseValue
-import info.nightscout.interfaces.GlucoseUnit
-import info.nightscout.rx.bus.RxBus
-import info.nightscout.rx.events.EventNewBG
-import info.nightscout.shared.interfaces.ResourceHelper
-import info.nightscout.shared.sharedPreferences.SP
-import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.collection.IsMapContaining.hasEntry
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -42,7 +39,6 @@ class GarminPluginTest: TestBase() {
     private lateinit var gp: GarminPlugin
 
     @Mock private lateinit var rh: ResourceHelper
-    @Mock private lateinit var rxBus: RxBus
     @Mock private lateinit var sp: SP
     @Mock private lateinit var context: Context
     @Mock private lateinit var loopHub: LoopHub
@@ -262,14 +258,14 @@ class GarminPluginTest: TestBase() {
             eq(app) ?: app, captor.capture() ?: ByteArray(0))
         @Suppress("UNCHECKED_CAST")
         val r = ConnectIqSerializer.deserialize(captor.value) as Map<String, Any>
-        assertThat(r, hasEntry("command", "glucose"))
-        assertThat(r, hasEntry("profile", "D"))
-        assertThat(r, hasEntry("encodedGlucose", ""))
-        assertThat(r, hasEntry("remainingInsulin", 0.0))
-        assertThat(r, hasEntry("glucoseUnit", "mmoll"))
-        assertThat(r, hasEntry("temporaryBasalRate", 0.0))
-        assertThat(r, hasEntry("connected", false))
-        assertThat(r, hasEntry("timestamp", clock.instant().epochSecond))
+        assertEquals("glucose", r["command"])
+        assertEquals("D", r["profile"])
+        assertEquals("", r["encodedGlucose"])
+        assertEquals(0.0, r["remainingInsulin"])
+        assertEquals("mmoll", r["glucoseUnit"])
+        assertEquals(0.0, r["temporaryBasalRate"])
+        assertEquals(false, r["connected"])
+        assertEquals(clock.instant().epochSecond, r["timestamp"])
         verify(loopHub).getGlucoseValues(getGlucoseValuesFrom, true)
         verify(loopHub).insulinOnboard
         verify(loopHub).temporaryBasal

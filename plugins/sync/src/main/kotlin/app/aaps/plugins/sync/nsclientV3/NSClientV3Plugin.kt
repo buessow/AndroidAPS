@@ -53,6 +53,7 @@ import app.aaps.core.nssdk.NSAndroidClientImpl
 import app.aaps.core.nssdk.interfaces.NSAndroidClient
 import app.aaps.core.nssdk.mapper.toNSDeviceStatus
 import app.aaps.core.nssdk.mapper.toNSFood
+import app.aaps.core.nssdk.mapper.toNSHeartRate
 import app.aaps.core.nssdk.mapper.toNSSgvV3
 import app.aaps.core.nssdk.mapper.toNSTreatment
 import app.aaps.core.nssdk.remotemodel.LastModified
@@ -74,6 +75,7 @@ import app.aaps.plugins.sync.nsclientV3.extensions.toNSDeviceStatus
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSEffectiveProfileSwitch
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSExtendedBolus
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSFood
+import app.aaps.plugins.sync.nsclientV3.extensions.toNSHeartRate
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSOfflineEvent
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSProfileSwitch
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSSvgV3
@@ -91,6 +93,7 @@ import app.aaps.plugins.sync.nsclientV3.workers.LoadTreatmentsWorker
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.android.HasAndroidInjector
+import app.aaps.plugins.sync.nsclientV3.workers.LoadHeartRateWorker
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import io.socket.client.Ack
@@ -335,8 +338,7 @@ class NSClientV3Plugin @Inject constructor(
 
     private fun setClient(reason: String) {
         nsAndroidClient = NSAndroidClientImpl(
-            baseUrl = sp.getString(app.aaps.core.utils.R.string.key_nsclientinternal_url, "").lowercase().replace("https://", "").replace(Regex("/$"), ""),
-            baseUrl = sp.getString(info.nightscout.core.utils.R.string.key_nsclientinternal_url, "").lowercase(),
+            baseUrl = sp.getString(app.aaps.core.utils.R.string.key_nsclientinternal_url, "").lowercase(),
             accessToken = sp.getString(R.string.key_ns_client_token, ""),
             context = context,
             logging = true,

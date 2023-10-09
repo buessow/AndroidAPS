@@ -1,4 +1,4 @@
-package info.nightscout.plugins.general.garmin
+package app.aaps.plugins.main.general.garmin
 
 
 import org.junit.jupiter.api.Assertions.assertArrayEquals

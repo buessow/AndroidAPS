@@ -29,6 +29,8 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
 
+//    android { packagingOptions { resources.excludes.add("META-INF/*") } }
+
     lint {
         checkReleaseBuilds false
         disable 'MissingTranslation'

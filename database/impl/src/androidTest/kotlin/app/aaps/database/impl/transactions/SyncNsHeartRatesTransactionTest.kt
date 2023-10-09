@@ -1,12 +1,12 @@
-package info.nightscout.database.impl.transactions
+package app.aaps.database.impl.transactions
 
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import info.nightscout.database.impl.AppDatabase
-import info.nightscout.database.impl.AppRepository
-import info.nightscout.database.impl.HeartRateDaoTest
+import app.aaps.database.impl.AppDatabase
+import app.aaps.database.impl.AppRepository
+import app.aaps.database.impl.HeartRateDaoTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -53,7 +53,7 @@ class SyncNsHeartRatesTransactionTest {
         assertTrue(result.inserted.isEmpty())
         assertTrue(result.invalidated.isEmpty())
 
-        val v0Retrieved = db.heartRateDao.getFromTime(0L).first { hr -> hr.referenceId == id }
+        val v0Retrieved = db.heartRateDao.getFromTime(0L).blockingGet().first { hr -> hr.referenceId == id }
         val v1Retrieved = db.heartRateDao.findById(id)!!
         assertEquals(v0.beatsPerMinute, v0Retrieved.beatsPerMinute, 0.1)
         assertEquals(0, v0Retrieved.version)
@@ -73,7 +73,7 @@ class SyncNsHeartRatesTransactionTest {
         assertTrue(result.inserted.isEmpty())
         assertTrue(result.updated.isEmpty())
 
-        val v0Retrieved = db.heartRateDao.getFromTime(0L).first { hr -> hr.referenceId == id }
+        val v0Retrieved = db.heartRateDao.getFromTime(0L).blockingGet().first { hr -> hr.referenceId == id }
         val v1Retrieved = db.heartRateDao.findById(id)!!
         assertTrue(v0Retrieved.isValid)
         assertFalse(v1Retrieved.isValid)

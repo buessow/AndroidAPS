@@ -1,7 +1,7 @@
-package info.nightscout.plugins.sync.nsclientV3.extensions
+package app.aaps.plugins.sync.nsclientV3.extensions
 
-import info.nightscout.database.entities.HeartRate
-import info.nightscout.sdk.localmodel.heartrate.NSHeartRate
+import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
+import app.aaps.database.entities.HeartRate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

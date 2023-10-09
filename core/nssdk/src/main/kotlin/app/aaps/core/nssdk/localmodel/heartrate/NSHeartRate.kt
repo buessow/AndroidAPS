@@ -1,4 +1,4 @@
-package info.nightscout.sdk.localmodel.heartrate
+package app.aaps.core.nssdk.localmodel.heartrate
 
 import com.google.gson.annotations.SerializedName
 

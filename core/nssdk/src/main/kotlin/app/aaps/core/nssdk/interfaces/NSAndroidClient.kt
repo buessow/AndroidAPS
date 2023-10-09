@@ -4,10 +4,10 @@ import app.aaps.core.nssdk.localmodel.Status
 import app.aaps.core.nssdk.localmodel.devicestatus.NSDeviceStatus
 import app.aaps.core.nssdk.localmodel.entry.NSSgvV3
 import app.aaps.core.nssdk.localmodel.food.NSFood
-import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
 import app.aaps.core.nssdk.localmodel.treatment.CreateUpdateResponse
 import app.aaps.core.nssdk.localmodel.treatment.NSTreatment
 import app.aaps.core.nssdk.remotemodel.LastModified
+import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
 import org.json.JSONObject
 
 interface NSAndroidClient {

@@ -1,7 +1,6 @@
 package app.aaps.core.nssdk
 
 import android.content.Context
-import com.google.gson.JsonParser
 import app.aaps.core.nssdk.exceptions.DateHeaderOutOfToleranceException
 import app.aaps.core.nssdk.exceptions.InvalidAccessTokenException
 import app.aaps.core.nssdk.exceptions.InvalidFormatNightscoutException
@@ -18,6 +17,7 @@ import app.aaps.core.nssdk.localmodel.treatment.NSTreatment
 import app.aaps.core.nssdk.mapper.toLocal
 import app.aaps.core.nssdk.mapper.toNSDeviceStatus
 import app.aaps.core.nssdk.mapper.toNSFood
+import app.aaps.core.nssdk.mapper.toNSHeartRate
 import app.aaps.core.nssdk.mapper.toRemoteDeviceStatus
 import app.aaps.core.nssdk.mapper.toRemoteEntry
 import app.aaps.core.nssdk.mapper.toRemoteFood
@@ -29,9 +29,13 @@ import app.aaps.core.nssdk.remotemodel.LastModified
 import app.aaps.core.nssdk.remotemodel.RemoteDeviceStatus
 import app.aaps.core.nssdk.remotemodel.RemoteEntry
 import app.aaps.core.nssdk.remotemodel.RemoteFood
+import app.aaps.core.nssdk.remotemodel.RemoteHeartRate
 import app.aaps.core.nssdk.remotemodel.RemoteTreatment
 import app.aaps.core.nssdk.utils.retry
 import app.aaps.core.nssdk.utils.toNotNull
+import com.google.gson.JsonParser
+import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
+import app.aaps.core.nssdk.mapper.toRemoteHeartRate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

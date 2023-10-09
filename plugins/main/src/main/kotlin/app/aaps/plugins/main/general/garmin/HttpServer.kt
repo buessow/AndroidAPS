@@ -1,9 +1,9 @@
-package info.nightscout.plugins.general.garmin
+package app.aaps.plugins.main.general.garmin
 
 import android.os.StrictMode
 import androidx.annotation.VisibleForTesting
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
 import java.io.*
 import java.lang.Thread.UncaughtExceptionHandler
 import java.net.*

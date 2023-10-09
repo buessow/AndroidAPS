@@ -1,6 +1,6 @@
-package info.nightscout.database.impl.transactions
+package app.aaps.database.impl.transactions
 
-import info.nightscout.database.entities.HeartRate
+import app.aaps.database.entities.HeartRate
 
 class UpdateNsIdHeartRateTransaction(private val heartRates: List<HeartRate>) : Transaction<UpdateNsIdHeartRateTransaction.TransactionResult>() {
 

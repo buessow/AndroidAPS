@@ -1,8 +1,8 @@
-package info.nightscout.plugins.general.garmin
+package app.aaps.plugins.main.general.garmin
 
-import info.nightscout.database.entities.GlucoseValue
-import info.nightscout.interfaces.GlucoseUnit
-import info.nightscout.interfaces.profile.Profile
+import app.aaps.core.interfaces.db.GlucoseUnit
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.database.entities.GlucoseValue
 import java.time.Instant
 
 interface LoopHub {
@@ -28,7 +28,7 @@ interface LoopHub {
     /** Returns the factor by which the basal rate is currently raised (> 1) or lowered (< 1). */
     val temporaryBasal: Double
 
-    /** Tells the loop algorithm that the pump is physicallly connected. */
+    /** Tells the loop algorithm that the pump is physically connected. */
     fun connectPump()
 
     /** Tells the loop algorithm that the pump will be physically disconnected

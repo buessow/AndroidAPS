@@ -23,6 +23,7 @@ import app.aaps.database.entities.EffectiveProfileSwitch
 import app.aaps.database.entities.ExtendedBolus
 import app.aaps.database.entities.Food
 import app.aaps.database.entities.GlucoseValue
+import app.aaps.database.entities.HeartRate
 import app.aaps.database.entities.OfflineEvent
 import app.aaps.database.entities.ProfileSwitch
 import app.aaps.database.entities.TemporaryBasal
@@ -49,6 +50,7 @@ import app.aaps.database.impl.transactions.SyncNsCarbsTransaction
 import app.aaps.database.impl.transactions.SyncNsEffectiveProfileSwitchTransaction
 import app.aaps.database.impl.transactions.SyncNsExtendedBolusTransaction
 import app.aaps.database.impl.transactions.SyncNsFoodTransaction
+import app.aaps.database.impl.transactions.SyncNsHeartRatesTransaction
 import app.aaps.database.impl.transactions.SyncNsOfflineEventTransaction
 import app.aaps.database.impl.transactions.SyncNsProfileSwitchTransaction
 import app.aaps.database.impl.transactions.SyncNsTemporaryBasalTransaction
@@ -62,6 +64,7 @@ import app.aaps.database.impl.transactions.UpdateNsIdEffectiveProfileSwitchTrans
 import app.aaps.database.impl.transactions.UpdateNsIdExtendedBolusTransaction
 import app.aaps.database.impl.transactions.UpdateNsIdFoodTransaction
 import app.aaps.database.impl.transactions.UpdateNsIdGlucoseValueTransaction
+import app.aaps.database.impl.transactions.UpdateNsIdHeartRateTransaction
 import app.aaps.database.impl.transactions.UpdateNsIdOfflineEventTransaction
 import app.aaps.database.impl.transactions.UpdateNsIdProfileSwitchTransaction
 import app.aaps.database.impl.transactions.UpdateNsIdTemporaryBasalTransaction

@@ -19,12 +19,12 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.T
 import app.aaps.core.nssdk.localmodel.entry.NSSgvV3
 import app.aaps.core.nssdk.localmodel.food.NSFood
+import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
 import app.aaps.core.nssdk.localmodel.treatment.NSBolus
 import app.aaps.core.nssdk.localmodel.treatment.NSBolusWizard
 import app.aaps.core.nssdk.localmodel.treatment.NSCarbs
 import app.aaps.core.nssdk.localmodel.treatment.NSEffectiveProfileSwitch
 import app.aaps.core.nssdk.localmodel.treatment.NSExtendedBolus
-import app.aaps.core.nssdk.localmodel.treatment.NSHeartRate
 import app.aaps.core.nssdk.localmodel.treatment.NSOfflineEvent
 import app.aaps.core.nssdk.localmodel.treatment.NSProfileSwitch
 import app.aaps.core.nssdk.localmodel.treatment.NSTemporaryBasal
@@ -43,6 +43,7 @@ import app.aaps.plugins.sync.nsclientV3.extensions.toCarbs
 import app.aaps.plugins.sync.nsclientV3.extensions.toEffectiveProfileSwitch
 import app.aaps.plugins.sync.nsclientV3.extensions.toExtendedBolus
 import app.aaps.plugins.sync.nsclientV3.extensions.toFood
+import app.aaps.plugins.sync.nsclientV3.extensions.toHeartRate
 import app.aaps.plugins.sync.nsclientV3.extensions.toOfflineEvent
 import app.aaps.plugins.sync.nsclientV3.extensions.toProfileSwitch
 import app.aaps.plugins.sync.nsclientV3.extensions.toTemporaryBasal

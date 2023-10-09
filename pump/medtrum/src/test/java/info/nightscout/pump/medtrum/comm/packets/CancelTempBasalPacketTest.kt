@@ -1,11 +1,11 @@
 package info.nightscout.pump.medtrum.comm.packets
 
+import com.google.common.truth.Truth.assertThat
 import dagger.android.AndroidInjector
 import dagger.android.HasAndroidInjector
 import info.nightscout.pump.medtrum.MedtrumTestBase
 import info.nightscout.pump.medtrum.comm.enums.BasalType
 import org.junit.jupiter.api.Test
-import org.junit.Assert.*
 
 class CancelTempBasalPacketTest : MedtrumTestBase() {
 
@@ -30,8 +30,7 @@ class CancelTempBasalPacketTest : MedtrumTestBase() {
         val result = packet.getRequest()
 
         // Expected values
-        assertEquals(1, result.size)
-        assertEquals(opCode.toByte(), result[0])
+        assertThat(result).asList().containsExactly(opCode.toByte())
     }
 
     @Test fun handleResponseGivenPacketWhenValuesSetThenReturnCorrectValues() {
@@ -49,12 +48,12 @@ class CancelTempBasalPacketTest : MedtrumTestBase() {
         val expectedStartTime = 1679575392000L
         val expectedPatchId = 146L
 
-        assertTrue(result)
-        assertEquals(expectedBasalType, medtrumPump.lastBasalType)
-        assertEquals(expectedBasalRate, medtrumPump.lastBasalRate, 0.01)
-        assertEquals(expectedBasalSequence, medtrumPump.lastBasalSequence)
-        assertEquals(expectedStartTime, medtrumPump.lastBasalStartTime)
-        assertEquals(expectedPatchId, medtrumPump.lastBasalPatchId)
+        assertThat(result).isTrue()
+        assertThat(medtrumPump.lastBasalType).isEqualTo(expectedBasalType)
+        assertThat(medtrumPump.lastBasalRate).isWithin(0.01).of(expectedBasalRate)
+        assertThat(medtrumPump.lastBasalSequence).isEqualTo(expectedBasalSequence)
+        assertThat(medtrumPump.lastBasalStartTime).isEqualTo(expectedStartTime)
+        assertThat(medtrumPump.lastBasalPatchId).isEqualTo(expectedPatchId)
     }
 
     @Test fun handleResponseGivenResponseWhenMessageTooShortThenResultFalse() {
@@ -66,7 +65,7 @@ class CancelTempBasalPacketTest : MedtrumTestBase() {
         val result = packet.handleResponse(response)
 
         // Expected values
-        assertFalse(result)
-        assertTrue(packet.failed)
+        assertThat(result).isFalse()
+        assertThat(packet.failed).isTrue()
     }
 }

@@ -1,10 +1,10 @@
 package info.nightscout.pump.medtrum.comm.packets
 
+import com.google.common.truth.Truth.assertThat
 import dagger.android.AndroidInjector
 import dagger.android.HasAndroidInjector
 import info.nightscout.pump.medtrum.MedtrumTestBase
 import org.junit.jupiter.api.Test
-import org.junit.Assert.*
 
 class SetBolusMotorPacketTest : MedtrumTestBase() {
 
@@ -27,8 +27,6 @@ class SetBolusMotorPacketTest : MedtrumTestBase() {
         val result = packet.getRequest()
 
         // Expected values
-        val expectedByteArray = byteArrayOf(opCode.toByte()) + 0.toByte()
-        assertEquals(2, result.size)
-        assertEquals(expectedByteArray.contentToString(), result.contentToString())
+        assertThat(result).asList().containsExactly(opCode.toByte(), 0.toByte()).inOrder()
     }
 }

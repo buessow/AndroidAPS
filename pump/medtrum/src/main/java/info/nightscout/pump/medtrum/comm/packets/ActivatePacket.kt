@@ -1,14 +1,13 @@
 package info.nightscout.pump.medtrum.comm.packets
 
+import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.stats.TddCalculator
 import dagger.android.HasAndroidInjector
-import info.nightscout.interfaces.pump.DetailedBolusInfo
-import info.nightscout.interfaces.pump.PumpSync
 import info.nightscout.pump.medtrum.MedtrumPump
-import info.nightscout.pump.medtrum.comm.enums.CommandType.ACTIVATE
 import info.nightscout.pump.medtrum.comm.enums.BasalType
-import info.nightscout.pump.medtrum.extension.toByteArray
+import info.nightscout.pump.medtrum.comm.enums.CommandType.ACTIVATE
 import info.nightscout.pump.medtrum.extension.toByte
-import info.nightscout.interfaces.stats.TddCalculator
+import info.nightscout.pump.medtrum.extension.toByteArray
 import info.nightscout.pump.medtrum.extension.toInt
 import info.nightscout.pump.medtrum.extension.toLong
 import info.nightscout.pump.medtrum.util.MedtrumTimeUtil
@@ -93,24 +92,8 @@ class ActivatePacket(injector: HasAndroidInjector, private val basalProfile: Byt
             val basalPatchId = data.copyOfRange(RESP_BASAL_PATCH_ID_START, RESP_BASAL_PATCH_ID_END).toLong()
             val basalStartTime = medtrumTimeUtil.convertPumpTimeToSystemTimeMillis(data.copyOfRange(RESP_BASAL_START_TIME_START, RESP_BASAL_START_TIME_END).toLong())
 
-            medtrumPump.patchId = patchId
             medtrumPump.lastTimeReceivedFromPump = time
-            medtrumPump.currentSequenceNumber = basalSequence // We are activated, set the new seq nr
-            medtrumPump.syncedSequenceNumber = basalSequence // We are activated, reset the synced seq nr ()
-
-            // Sync cannula change
-            pumpSync.insertTherapyEventIfNewWithTimestamp(
-                timestamp = System.currentTimeMillis(),
-                type = DetailedBolusInfo.EventType.CANNULA_CHANGE,
-                pumpType = medtrumPump.pumpType(),
-                pumpSerial = medtrumPump.pumpSN.toString(radix = 16)
-            )
-            pumpSync.insertTherapyEventIfNewWithTimestamp(
-                timestamp = System.currentTimeMillis(),
-                type = DetailedBolusInfo.EventType.INSULIN_CHANGE,
-                pumpType = medtrumPump.pumpType(),
-                pumpSerial = medtrumPump.pumpSN.toString(radix = 16)
-            )
+            medtrumPump.handleNewPatch(patchId, basalSequence, System.currentTimeMillis())
 
             // Update the actual basal profile
             medtrumPump.actualBasalProfile = basalProfile

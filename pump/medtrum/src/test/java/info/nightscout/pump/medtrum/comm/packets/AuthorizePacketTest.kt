@@ -1,12 +1,12 @@
 package info.nightscout.pump.medtrum.comm.packets
 
+import com.google.common.truth.Truth.assertThat
 import dagger.android.AndroidInjector
 import dagger.android.HasAndroidInjector
 import info.nightscout.pump.medtrum.MedtrumPump
 import info.nightscout.pump.medtrum.MedtrumTestBase
 import info.nightscout.pump.medtrum.extension.toByteArray
 import org.junit.jupiter.api.Test
-import org.junit.Assert.*
 
 class AuthorizePacketTest : MedtrumTestBase() {
 
@@ -37,8 +37,7 @@ class AuthorizePacketTest : MedtrumTestBase() {
         val key = 3364239851
         val type = 2
         val expectedByteArray = byteArrayOf(opCode.toByte()) + type.toByte() + medtrumPump.patchSessionToken.toByteArray(4) + key.toByteArray(4)
-        assertEquals(10, result.size)
-        assertEquals(expectedByteArray.contentToString(), result.contentToString())
+        assertThat(result).asList().containsExactlyElementsIn(expectedByteArray.toList()).inOrder()
     }
 
     @Test fun handleResponseGivenResponseWhenMessageIsCorrectLengthThenResultTrue() {
@@ -57,10 +56,10 @@ class AuthorizePacketTest : MedtrumTestBase() {
 
         // Expected values
         val swString = "$swVerX.$swVerY.$swVerZ"
-        assertTrue(result)
-        assertFalse(packet.failed)
-        assertEquals(deviceType, medtrumPump.deviceType)
-        assertEquals(swString, medtrumPump.swVersion)
+        assertThat(result).isTrue()
+        assertThat(packet.failed).isFalse()
+        assertThat(medtrumPump.deviceType).isEqualTo(deviceType)
+        assertThat(medtrumPump.swVersion).isEqualTo(swString)
     }
 
     @Test fun handleResponseGivenResponseWhenMessageTooShortThenResultFalse() {
@@ -75,7 +74,7 @@ class AuthorizePacketTest : MedtrumTestBase() {
         val result = packet.handleResponse(response)
 
         // Expected values
-        assertFalse(result)
-        assertTrue(packet.failed)
+        assertThat(result).isFalse()
+        assertThat(packet.failed).isTrue()
     }
 }

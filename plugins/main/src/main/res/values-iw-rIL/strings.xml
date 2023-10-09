@@ -309,12 +309,9 @@
     <string name="wearcontrol_title">שליטה מהשעון</string>
     <string name="wearcontrol_summary">הגדירו ערכי מטרה זמניים וציינו טיפולים מהשעון.</string>
     <string name="wear_wizard_settings_summary">חישובים הכלולים בתוצאת האשף:</string>
-    <string name="wear_display_settings">הגדרות תצוגה</string>
     <string name="wear_general_settings">הגדרות כלליות</string>
     <string name="wear_notifysmb_title">דיווח על SMB</string>
     <string name="wear_notifysmb_summary">הצג SMB על השעון כמו בולוס סטנדרטי.</string>
-    <string name="wear_predictions_summary">הראה את התחזיות על לוח השעון.</string>
-    <string name="wear_predictions_title">חיזוי</string>
     <string name="wear_custom_watchface_settings">הגדרות פני שעון מותאמים אישית</string>
     <string name="wear_custom_watchface_authorization_title">אישור פני שעון מותאמים אישית</string>
     <string name="wear_custom_watchface">פני שעון מותאמים אישית: %1$s</string>
@@ -325,6 +322,7 @@
     <string name="resend_all_data">שלח מחדש את כל הנתונים</string>
     <string name="open_settings_on_wear">פתיחת הגדרות Wear</string>
     <string name="cwf_infos_pref_locked">רשימת העדפות ננעלה ע\"י פני השעון</string>
+    <string name="cwf_infos_pref_required">רשימת ההעדפות הנדרשת ע\"י פני השעון</string>
     <string name="cwf_infos_view_title">רשימת שדות הכלולים בפני השעון</string>
     <!--    PersistentNotification-->
     <string name="description_persistent_notification">מציג הודעה קבועה עם סקירה קצרה של מה שהלולאה שלכם עושה</string>
@@ -353,4 +351,5 @@
     <string name="until">עד</string>
     <string name="default_range">טווח ברירת מחדל</string>
     <string name="target">מטרה</string>
+    <string name="rate_duration">מינון: %1$.2f יח\'\\שעה (%2$.2f%%) \nמשך: %3$d דק\'</string>
 </resources>

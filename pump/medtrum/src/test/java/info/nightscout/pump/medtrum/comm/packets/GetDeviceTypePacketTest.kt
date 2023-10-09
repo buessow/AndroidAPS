@@ -1,11 +1,11 @@
 package info.nightscout.pump.medtrum.comm.packets
 
+import com.google.common.truth.Truth.assertThat
 import dagger.android.AndroidInjector
 import dagger.android.HasAndroidInjector
 import info.nightscout.pump.medtrum.MedtrumTestBase
 import info.nightscout.pump.medtrum.extension.toByteArray
 import org.junit.jupiter.api.Test
-import org.junit.Assert.*
 
 class GetDeviceTypePacketTest : MedtrumTestBase() {
 
@@ -28,8 +28,7 @@ class GetDeviceTypePacketTest : MedtrumTestBase() {
         val result = packet.getRequest()
 
         // Expected values
-        assertEquals(1, result.size)
-        assertEquals(opCode.toByte(), result[0])
+        assertThat(result).asList().containsExactly(opCode.toByte())
     }
 
     @Test fun handleResponseGivenResponseWhenMessageIsCorrectLengthThenResultTrue() {
@@ -45,10 +44,10 @@ class GetDeviceTypePacketTest : MedtrumTestBase() {
         val result = packet.handleResponse(response)
 
         // Expected values
-        assertEquals(true, result)
-        assertEquals(false, packet.failed)
-        assertEquals(deviceType, packet.deviceType)
-        assertEquals(deviceSN, packet.deviceSN)
+        assertThat(result).isTrue()
+        assertThat(packet.failed).isFalse()
+        assertThat(packet.deviceType).isEqualTo(deviceType)
+        assertThat(packet.deviceSN).isEqualTo(deviceSN)
 
     }
 
@@ -65,9 +64,9 @@ class GetDeviceTypePacketTest : MedtrumTestBase() {
         val result = packet.handleResponse(response.sliceArray(0..response.size - 2))
 
         // Expected values
-        assertEquals(false, result)
-        assertEquals(true, packet.failed)
-        assertEquals(0, packet.deviceType)
-        assertEquals(0, packet.deviceSN)
+        assertThat(result).isFalse()
+        assertThat(packet.failed).isTrue()
+        assertThat(packet.deviceType).isEqualTo(0)
+        assertThat(packet.deviceSN).isEqualTo(0)
     }
 }

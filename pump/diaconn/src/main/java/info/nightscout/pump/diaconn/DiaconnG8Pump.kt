@@ -1,13 +1,13 @@
 package info.nightscout.pump.diaconn
 
-import info.nightscout.interfaces.profile.Profile
-import info.nightscout.interfaces.pump.PumpSync
-import info.nightscout.interfaces.utils.DecimalFormatter
-import info.nightscout.rx.events.EventOverviewBolusProgress
-import info.nightscout.rx.logging.AAPSLogger
-import info.nightscout.rx.logging.LTag
-import info.nightscout.shared.utils.DateUtil
-import info.nightscout.shared.utils.T
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.pump.PumpSync
+import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
+import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.interfaces.utils.DecimalFormatter
+import app.aaps.core.interfaces.utils.T
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.max
@@ -17,10 +17,12 @@ import kotlin.math.roundToInt
 @Singleton
 class DiaconnG8Pump @Inject constructor(
     private val aapsLogger: AAPSLogger,
-    private val dateUtil: DateUtil
+    private val dateUtil: DateUtil,
+    private val decimalFormatter: DecimalFormatter
 ) {
 
     var isPumpLogUploadFailed: Boolean = false
+
     //var bleResultInfo: Pair<Int?, Boolean> = Pair(null, false)
     var bolusConfirmMessage: Byte = 0
 
@@ -29,13 +31,13 @@ class DiaconnG8Pump @Inject constructor(
     var pumpIncarnationNum: Int = 65536
     var isPumpVersionGe2_63: Boolean = false // is pumpVersion higher then 2.63
     var isPumpVersionGe3_53: Boolean = false // is pumpVersion higher then 3.42
-    var insulinWarningGrade: Int =0
-    var insulinWarningProcess: Int =0
-    var insulinWarningRemain: Int =0
+    var insulinWarningGrade: Int = 0
+    var insulinWarningProcess: Int = 0
+    var insulinWarningRemain: Int = 0
     var batteryWaningGrade: Int = 0
     var batteryWaningProcess: Int = 0
     var batteryWaningRemain: Int = 0
-    var injectionBlockType: Int =0
+    var injectionBlockType: Int = 0
     var injectionBlockRemainAmount: Double = 0.0
     var injectionBlockProcess: Int = 0
     var injectionBlockGrade: Int = 0
@@ -49,6 +51,7 @@ class DiaconnG8Pump @Inject constructor(
     fun setPumpTime(value: Long) {
         pumpTime = value
     }
+
     fun getPumpTime() = pumpTime
 
     // Status
@@ -121,7 +124,7 @@ class DiaconnG8Pump @Inject constructor(
                 extendedBolusAmount = 0.0
             }
         }
-    val extendedBolusPassedMinutes:Int
+    val extendedBolusPassedMinutes: Int
         get() = T.msecs(max(0, dateUtil.now() - extendedBolusStart)).mins().toInt()
     val extendedBolusRemainingMinutes: Int
         get() = max(T.msecs(extendedBolusStart + extendedBolusDuration - dateUtil.now()).mins().toInt(), 0)
@@ -136,9 +139,9 @@ class DiaconnG8Pump @Inject constructor(
 
     fun extendedBolusToString(): String {
         if (!isExtendedInProgress) return ""
-        //return "E "+ DecimalFormatter.to2Decimal(extendedBolusDeliveredSoFar) +"/" + DecimalFormatter.to2Decimal(extendedBolusAbsoluteRate) + "U/h @" +
+        //return "E "+ decimalFormatter.to2Decimal(extendedBolusDeliveredSoFar) +"/" + decimalFormatter.to2Decimal(extendedBolusAbsoluteRate) + "U/h @" +
         //     " " + extendedBolusPassedMinutes + "/" + extendedBolusMinutes + "'"
-        return "E "+ DecimalFormatter.to2Decimal(extendedBolusAbsoluteRate) + "U/h @" +
+        return "E " + decimalFormatter.to2Decimal(extendedBolusAbsoluteRate) + "U/h @" +
             dateUtil.timeString(extendedBolusStart) +
             " " + extendedBolusPassedMinutes + "/" + extendedBolusDurationInMinutes + "'"
     }
@@ -154,6 +157,7 @@ class DiaconnG8Pump @Inject constructor(
             extendedBolusAmount = eb.amount
         }
     }
+
     // Profile
     var activeProfile = 0
     var pumpProfiles: Array<Array<Double>>? = null
@@ -181,11 +185,12 @@ class DiaconnG8Pump @Inject constructor(
     var bolusDone = false // success end
 
     val pumpUid: String
-        get() = "$country-$productType-$makeYear-${makeMonth.toString().padStart(2,'0')}-${makeDay.toString().padStart(2, '0')}-${lotNo.toString().padStart(3,'0')}-${serialNo.toString().padStart(5,'0')}"
+        get() = "$country-$productType-$makeYear-${makeMonth.toString().padStart(2, '0')}-${makeDay.toString().padStart(2, '0')}-${lotNo.toString().padStart(3, '0')}-${
+            serialNo.toString().padStart(5, '0')
+        }"
 
     val pumpVersion: String
         get() = "$majorVersion.$minorVersion"
-
 
     fun buildDiaconnG8ProfileRecord(nsProfile: Profile): Array<Double> {
         val record = Array(24) { 0.0 }
@@ -207,7 +212,7 @@ class DiaconnG8Pump @Inject constructor(
     }
 
     // G8 pump
-    var result:Int = 0 // 조회결과
+    var result: Int = 0 // 조회결과
 
     // 1. pump setting info
     var systemRemainInsulin = 0.0 // 인슐린 잔량
@@ -355,6 +360,7 @@ class DiaconnG8Pump @Inject constructor(
     var bolusingInjProgress = 0
 
     companion object {
+
         // User settings
         const val ALARM = 0
         const val LCD = 1

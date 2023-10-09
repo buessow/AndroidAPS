@@ -1,13 +1,13 @@
 package info.nightscout.pump.medtrum.comm.packets
 
+import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
+import com.google.common.truth.Truth.assertThat
 import dagger.android.AndroidInjector
 import dagger.android.HasAndroidInjector
 import info.nightscout.pump.medtrum.MedtrumTestBase
 import info.nightscout.pump.medtrum.comm.enums.BasalType
 import info.nightscout.pump.medtrum.comm.enums.MedtrumPumpState
-import info.nightscout.rx.events.EventOverviewBolusProgress
 import org.junit.jupiter.api.Test
-import org.junit.Assert.*
 
 class NotificationPacketTest : MedtrumTestBase() {
 
@@ -30,7 +30,7 @@ class NotificationPacketTest : MedtrumTestBase() {
         NotificationPacket(packetInjector).handleNotification(byteArrayOf(state))
 
         // Expected values
-        assertEquals(medtrumPump.pumpState, MedtrumPumpState.fromByte(state))
+        assertThat(MedtrumPumpState.fromByte(state)).isEqualTo(medtrumPump.pumpState)
     }
 
     @Test fun handleNotificationGivenBasalDataThenDataSaved() {
@@ -41,12 +41,12 @@ class NotificationPacketTest : MedtrumTestBase() {
         NotificationPacket(packetInjector).handleNotification(data)
 
         // Expected values
-        assertEquals(BasalType.ABSOLUTE_TEMP, medtrumPump.lastBasalType)
-        assertEquals(0.85, medtrumPump.lastBasalRate, 0.01)
-        assertEquals(25, medtrumPump.lastBasalSequence)
-        assertEquals(14, medtrumPump.lastBasalPatchId)
-        assertEquals(1685126612000, medtrumPump.lastBasalStartTime)
-        assertEquals(186.80, medtrumPump.reservoir, 0.01)
+        assertThat(medtrumPump.lastBasalType).isEqualTo(BasalType.ABSOLUTE_TEMP)
+        assertThat(medtrumPump.lastBasalRate).isWithin(0.01).of(0.85)
+        assertThat(medtrumPump.lastBasalSequence).isEqualTo(25)
+        assertThat(medtrumPump.lastBasalPatchId).isEqualTo(14)
+        assertThat(medtrumPump.lastBasalStartTime).isEqualTo(1685126612000)
+        assertThat(medtrumPump.reservoir).isWithin(0.01).of(186.80)
     }
 
     @Test fun handleNotificationGivenSequenceAndOtherDataThenDataSaved() {
@@ -57,7 +57,7 @@ class NotificationPacketTest : MedtrumTestBase() {
         NotificationPacket(packetInjector).handleNotification(data)
 
         // Expected values
-        assertEquals(167, medtrumPump.currentSequenceNumber)
+        assertThat(medtrumPump.currentSequenceNumber).isEqualTo(167)
     }
 
     @Test fun handleNotificationGivenBolusInProgressThenDataSaved() {
@@ -69,9 +69,9 @@ class NotificationPacketTest : MedtrumTestBase() {
         NotificationPacket(packetInjector).handleNotification(data)
 
         // Expected values
-        assertEquals(false, medtrumPump.bolusDone)
-        assertEquals(0.15, medtrumPump.bolusingTreatment!!.insulin, 0.01)
-        assertEquals(163.5, medtrumPump.reservoir, 0.01)
+        assertThat(medtrumPump.bolusDone).isFalse()
+        assertThat(medtrumPump.bolusingTreatment!!.insulin).isWithin(0.01).of(0.15)
+        assertThat(medtrumPump.reservoir).isWithin(0.01).of(163.5)
     }
 
     @Test fun handleNotificationGivenBolusFinishedThenDataSaved() {
@@ -83,8 +83,8 @@ class NotificationPacketTest : MedtrumTestBase() {
         NotificationPacket(packetInjector).handleNotification(data)
 
         // Expected values
-        assertEquals(true, medtrumPump.bolusDone)
-        assertEquals(1.65, medtrumPump.bolusingTreatment!!.insulin, 0.01)
-        assertEquals(161.95, medtrumPump.reservoir, 0.01)
+        assertThat(medtrumPump.bolusDone).isTrue()
+        assertThat(medtrumPump.bolusingTreatment!!.insulin).isWithin(0.01).of(1.65)
+        assertThat(medtrumPump.reservoir).isWithin(0.01).of(161.95)
     }
 }

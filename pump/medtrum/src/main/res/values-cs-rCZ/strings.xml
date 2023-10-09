@@ -3,7 +3,7 @@
     <!-- MedtrumPump -->
     <string name="medtrum">Medtrum</string>
     <string name="medtrum_pump_shortname">MT</string>
-    <string name="medtrum_pump_description">Integrace pumpy Medtrum Nano</string>
+    <string name="medtrum_pump_description">Integrace pumpy pro Medtrum Nano a Medtrum 300U</string>
     <string name="medtrum_pump_setting">Nastavení pumpy Medtrum</string>
     <string name="pump_error">Chyba pumpy: %1$s!! </string>
     <string name="pump_is_suspended">Pumpa je pozastavena</string>
@@ -14,6 +14,7 @@
     <!-- overview fragment -->
     <string name="ble_status_label">Stav BLE</string>
     <string name="last_connection_label">Naposledy připojeno</string>
+    <string name="active_bolus_label">Aktivní bolus</string>
     <string name="pump_state_label">Stav pumpy</string>
     <string name="active_alarms_label">Aktivní alarmy</string>
     <string name="reservoir_level"> %.2f U</string>
@@ -69,6 +70,7 @@
     <string name="step_retry_activation">Aktivace probíhá</string>
     <string name="unexpected_state">Neočekávaný stav: %1$s</string>
     <string name="no_profile_selected">Nebyl vybrán žádný profil. Vyberte prosím profil a zkuste to znovu.</string>
+    <string name="no_sn_in_settings">Není zadáno žádné sériové číslo. Zadejte sériové číslo pumpy v nastavení a zkuste to znovu.</string>
     <string name="base_serial">Sériové číslo pumpy: %1$X</string>
     <string name="patch_begin_activation">Žádný aktivní Patch. Stiskněte <b>Další</b> pro zahájení aktivačního procesu.</string>
     <string name="patch_not_active_note">Základna by neměla být připojena ke kanyle až do dalšího kroku!</string>

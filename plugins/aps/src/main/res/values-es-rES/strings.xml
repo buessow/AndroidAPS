@@ -83,6 +83,7 @@
     <string name="smb_disabled_in_preferences">SMB deshabilitado en preferencias</string>
     <string name="uam_disabled_in_preferences">UAM deshabilitado en las preferencias</string>
     <string name="autosens_disabled_in_preferences">Autosens deshabilitado en preferencias</string>
+    <string name="autosens_disabled_in_dyn_isf">Autosens desactivado en ISF Dinámico</string>
     <!--    Verify if needed in safety-->
     <string name="limiting_iob">Limitando IOB a %1$.1f U debido a %2$s</string>
     <string name="maxvalueinpreferences">valor máximo en preferencias</string>
@@ -114,4 +115,5 @@
     <string name="loop_smb_set_by_pump_label">SMB administrado por la bomba</string>
     <string name="loop_open_mode_min_change">Valor mínimo de cambio [%]</string>
     <string name="loop_open_mode_min_change_summary" formatted="false">Valor predeterminado 20%. El bucle abierto realizará una petición de cambio, sólo cuando se supere este valor</string>
+    <string name="fallback_smb_no_tdd">Regreso a SMB. No hay suficientes datos de TDD.</string>
 </resources>

@@ -29,9 +29,9 @@ jobs:
           test-command: ./gradlew --stacktrace jacocoAllDebugReport
 
       # Then start the emulator and run the Instrumentation tests!
-      # - android/start-emulator-and-run-tests:
-      #     test-command: ./gradlew database:impl:connectedFullDebugAndroidTest
-      #     system-image: system-images;android-31;google_apis;x86
+      - android/start-emulator-and-run-tests:
+          test-command: ./gradlew database:impl:connectedFullDebugAndroidTest
+          system-image: system-images;android-31;google_apis;x86
 
       # And finally run the release build
       #      - run:

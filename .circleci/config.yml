@@ -15,8 +15,6 @@ jobs:
       name: android/android-machine
       resource-class: large
       tag: 2023.07.1
-    machine:
-      image: android-default
     
     steps:
       # Checkout the code as the first step.

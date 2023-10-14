@@ -36,7 +36,7 @@ jobs:
       - android/start-emulator:
           avd-name: a29
           no-window: true
-          post-emulator-launch-assemble-command: assembleFullDebugAndroidTest
+          post-emulator-launch-assemble-command: ./gradlew assembleFullDebugAndroidTest
 
       - android/run-tests:
           test-command: ./gradlew database:impl:connectedFullDebugAndroidTest

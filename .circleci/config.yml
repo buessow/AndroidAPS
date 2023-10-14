@@ -24,8 +24,8 @@ jobs:
       - android/start-emulator-and-run-tests:
           system-image: system-images;android-29;google_apis;x86
           # Build while the emulator starts to speed up the test runs later.
-          post-emulator-launch-assemble-command: ./gradlew build
-          test-command: ./gradlew database:impl:connectedFullDebugAndroidTest
+          post-emulator-launch-assemble-command: ./gradlew compileFullDebugUnitTestSources compileFullDebugAndroidTestSources
+          test-command: ./gradlew connectedFullDebugAndroidTest
 
       - android/run-tests:
           test-command: ./gradlew testFullDebugUnitTest

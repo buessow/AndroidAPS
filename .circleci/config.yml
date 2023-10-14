@@ -28,10 +28,17 @@ jobs:
       # - android/run-tests:
       #     test-command: ./gradlew --stacktrace jacocoAllDebugReport
 
-      # Then start the emulator and run the Instrumentation tests!
-      - android/start-emulator-and-run-tests:
-          test-command: ./gradlew database:impl:connectedAndroidTest
+      - android/create-avd:
+          avd-name: a29
           system-image: system-images;android-29;google_apis;x86
+          install: true
+          
+      - android/start-emulator:
+          avd-name: a29
+          no-window: true
+
+      - android/run-tests:
+          test-command: ./gradlew database:impl:connectedFullDebugAndroidTest
 
       # And finally run the release build
       #      - run:

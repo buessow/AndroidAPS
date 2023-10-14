@@ -22,11 +22,11 @@ jobs:
       - android/change-java-version:
           java-version: 17
       # The next step will run the unit tests
-      # - android/run-tests:
-      #     test-command: ./gradlew testFullDebugUnitTest
+      - android/run-tests:
+          test-command: ./gradlew testFullDebugUnitTest
 
-      # - android/run-tests:
-      #     test-command: ./gradlew --stacktrace jacocoAllDebugReport
+      - android/run-tests:
+          test-command: ./gradlew --stacktrace jacocoAllDebugReport
 
       - android/start-emulator-and-run-tests:
           system-image: system-images;android-29;google_apis;x86

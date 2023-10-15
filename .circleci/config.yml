@@ -13,8 +13,8 @@ jobs:
     # These next lines define the Android machine image executor: https://circleci.com/docs/2.0/executor-types/
     executor:
       name: android/android-machine
-      resource-class: medium+
-      tag: 2023.07.1
+      resource-class: long
+      tag: 2023.09.1
     
     steps:
       - checkout

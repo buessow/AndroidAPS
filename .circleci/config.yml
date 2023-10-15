@@ -12,9 +12,9 @@ jobs:
   build-and-test:
     # These next lines define the Android machine image executor: https://circleci.com/docs/2.0/executor-types/
     executor:
-      name: android/android-machine
+      name: android/android-docker
       resource-class: large
-      tag: 2023.09.1
+      tag: 2023.10.1
     
     steps:
       - checkout

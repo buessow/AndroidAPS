@@ -4,6 +4,14 @@ jacoco {
     toolVersion '0.8.10'
 }
 
+def listFilesRecursively(File f, String name) {
+    if (f.isDirectory()) {
+        f.listFiles().collect { sub -> listFilesRecursively(sub, name) }.flatten()
+    } else if (f.getName() == "coverage.ec") {
+        [f]
+    } else { [] }
+}
+
 project.afterEvaluate {
     def variants = ["debug", "fullDebug"]
 
@@ -43,6 +51,7 @@ project.afterEvaluate {
                 '**/BR.class'
         ]
 
+
         def jClasses = subprojects.collect { proj ->
             variants.collect { variant ->
                 "${proj.buildDir}/intermediates/javac/$variant/classes"
@@ -79,6 +88,11 @@ project.afterEvaluate {
         }.flatten()
         executions.removeAll([null])
 
-        executionData.from = files(executions)
+        // Collect androidTest executions.
+        def executionsAndroid = subprojects.collect { proj ->
+            listFilesRecursively(new File("${proj.buildDir}/outputs/code_coverage/"), "coverage.ec")
+        }.flatten()
+
+        executionData.from = files(executions + executionsAndroid)
     }
 }

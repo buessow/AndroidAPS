@@ -1,4 +1,4 @@
-package app.aaps.plugins.main.general.garmin
+package app.aaps.plugins.sync.garmin
 
 import android.os.Parcel
 import android.os.Parcelable

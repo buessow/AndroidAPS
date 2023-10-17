@@ -1,4 +1,4 @@
-package app.aaps.plugins.main.general.garmin
+package app.aaps.plugins.sync.garmin
 
 
 import android.content.Context
@@ -88,9 +88,10 @@ class GarminPluginTest: TestBase() {
         val device = GarminDevice(1, "test device")
         `when`(client.knownDevices).thenReturn(listOf(device))
         val iqApp = IQApp("test app")
-        val app =DeviceApplication(client, device, iqApp)
+        val app = DeviceApplication(client, device, iqApp)
         gp.ciqMessenger = ConnectIqMessenger(
-            aapsLogger, context, emptyMap(), { _ -> }, { _, _ -> }, false)
+            aapsLogger, context, emptyMap(), { _ -> }, { _, _ -> }, false
+        )
 
         gp.ciqMessenger!!.onConnect(app.client)
         return app

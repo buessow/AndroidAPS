@@ -1,29 +1,29 @@
-package app.aaps.plugins.main.general.garmin
+package app.aaps.plugins.sync.garmin
 
-
-import app.aaps.core.interfaces.queue.CommandQueue
-import  app.aaps.database.ValueWrapper
-import app.aaps.database.entities.EffectiveProfileSwitch
-import  app.aaps.database.entities.GlucoseValue
-import  app.aaps.database.entities.HeartRate
-import  app.aaps.database.entities.OfflineEvent
-import  app.aaps.database.entities.UserEntry
-import  app.aaps.database.entities.ValueWithUnit
-import  app.aaps.database.entities.embedments.InsulinConfiguration
-import  app.aaps.database.impl.AppRepository
-import  app.aaps.database.impl.transactions.CancelCurrentOfflineEventIfAnyTransaction
-import app.aaps.database.impl.transactions.InsertOrUpdateHeartRateTransaction
-import  app.aaps.core.interfaces.aps.APSResult
-import  app.aaps.core.interfaces.aps.Loop
-import  app.aaps.core.interfaces.constraints.Constraint
-import  app.aaps.core.interfaces.constraints.ConstraintsChecker
+import app.aaps.core.interfaces.aps.APSResult
+import app.aaps.core.interfaces.aps.Loop
+import app.aaps.core.interfaces.constraints.Constraint
+import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.GlucoseUnit
-import  app.aaps.core.interfaces.iob.IobCobCalculator
-import  app.aaps.core.interfaces.iob.IobTotal
-import  app.aaps.core.interfaces.logging.UserEntryLogger
-import  app.aaps.core.interfaces.profile.Profile
-import  app.aaps.core.interfaces.profile.ProfileFunction
-import  app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.iob.IobCobCalculator
+import app.aaps.core.interfaces.iob.IobTotal
+import app.aaps.core.interfaces.logging.UserEntryLogger
+import app.aaps.core.interfaces.profile.Profile
+import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.pump.DetailedBolusInfo
+import app.aaps.core.interfaces.queue.CommandQueue
+import app.aaps.core.interfaces.sharedPreferences.SP
+import app.aaps.database.ValueWrapper
+import app.aaps.database.entities.EffectiveProfileSwitch
+import app.aaps.database.entities.GlucoseValue
+import app.aaps.database.entities.HeartRate
+import app.aaps.database.entities.OfflineEvent
+import app.aaps.database.entities.UserEntry
+import app.aaps.database.entities.ValueWithUnit
+import app.aaps.database.entities.embedments.InsulinConfiguration
+import app.aaps.database.impl.AppRepository
+import app.aaps.database.impl.transactions.CancelCurrentOfflineEventIfAnyTransaction
+import app.aaps.database.impl.transactions.InsertOrUpdateHeartRateTransaction
 import app.aaps.shared.tests.TestBase
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
@@ -53,6 +53,7 @@ class LoopHubTest: TestBase() {
     @Mock lateinit var profileFunction: ProfileFunction
     @Mock lateinit var repo: AppRepository
     @Mock lateinit var userEntryLogger: UserEntryLogger
+    @Mock lateinit var sp: SP
 
     private lateinit var loopHub: LoopHubImpl
     private val clock = Clock.fixed(Instant.ofEpochMilli(10_000), ZoneId.of("UTC"))
@@ -61,7 +62,8 @@ class LoopHubTest: TestBase() {
     fun setup() {
         loopHub = LoopHubImpl(
             aapsLogger, commandQueue, constraints, iobCobCalculator, loop,
-            profileFunction, repo, userEntryLogger)
+            profileFunction, repo, userEntryLogger, sp
+        )
         loopHub.clock = clock
     }
 
@@ -93,18 +95,10 @@ class LoopHubTest: TestBase() {
 
     @Test
     fun testGlucoseUnit() {
-        val profile = mock(Profile::class.java)
-        `when`(profile.units).thenReturn(GlucoseUnit.MMOL)
-        `when`(profileFunction.getProfile()).thenReturn(profile)
-        assertEquals(GlucoseUnit.MMOL, loopHub.glucoseUnit)
-        verify(profileFunction, times(1)).getProfile()
-    }
-
-    @Test
-    fun testGlucoseUnitNullProfile() {
-        `when`(profileFunction.getProfile()).thenReturn(null)
+        `when`(sp.getString(app.aaps.core.utils.R.string.key_units, GlucoseUnit.MGDL.asText)).thenReturn("mg/dl")
         assertEquals(GlucoseUnit.MGDL, loopHub.glucoseUnit)
-        verify(profileFunction, times(1)).getProfile()
+        `when`(sp.getString(app.aaps.core.utils.R.string.key_units, GlucoseUnit.MGDL.asText)).thenReturn("mmol")
+        assertEquals(GlucoseUnit.MMOL, loopHub.glucoseUnit)
     }
 
     @Test
@@ -218,6 +212,7 @@ class LoopHubTest: TestBase() {
 
     @Test
     fun testPostCarbs() {
+        @Suppress("unchecked_cast")
         val constraint = mock(Constraint::class.java) as Constraint<Int>
         `when`(constraint.value()).thenReturn(99)
         `when`(constraints.getMaxCarbsAllowed()).thenReturn(constraint)

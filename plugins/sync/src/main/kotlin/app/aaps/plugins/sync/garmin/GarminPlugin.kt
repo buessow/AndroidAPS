@@ -1,8 +1,6 @@
-package app.aaps.plugins.main.general.garmin
+package app.aaps.plugins.sync.garmin
 
 import android.content.Context
-import android.os.Parcel
-import android.os.Parcelable
 import androidx.annotation.VisibleForTesting
 import app.aaps.core.interfaces.db.GlucoseUnit
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -16,7 +14,7 @@ import app.aaps.core.interfaces.rx.events.EventNewBG
 import app.aaps.core.interfaces.rx.events.EventPreferenceChange
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.database.entities.GlucoseValue
-import app.aaps.plugins.main.R
+import app.aaps.plugins.sync.R
 import com.google.gson.JsonObject
 import dagger.android.HasAndroidInjector
 import io.reactivex.rxjava3.disposables.CompositeDisposable

@@ -1,4 +1,4 @@
-package app.aaps.plugins.main.general.garmin
+package app.aaps.plugins.sync.garmin
 
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -52,7 +52,7 @@ class ConnectIqDeviceClient(
     private val appIdNames = mutableMapOf<String, String>()
 
     override val connectedDevices
-        get() = transactList(Operation.GET_CONNECTED_DEVICES, emptyList(), GarminDevice.CREATOR)
+        get() = transactList(Operation.GET_CONNECTED_DEVICES, emptyList(), GarminDevice)
     override val knownDevices get() = knownDevicesMap.values.iterator().asSequence().toList()
 
     private enum class State {
@@ -206,7 +206,7 @@ class ConnectIqDeviceClient(
     }
 
     private fun loadKnownDevices() {
-        transactList(Operation.GET_KNOWN_DEVICES, emptyList(), GarminDevice.CREATOR).forEach {
+        transactList(Operation.GET_KNOWN_DEVICES, emptyList(), GarminDevice).forEach {
             knownDevicesMap[it.id] = it
         }
     }
@@ -298,7 +298,7 @@ class ConnectIqDeviceClient(
     }
 
     private fun getDevice(id: Long): GarminDevice {
-        return knownDevicesMap.getOrElse(id) { GarminDevice(id, "?")}
+        return knownDevicesMap.getOrElse(id) { GarminDevice(id, "?") }
     }
 
     @Suppress("Deprecation")

@@ -1,4 +1,4 @@
-package app.aaps.plugins.main.general.garmin
+package app.aaps.plugins.sync.garmin
 
 
 import com.garmin.monkeybrains.serialization.MonkeyString

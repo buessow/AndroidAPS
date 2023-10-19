@@ -17,9 +17,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.eq
+import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mock
-import org.mockito.Mockito.anyLong
 import org.mockito.Mockito.atMost
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.timeout
@@ -27,6 +26,7 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.`when`
+import org.mockito.kotlin.eq
 import java.net.SocketAddress
 import java.net.URI
 import java.time.Clock
@@ -71,7 +71,7 @@ class GarminPluginTest: TestBase() {
             "$k=$v"})
     }
 
-    private fun createHeartRate(heartRate: Int) = mapOf<String, Any>(
+    private fun createHeartRate(@Suppress("SameParameterValue") heartRate: Int) = mapOf<String, Any>(
         "hr" to heartRate,
         "hrStart" to 1001L,
         "hrEnd" to 2001L,
@@ -161,7 +161,7 @@ class GarminPluginTest: TestBase() {
             listOf(createGlucoseValue(Instant.ofEpochSecond(1_000))))
         val hr = createHeartRate(99)
         val uri = createUri(hr)
-        val result = gp.onGetBloodGlucose(mock(SocketAddress::class.java), uri)
+        val result = gp.onGetBloodGlucose(mock(SocketAddress::class.java), uri, null)
         assertEquals(
             "{\"encodedGlucose\":\"0A+6AQ==\"," +
                 "\"remainingInsulin\":3.14," +
@@ -193,7 +193,7 @@ class GarminPluginTest: TestBase() {
         params["wait"] = 10
         val uri = createUri(params)
         gp.newValue = mock(Condition::class.java)
-        val result = gp.onGetBloodGlucose(mock(SocketAddress::class.java), uri)
+        val result = gp.onGetBloodGlucose(mock(SocketAddress::class.java), uri, null)
         assertEquals(
             "{\"encodedGlucose\":\"/wS6AQ==\"," +
                 "\"remainingInsulin\":3.14," +
@@ -216,7 +216,7 @@ class GarminPluginTest: TestBase() {
     @Test
     fun testOnPostCarbs() {
         val uri = createUri(mapOf("carbs" to "12"))
-        assertEquals("", gp.onPostCarbs(mock(SocketAddress::class.java), uri))
+        assertEquals("", gp.onPostCarbs(mock(SocketAddress::class.java), uri, null))
         verify(loopHub).postCarbs(12)
     }
 
@@ -224,7 +224,7 @@ class GarminPluginTest: TestBase() {
     fun testOnConnectPump_Disconnect() {
         val uri = createUri(mapOf("disconnectMinutes" to "20"))
         `when`(loopHub.isConnected).thenReturn(false)
-        assertEquals("{\"connected\":false}", gp.onConnectPump(mock(SocketAddress::class.java), uri))
+        assertEquals("{\"connected\":false}", gp.onConnectPump(mock(SocketAddress::class.java), uri, null))
         verify(loopHub).disconnectPump(20)
         verify(loopHub).isConnected
     }
@@ -233,7 +233,7 @@ class GarminPluginTest: TestBase() {
     fun testOnConnectPump_Connect() {
         val uri = createUri(mapOf("disconnectMinutes" to "0"))
         `when`(loopHub.isConnected).thenReturn(true)
-        assertEquals("{\"connected\":true}", gp.onConnectPump(mock(SocketAddress::class.java), uri))
+        assertEquals("{\"connected\":true}", gp.onConnectPump(mock(SocketAddress::class.java), uri, null))
         verify(loopHub).connectPump()
         verify(loopHub).isConnected
     }

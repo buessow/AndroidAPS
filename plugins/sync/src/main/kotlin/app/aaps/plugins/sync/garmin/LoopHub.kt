@@ -5,6 +5,7 @@ import app.aaps.core.interfaces.profile.Profile
 import app.aaps.database.entities.GlucoseValue
 import java.time.Instant
 
+/** Abstraction from all the functionality we need from the AAPS app. */
 interface LoopHub {
 
     /** Returns the active insulin profile. */

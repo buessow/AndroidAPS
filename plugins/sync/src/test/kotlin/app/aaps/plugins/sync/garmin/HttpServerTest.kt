@@ -75,12 +75,10 @@ internal class HttpServerTest: TestBase() {
         val port = 28895
         val reqUri = URI("http://127.0.0.1:$port/foo")
         HttpServer(aapsLogger, port).use { server ->
-            server.registerEndpoint("/foo", object : HttpServer.Endpoint {
-                override fun onRequest(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
+            server.registerEndpoint("/foo")  { _: SocketAddress, uri: URI, _: String? ->
                     assertEquals(URI("/foo"), uri)
-                    return "test"
+                    "test"
                 }
-            })
             assertTrue(server.awaitReady(Duration.ofSeconds(10)))
             val resp = reqUri.toURL().openConnection() as HttpURLConnection
             assertEquals(200, resp.responseCode)

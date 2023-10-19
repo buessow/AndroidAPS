@@ -50,7 +50,8 @@ class GarminPlugin @Inject constructor(
     private val sp: SP,
 ) : PluginBase(
     PluginDescription()
-        .mainType(PluginType.GENERAL)
+        .mainType(PluginType.SYNC)
+        .pluginIcon(app.aaps.core.main.R.drawable.ic_watch)
         .pluginName(R.string.garmin)
         .shortName(R.string.garmin)
         .description(R.string.garmin_description)
@@ -98,6 +99,7 @@ class GarminPlugin @Inject constructor(
                 aapsLogger, context, glucoseAppIds, ::onConnectDevice, ::onMessage, enableDebug
             ).also { disposable.add(it) }
         }
+        setupHttpServer()
     }
 
     override fun onStart() {
@@ -109,6 +111,7 @@ class GarminPlugin @Inject constructor(
                 .observeOn(Schedulers.io())
                 .subscribe(::onPreferenceChange)
         )
+        setupHttpServer()
         disposable.add(
             rxBus
                 .toObservable(EventNewBG::class.java)
@@ -127,25 +130,10 @@ class GarminPlugin @Inject constructor(
             aapsLogger.info(LTag.GARMIN, "starting HTTP server on $port")
             server?.close()
             server = HttpServer(aapsLogger, port).apply {
-                registerEndpoint("/get", object : HttpServer.Endpoint {
-                    override fun onRequest(
-                        caller: SocketAddress, uri: URI, requestBody: String?
-                    ): CharSequence {
-                        return onGetBloodGlucose(caller, uri)
-                    }
-                })
+                registerEndpoint("/get", ::onGetBloodGlucose)
+                registerEndpoint("/carbs", ::onPostCarbs)
+                registerEndpoint("/connect", ::onConnectPump)
             }
-            server!!.registerEndpoint("/carbs", object : HttpServer.Endpoint {
-                override fun onRequest(
-                    caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
-                    return onPostCarbs(caller, uri)
-                }
-            })
-            server!!.registerEndpoint("/connect", object : HttpServer.Endpoint {
-                override fun onRequest(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
-                    return onConnectPump(caller, uri)
-                }
-            })
         } else if (server != null) {
             aapsLogger.info(LTag.GARMIN, "stopping HTTP server")
             server?.close()
@@ -274,7 +262,8 @@ class GarminPlugin @Inject constructor(
      * Also, gets the heart rate readings from the device.
      */
     @VisibleForTesting
-    fun onGetBloodGlucose(caller: SocketAddress, uri: URI): CharSequence {
+    @Suppress("UNUSED_PARAMETER")
+    fun onGetBloodGlucose(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
         aapsLogger.info(LTag.GARMIN, "get from $caller resp , req: $uri")
         receiveHeartRate(uri)
         val profileName = loopHub.currentProfileName
@@ -361,7 +350,8 @@ class GarminPlugin @Inject constructor(
 
     /** Handles carb notification from the device. */
     @VisibleForTesting
-    fun onPostCarbs(caller: SocketAddress, uri: URI): CharSequence {
+    @Suppress("UNUSED_PARAMETER")
+    fun onPostCarbs(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
         aapsLogger.info(LTag.GARMIN, "carbs from $caller, req: $uri")
         postCarbs(getQueryParameter(uri, "carbs", 0L).toInt())
         return ""
@@ -375,7 +365,8 @@ class GarminPlugin @Inject constructor(
 
     /** Handles pump connected notification that the user entered on the Garmin device. */
     @VisibleForTesting
-    fun onConnectPump(caller: SocketAddress, uri: URI): CharSequence {
+    @Suppress("UNUSED_PARAMETER")
+    fun onConnectPump(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
         aapsLogger.info(LTag.GARMIN, "connect from $caller, req: $uri")
         val minutes = getQueryParameter(uri, "disconnectMinutes", 0L).toInt()
         if (minutes > 0) {

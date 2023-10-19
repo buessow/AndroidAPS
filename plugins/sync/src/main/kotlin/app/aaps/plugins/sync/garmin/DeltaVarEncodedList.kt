@@ -6,6 +6,15 @@ import java.nio.IntBuffer
 import java.nio.LongBuffer
 import java.util.Base64
 
+/** Efficient encoding for glucose/timestamp pairs.
+ *
+ * Garmin devices don't have much memory when deserializing received JSON messages.
+ * In particular older devices my kill our app when we send 2h of glucose values. Therefore, we
+ * encode the values efficiently.
+ * We use [var encoding](https://en.wikipedia.org/wiki/Variable-width_encoding). In order to
+ * keep timestamps small, we encode the difference to the previous pair and to encode negative values
+ * efficiently, we use [zig-zag encoding](https://en.wikipedia.org/wiki/Variable-length_quantity).
+ */
 class DeltaVarEncodedList {
     private var lastValues: IntArray
     private var data: ByteArray
@@ -16,11 +25,23 @@ class DeltaVarEncodedList {
     var size: Int = 0
         private set
 
+    /** Creates a new list of given size.
+     *
+     * @param byteSize How large the internal buffer should be. The buffer doesn't grow
+     * automatically, so you need to set it large enough.
+     * @param entrySize Size of each entry (e.g. 2 for glucose+timestamp). Delta is computed on each
+     * entrySize value.
+     */
     constructor(byteSize: Int, entrySize: Int) {
         data = ByteArray(toLongBoundary(byteSize))
         lastValues = IntArray(entrySize)
     }
 
+    /** Creates a list from encoded values.
+     *
+     * @param lastValues the last values of the list. Needs to be entrySize long.
+     * @param byteBuffer the encoded data
+     */
     constructor(lastValues: IntArray, byteBuffer: ByteBuffer) {
         this.lastValues = lastValues
         data = ByteArray(byteBuffer.limit())
@@ -33,6 +54,7 @@ class DeltaVarEncodedList {
         }
     }
 
+    /** Gets the encoded data. */
     fun encodedData(): List<Long> {
         val byteBuffer: ByteBuffer = ByteBuffer.wrap(data)
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
@@ -75,6 +97,9 @@ class DeltaVarEncodedList {
         lastValues[idx] = value
     }
 
+    /** Adds an entry to the buffer.
+     *
+     * [values] length must be the same as entrySize provided in the constructor.  */
     fun add(vararg values: Int) {
         if (values.size != lastValues.size) {
             throw IllegalArgumentException()
@@ -95,7 +120,7 @@ class DeltaVarEncodedList {
         var nextIdx: Int = next.size - 1
         for (valueIdx in values.position() - 1 downTo 0) {
             val value: Int = values.get(valueIdx)
-            values.put(valueIdx, next.get(nextIdx))
+            values.put(valueIdx, next[nextIdx])
             next[nextIdx] -= value
             nextIdx = (nextIdx + 1) % next.size
         }

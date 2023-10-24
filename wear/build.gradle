@@ -57,6 +57,18 @@ android {
         viewBinding true
     }
 
+    buildTypes {
+        debug {
+            // testCoverageEnabled=true does offline coverage annotation. This is
+            // needed for coverage in androidTests but sometimes (?) incompatible with
+            // Jacoco that instruments online using the JavaAgent. I'm not sure why
+            // this causes a problem only in this module but since there are no
+            // androidTests here, we can set it to false and hope that this will
+            // be fixed eventually in the Gradle plugins.
+            testCoverageEnabled false
+        }
+    }
+
     flavorDimensions = ["standard"]
     productFlavors {
         full {

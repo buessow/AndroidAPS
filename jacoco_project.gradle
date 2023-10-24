@@ -7,7 +7,7 @@ jacoco {
 def listFilesRecursively(File f, String name) {
     if (f.isDirectory()) {
         f.listFiles().collect { sub -> listFilesRecursively(sub, name) }.flatten()
-    } else if (f.getName() == "coverage.ec") {
+    } else if (f.getName() == name) {
         [f]
     } else { [] }
 }

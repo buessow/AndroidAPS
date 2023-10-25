@@ -11,6 +11,8 @@ android {
     namespace = "app.aaps.plugins.main"
 }
 
+var okhttp3_version = "4.11.0"
+
 dependencies {
     implementation(project(":shared:impl"))
     implementation(project(":database:entities"))
@@ -26,6 +28,7 @@ dependencies {
     testImplementation(project(":implementation"))
     testImplementation(project(":plugins:insulin"))
     testImplementation(project(":shared:tests"))
+    testImplementation(Libs.Squareup.Okhttp3.mockWebServer)
 
     api(Libs.AndroidX.appCompat)
     api(Libs.Google.Android.material)

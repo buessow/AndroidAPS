@@ -344,7 +344,7 @@ class NSClientV3Plugin @Inject constructor(
     private fun setClient(reason: String) {
         if (nsAndroidClient == null)
             nsAndroidClient = NSAndroidClientImpl(
-                baseUrl = sp.getString(app.aaps.core.utils.R.string.key_nsclientinternal_url, "").lowercase().replace("https://", "").replace(Regex("/$"), ""),
+                baseUrl = sp.getString(app.aaps.core.utils.R.string.key_nsclientinternal_url, "").lowercase().replace(Regex("/$"), ""),
                 accessToken = sp.getString(R.string.key_ns_client_token, ""),
                 context = context,
                 logging = config.isEngineeringMode() || config.isDev(),

@@ -41,7 +41,7 @@ tasks.withType<Test> {
 
 tasks.withType<Test>().configureEach {
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
-    forkEvery = 20
+    setForkEvery(20)
 }
 
 android {

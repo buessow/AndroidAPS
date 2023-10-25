@@ -191,7 +191,7 @@ class NSClientV3Plugin @Inject constructor(
             )
         )
 
-        setClient("START")
+        setClient()
 
         receiverDelegate.grabReceiversState()
         disposable += rxBus
@@ -206,8 +206,8 @@ class NSClientV3Plugin @Inject constructor(
                            assert(nsClientV3Service != null)
                            if (ev.connected) {
                                when {
-                                   isAllowed && nsClientV3Service?.storageSocket == null  -> setClient("CONNECTIVITY") // socket must be created
-                                   !isAllowed && nsClientV3Service?.storageSocket != null -> shutdownWebsockets()
+                                   isAllowed && nsClientV3Service?.storageSocket == null  -> setClient() // socket must be created
+                                   !isAllowed && nsClientV3Service?.storageSocket != null -> stopService()
                                }
                                if (isAllowed) executeLoop("CONNECTIVITY", forceNew = false)
                            }
@@ -224,8 +224,8 @@ class NSClientV3Plugin @Inject constructor(
                                ev.isChanged(rh.gs(app.aaps.core.utils.R.string.key_ns_alarms)) ||
                                ev.isChanged(rh.gs(app.aaps.core.utils.R.string.key_ns_announcements))
                            ) {
-                               shutdownWebsockets()
-                               setClient("SETTING CHANGE")
+                               stopService()
+                               setClient()
                            }
                            if (ev.isChanged(rh.gs(app.aaps.core.utils.R.string.key_local_profile_last_change)))
                                executeUpload("PROFILE_CHANGE", forceNew = true)
@@ -313,7 +313,7 @@ class NSClientV3Plugin @Inject constructor(
     override fun onStop() {
         handler.removeCallbacksAndMessages(null)
         disposable.clear()
-        shutdownWebsockets()
+        stopService()
         super.onStop()
     }
 
@@ -341,7 +341,7 @@ class NSClientV3Plugin @Inject constructor(
         }
     }
 
-    private fun setClient(reason: String) {
+    private fun setClient() {
         if (nsAndroidClient == null)
             nsAndroidClient = NSAndroidClientImpl(
                 baseUrl = sp.getString(app.aaps.core.utils.R.string.key_nsclientinternal_url, "").lowercase().replace(Regex("/$"), ""),
@@ -351,24 +351,18 @@ class NSClientV3Plugin @Inject constructor(
                 logger = { msg -> aapsLogger.debug(LTag.HTTP, msg) }
             )
         SystemClock.sleep(2000)
-        initializeWebSockets(reason)
+        startService()
         rxBus.send(EventSWSyncStatus(status))
     }
 
-    private fun initializeWebSockets(reason: String) {
+    private fun startService() {
         if (sp.getBoolean(app.aaps.core.utils.R.string.key_ns_use_ws, true)) {
             context.bindService(Intent(context, NSClientV3Service::class.java), serviceConnection, Context.BIND_AUTO_CREATE)
-            while (nsClientV3Service == null) {
-                aapsLogger.debug(LTag.NSCLIENT, "Waiting for service start")
-                SystemClock.sleep(100)
-            }
-            nsClientV3Service?.initializeWebSockets(reason)
         }
     }
 
-    private fun shutdownWebsockets() {
+    private fun stopService() {
         if (nsClientV3Service != null) context.unbindService(serviceConnection)
-        nsClientV3Service?.shutdownWebsockets()
     }
 
     override fun resend(reason: String) {

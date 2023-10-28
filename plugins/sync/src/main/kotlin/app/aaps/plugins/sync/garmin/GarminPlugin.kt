@@ -18,6 +18,7 @@ import com.google.gson.JsonObject
 import dagger.android.HasAndroidInjector
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import java.net.HttpURLConnection
 import java.net.SocketAddress
 import java.net.URI
 import java.time.Clock
@@ -69,7 +70,8 @@ class GarminPlugin @Inject constructor(
     private var lastGlucoseValueTimestamp: Long? = null
     private val glucoseUnitStr get() = if (loopHub.glucoseUnit == GlucoseUnit.MGDL) "mgdl" else "mmoll"
 
-    private fun onPreferenceChange(event: EventPreferenceChange) {
+    @VisibleForTesting
+    fun onPreferenceChange(event: EventPreferenceChange) {
         aapsLogger.info(LTag.GARMIN, "preferences change ${event.changedKey}")
         setupHttpServer()
     }
@@ -86,7 +88,8 @@ class GarminPlugin @Inject constructor(
         setupHttpServer()
     }
 
-    private fun setupHttpServer() {
+    @VisibleForTesting
+    fun setupHttpServer() {
         if (sp.getBoolean("communication_http", false)) {
             val port = sp.getInt("communication_http_port", 28891)
             if (server != null && server?.port == port) return
@@ -102,7 +105,8 @@ class GarminPlugin @Inject constructor(
         }
     }
 
-    override fun onStop() {
+    @VisibleForTesting
+    public override fun onStop() {
         disposable.clear()
         aapsLogger.info(LTag.GARMIN, "Stop")
         server?.close()
@@ -172,8 +176,16 @@ class GarminPlugin @Inject constructor(
      */
     @VisibleForTesting
     @Suppress("UNUSED_PARAMETER")
-    fun onGetBloodGlucose(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
+    fun onGetBloodGlucose(caller: SocketAddress, uri: URI, requestBody: String?): Pair<Int, CharSequence> {
         aapsLogger.info(LTag.GARMIN, "get from $caller resp , req: $uri")
+        var key = sp.getString("garmin_aaps_key", "")
+        if (!key.isNullOrEmpty()) {
+            var deviceKey = getQueryParameter(uri, "key")
+            if (key != deviceKey) {
+                aapsLogger.warn(LTag.GARMIN, "Invalid AAPS Key, got '$deviceKey' want '$key'")
+                return HttpURLConnection.HTTP_UNAUTHORIZED to "wrong key"
+            }
+        }
         receiveHeartRate(uri)
         val profileName = loopHub.currentProfileName
         val waitSec = getQueryParameter(uri, "wait", 0L)
@@ -187,7 +199,7 @@ class GarminPlugin @Inject constructor(
         }
         jo.addProperty("profile", profileName.first().toString())
         jo.addProperty("connected", loopHub.isConnected)
-        return jo.toString().also {
+        return HttpURLConnection.HTTP_OK to jo.toString().also {
             aapsLogger.info(LTag.GARMIN, "get from $caller resp , req: $uri, result: $it")
         }
     }

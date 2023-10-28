@@ -77,7 +77,7 @@ internal class HttpServerTest: TestBase() {
         HttpServer(aapsLogger, port).use { server ->
             server.registerEndpoint("/foo")  { _: SocketAddress, uri: URI, _: String? ->
                     assertEquals(URI("/foo"), uri)
-                    "test"
+                    200 to "test"
                 }
             assertTrue(server.awaitReady(Duration.ofSeconds(10)))
             val resp = reqUri.toURL().openConnection() as HttpURLConnection
@@ -87,6 +87,21 @@ internal class HttpServerTest: TestBase() {
         }
     }
 
+    @Test fun testRequestAccepted() {
+        val port = 28895
+        val reqUri = URI("http://127.0.0.1:$port/bar")
+        HttpServer(aapsLogger, port).use { server ->
+            server.registerEndpoint("/bar")  { _: SocketAddress, uri: URI, _: String? ->
+                assertEquals(URI("/bar"), uri)
+                202 to "test accepted"
+            }
+            assertTrue(server.awaitReady(Duration.ofSeconds(10)))
+            val resp = reqUri.toURL().openConnection() as HttpURLConnection
+            assertEquals(202, resp.responseCode)
+            val content = (resp.content as InputStream).reader().use { r -> r.readText() }
+            assertEquals("test accepted", content)
+        }
+    }
     @Test fun testRequest_NotFound() {
         val port = 28895
         val reqUri = URI("http://127.0.0.1:$port/foo")

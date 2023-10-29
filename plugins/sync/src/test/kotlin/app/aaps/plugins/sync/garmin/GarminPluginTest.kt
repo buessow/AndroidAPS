@@ -1,6 +1,5 @@
 package app.aaps.plugins.sync.garmin
 
-
 import android.content.Context
 import app.aaps.core.interfaces.db.GlucoseUnit
 import app.aaps.core.interfaces.resources.ResourceHelper
@@ -8,25 +7,29 @@ import app.aaps.core.interfaces.rx.events.EventNewBG
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.database.entities.GlucoseValue
 import app.aaps.shared.tests.TestBase
-import com.garmin.android.connectiq.IQApp
 import dagger.android.AndroidInjector
 import dagger.android.HasAndroidInjector
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers.anyBoolean
+import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyLong
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mock
 import org.mockito.Mockito.atMost
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.timeout
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.`when`
-import org.mockito.kotlin.eq
+import java.net.ConnectException
+import java.net.HttpURLConnection
 import java.net.SocketAddress
 import java.net.URI
 import java.time.Clock
@@ -54,6 +57,9 @@ class GarminPluginTest: TestBase() {
         gp = GarminPlugin(injector, aapsLogger, rh, context, loopHub, rxBus, sp)
         gp.clock = clock
         `when`(loopHub.currentProfileName).thenReturn("Default")
+        `when`(sp.getBoolean(anyString(), anyBoolean())).thenAnswer { i -> i.arguments[1] }
+        `when`(sp.getString(anyString(), anyString())).thenAnswer { i -> i.arguments[1] }
+        `when`(sp.getInt(anyString(), anyInt())).thenAnswer { i -> i.arguments[1] }
     }
 
     @AfterEach
@@ -82,20 +88,6 @@ class GarminPluginTest: TestBase() {
         trendArrow = GlucoseValue.TrendArrow.FLAT, noise = null,
         sourceSensor = GlucoseValue.SourceSensor.RANDOM
     )
-
-    private fun createDeviceApplication(): DeviceApplication {
-        val client = mock(ConnectIqClient::class.java)
-        val device = GarminDevice(1, "test device")
-        `when`(client.knownDevices).thenReturn(listOf(device))
-        val iqApp = IQApp("test app")
-        val app = DeviceApplication(client, device, iqApp)
-        gp.ciqMessenger = ConnectIqMessenger(
-            aapsLogger, context, emptyMap(), { _ -> }, { _, _ -> }, false
-        )
-
-        gp.ciqMessenger!!.onConnect(app.client)
-        return app
-    }
 
     @Test
     fun testReceiveHeartRateMap() {
@@ -152,6 +144,132 @@ class GarminPluginTest: TestBase() {
     }
 
     @Test
+    fun setupHttpServer_Enabled() {
+        `when`(sp.getBoolean("communication_http", false)).thenReturn(true)
+        `when`(sp.getInt("communication_http_port", 28891)).thenReturn(28892)
+        gp.setupHttpServer()
+        val reqUri = URI("http://127.0.0.1:28892/get")
+        val resp = reqUri.toURL().openConnection() as HttpURLConnection
+        assertEquals(200, resp.responseCode)
+
+        // Change port
+        `when`(sp.getInt("communication_http_port", 28891)).thenReturn(28893)
+        gp.setupHttpServer()
+        val reqUri2 = URI("http://127.0.0.1:28893/get")
+        val resp2 = reqUri2.toURL().openConnection() as HttpURLConnection
+        assertEquals(200, resp2.responseCode)
+
+        `when`(sp.getBoolean("communication_http", false)).thenReturn(false)
+        gp.setupHttpServer()
+        assertThrows(ConnectException::class.java) {
+            (reqUri2.toURL().openConnection() as HttpURLConnection).responseCode
+        }
+        gp.onStop()
+
+        verify(loopHub, times(2)).getGlucoseValues(anyObject(), eq(true))
+        verify(loopHub, times(2)).insulinOnboard
+        verify(loopHub, times(2)).temporaryBasal
+        verify(loopHub, times(2)).isConnected
+        verify(loopHub, times(2)).glucoseUnit
+    }
+
+    @Test
+    fun setupHttpServer_disabled() {
+        gp.setupHttpServer()
+        val reqUri = URI("http://127.0.0.1:28891/get")
+        assertThrows(ConnectException::class.java) {
+            (reqUri.toURL().openConnection() as HttpURLConnection).responseCode
+        }
+    }
+
+    @Test
+    fun requestHandler_NoKey() {
+        val uri = createUri(emptyMap())
+        val handler = gp.requestHandler { u: URI -> assertEquals(uri, u); "OK" }
+        assertEquals(
+            HttpURLConnection.HTTP_OK to "OK",
+            handler(mock(SocketAddress::class.java), uri, null))
+    }
+
+    @Test
+    fun requestHandler_KeyProvided() {
+        val uri = createUri(mapOf("key" to "foo"))
+        val handler = gp.requestHandler { u: URI -> assertEquals(uri, u); "OK" }
+        assertEquals(
+            HttpURLConnection.HTTP_OK to "OK",
+            handler(mock(SocketAddress::class.java), uri, null))
+    }
+
+    @Test
+    fun requestHandler_KeyRequiredAndProvided() {
+        `when`(sp.getString("garmin_aaps_key", "")).thenReturn("foo")
+        val uri = createUri(mapOf("key" to "foo"))
+        val handler = gp.requestHandler { u: URI -> assertEquals(uri, u); "OK" }
+        assertEquals(
+            HttpURLConnection.HTTP_OK to "OK",
+            handler(mock(SocketAddress::class.java), uri, null))
+
+    }
+
+    @Test
+    fun requestHandler_KeyRequired() {
+        gp.ciqMessenger = mock(ConnectIqMessenger::class.java)
+
+        `when`(sp.getString("garmin_aaps_key", "")).thenReturn("foo")
+        val uri = createUri(emptyMap())
+        val handler = gp.requestHandler { u: URI -> assertEquals(uri, u); "OK" }
+        assertEquals(
+            HttpURLConnection.HTTP_UNAUTHORIZED to "{}",
+            handler(mock(SocketAddress::class.java), uri, null))
+
+        val captor = ArgumentCaptor.forClass(Any::class.java)
+        verify(gp.ciqMessenger)!!.sendMessage(captor.capture() ?: "")
+        @Suppress("UNCHECKED_CAST")
+        val r = captor.value as Map<String, Any>
+        assertEquals("foo", r["key"])
+        assertEquals("glucose", r["command"])
+        assertEquals("D", r["profile"])
+        assertEquals("", r["encodedGlucose"])
+        assertEquals(0.0, r["remainingInsulin"])
+        assertEquals("mmoll", r["glucoseUnit"])
+        assertEquals(0.0, r["temporaryBasalRate"])
+        assertEquals(false, r["connected"])
+        assertEquals(clock.instant().epochSecond, r["timestamp"])
+        verify(loopHub).getGlucoseValues(getGlucoseValuesFrom, true)
+        verify(loopHub).insulinOnboard
+        verify(loopHub).temporaryBasal
+        verify(loopHub).isConnected
+        verify(loopHub).glucoseUnit
+    }
+
+    @Test
+    fun onConnectDevice() {
+        gp.ciqMessenger = mock(ConnectIqMessenger::class.java)
+        `when`(sp.getString("garmin_aaps_key", "")).thenReturn("foo")
+        val device = GarminDevice(1, "Edge")
+        gp.onConnectDevice(device)
+
+        val captor = ArgumentCaptor.forClass(Any::class.java)
+        verify(gp.ciqMessenger)!!.sendMessage(eq(device) ?: device, captor.capture() ?: "")
+        @Suppress("UNCHECKED_CAST")
+        val r = captor.value as Map<String, Any>
+        assertEquals("foo", r["key"])
+        assertEquals("glucose", r["command"])
+        assertEquals("D", r["profile"])
+        assertEquals("", r["encodedGlucose"])
+        assertEquals(0.0, r["remainingInsulin"])
+        assertEquals("mmoll", r["glucoseUnit"])
+        assertEquals(0.0, r["temporaryBasalRate"])
+        assertEquals(false, r["connected"])
+        assertEquals(clock.instant().epochSecond, r["timestamp"])
+        verify(loopHub).getGlucoseValues(getGlucoseValuesFrom, true)
+        verify(loopHub).insulinOnboard
+        verify(loopHub).temporaryBasal
+        verify(loopHub).isConnected
+        verify(loopHub).glucoseUnit
+    }
+
+    @Test
     fun testOnGetBloodGlucose() {
         `when`(loopHub.isConnected).thenReturn(true)
         `when`(loopHub.insulinOnboard).thenReturn(3.14)
@@ -161,7 +279,7 @@ class GarminPluginTest: TestBase() {
             listOf(createGlucoseValue(Instant.ofEpochSecond(1_000))))
         val hr = createHeartRate(99)
         val uri = createUri(hr)
-        val result = gp.onGetBloodGlucose(mock(SocketAddress::class.java), uri, null)
+        val result = gp.onGetBloodGlucose(uri)
         assertEquals(
             "{\"encodedGlucose\":\"0A+6AQ==\"," +
                 "\"remainingInsulin\":3.14," +
@@ -193,7 +311,7 @@ class GarminPluginTest: TestBase() {
         params["wait"] = 10
         val uri = createUri(params)
         gp.newValue = mock(Condition::class.java)
-        val result = gp.onGetBloodGlucose(mock(SocketAddress::class.java), uri, null)
+        val result = gp.onGetBloodGlucose(uri)
         assertEquals(
             "{\"encodedGlucose\":\"/wS6AQ==\"," +
                 "\"remainingInsulin\":3.14," +
@@ -216,7 +334,7 @@ class GarminPluginTest: TestBase() {
     @Test
     fun testOnPostCarbs() {
         val uri = createUri(mapOf("carbs" to "12"))
-        assertEquals("", gp.onPostCarbs(mock(SocketAddress::class.java), uri, null))
+        assertEquals("", gp.onPostCarbs(uri))
         verify(loopHub).postCarbs(12)
     }
 
@@ -224,7 +342,7 @@ class GarminPluginTest: TestBase() {
     fun testOnConnectPump_Disconnect() {
         val uri = createUri(mapOf("disconnectMinutes" to "20"))
         `when`(loopHub.isConnected).thenReturn(false)
-        assertEquals("{\"connected\":false}", gp.onConnectPump(mock(SocketAddress::class.java), uri, null))
+        assertEquals("{\"connected\":false}", gp.onConnectPump(uri))
         verify(loopHub).disconnectPump(20)
         verify(loopHub).isConnected
     }
@@ -233,64 +351,8 @@ class GarminPluginTest: TestBase() {
     fun testOnConnectPump_Connect() {
         val uri = createUri(mapOf("disconnectMinutes" to "0"))
         `when`(loopHub.isConnected).thenReturn(true)
-        assertEquals("{\"connected\":true}", gp.onConnectPump(mock(SocketAddress::class.java), uri, null))
+        assertEquals("{\"connected\":true}", gp.onConnectPump(uri))
         verify(loopHub).connectPump()
         verify(loopHub).isConnected
-    }
-
-    @Test
-    fun testOnMessage_Ping() {
-        val app = createDeviceApplication()
-        gp.onMessage(app, mapOf("command" to "ping") as Any)
-        val captor = ArgumentCaptor.forClass(ByteArray::class.java)
-        verify(app.client, timeout(1000))!!.sendMessage(
-            eq(app) ?: app, captor.capture() ?: ByteArray(0))
-        assertEquals(
-            mapOf<String, Any>("command" to "pong"),
-            ConnectIqSerializer.deserialize(captor.value))
-    }
-
-    @Test
-    fun testOnMessage_GetGlucose() {
-        val app = createDeviceApplication()
-        gp.onMessage(app, mapOf("command" to "get_glucose"))
-        val captor = ArgumentCaptor.forClass(ByteArray::class.java)
-        verify(app.client, timeout(1000))!!.sendMessage(
-            eq(app) ?: app, captor.capture() ?: ByteArray(0))
-        @Suppress("UNCHECKED_CAST")
-        val r = ConnectIqSerializer.deserialize(captor.value) as Map<String, Any>
-        assertEquals("glucose", r["command"])
-        assertEquals("D", r["profile"])
-        assertEquals("", r["encodedGlucose"])
-        assertEquals(0.0, r["remainingInsulin"])
-        assertEquals("mmoll", r["glucoseUnit"])
-        assertEquals(0.0, r["temporaryBasalRate"])
-        assertEquals(false, r["connected"])
-        assertEquals(clock.instant().epochSecond, r["timestamp"])
-        verify(loopHub).getGlucoseValues(getGlucoseValuesFrom, true)
-        verify(loopHub).insulinOnboard
-        verify(loopHub).temporaryBasal
-        verify(loopHub).isConnected
-        verify(loopHub).glucoseUnit
-    }
-
-    @Test
-    fun testOnMessage_Carbs() {
-        val app = createDeviceApplication()
-        gp.onMessage(app, mapOf("command" to "carbs", "carbs" to 123) as Any)
-        verify(loopHub, timeout(1000)).postCarbs(123)
-    }
-
-    @Test
-    fun testOnMessage_HeartRate() {
-        val app = createDeviceApplication()
-        val msg = createHeartRate(80).toMutableMap()
-        msg["command"] = "heartrate"
-        gp.onMessage(app, msg)
-        verify(loopHub, timeout(1000)).storeHeartRate(
-            Instant.ofEpochSecond(msg["hrStart"] as Long),
-            Instant.ofEpochSecond(msg["hrEnd"] as Long),
-            80,
-            msg["device"] as String)
     }
 }

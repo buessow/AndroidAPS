@@ -141,8 +141,8 @@ class ConnectIqSimulatorClient(
 
     override fun isDisposed() = socket.isClosed
 
-    override val connectedDevices: List<GarminDevice> = connections.map { c -> c.device }
-    override val knownDevices: List<GarminDevice> = connections.map { c -> c.device }
+    override val connectedDevices: List<GarminDevice> get() = connections.map { c -> c.device }
+    override val knownDevices: List<GarminDevice> get() = connections.map { c -> c.device }
 
     override fun retrieveApplicationInfo(device: GarminDevice, appId: String, appName: String) {
         connections.forEach { c ->

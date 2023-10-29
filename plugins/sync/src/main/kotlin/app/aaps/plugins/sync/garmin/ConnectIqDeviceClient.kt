@@ -212,14 +212,14 @@ class ConnectIqDeviceClient(
     }
 
     override fun getDeviceStatus(device: GarminDevice): GarminDevice.Status {
-        try {
+        return try {
             val status = transact(Operation.GET_STATUS, listOf(device), 0) { p -> p.readInt() }
-            return GarminDevice.Status
+            GarminDevice.Status
                 .values()
                 .firstOrNull { it.ordinal == status } ?: GarminDevice.Status.UNKNOWN
         } catch(e: Exception) {
             aapsLogger.error(LTag.GARMIN, "getDeviceStatus failed", e)
-            return GarminDevice.Status.UNKNOWN
+            GarminDevice.Status.UNKNOWN
         }
     }
 
@@ -250,7 +250,7 @@ class ConnectIqDeviceClient(
 
     private fun registerForMessages(appId: String) {
         if (registeredApplications.contains(appId)) return
-        aapsLogger.info(LTag.GARMIN, "registerForMessage $name ${appId}")
+        aapsLogger.info(LTag.GARMIN, "registerForMessage $name $appId")
         val a = getAction("ON_MESSAGE_$appId")
         val app = IQApp(appId, appIdNames[appId], 1)
         registerReceiver(a) { intent: Intent -> onReceiveMessage(app, intent) }

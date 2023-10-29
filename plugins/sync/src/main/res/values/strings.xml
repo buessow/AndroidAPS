@@ -190,7 +190,7 @@
 
     <!-- GarminPlugin -->
     <string name="garmin">Garmin</string>
-    <string name="garmin_description">Connection to Garmin device (Fenix, Edge, …)</string>
+    <string name="garmin_description">Connection to Garmin devices (Fenix, Edge, Epix, Forerunner, …)</string>
     <string name="key_garmin_settings">Garmin settings</string>
 
     <!--    Wear-->

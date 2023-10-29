@@ -19,13 +19,13 @@ import com.google.gson.JsonObject
 import dagger.android.HasAndroidInjector
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import java.net.HttpURLConnection
 import java.net.SocketAddress
 import java.net.URI
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.util.*
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
@@ -60,16 +60,16 @@ class GarminPlugin @Inject constructor(
 ) {
     /** HTTP Server for local HTTP server communication (device app requests values) .*/
     private var server: HttpServer? = null
+    var ciqMessenger: ConnectIqMessenger? = null
 
     /** Garmin ConnectIQ application id for native communication. Phone pushes values. */
     private val glucoseAppIds = mapOf(
-       "c9e90ee7e6924829a8b45e7dafff5cb4" to "GlucoseWatch2",
-       "1107ca6c2d5644b998d4bcb3793f2b7c" to "GlucoseDataField",
-       "928fe19a4d3a4259b50cb6f9ddaf0f4a" to "GlucoseWidget",
+       "c9e90ee7e6924829a8b45e7dafff5cb4" to "GlucoseWatch_Dev",
+       "1107ca6c2d5644b998d4bcb3793f2b7c" to "GlucoseDataField_Dev",
+       "928fe19a4d3a4259b50cb6f9ddaf0f4a" to "GlucoseWidget_Dev",
     )
 
     @VisibleForTesting
-    var ciqMessenger: ConnectIqMessenger? = null
     private val disposable = CompositeDisposable()
 
     @VisibleForTesting
@@ -80,6 +80,7 @@ class GarminPlugin @Inject constructor(
     var newValue: Condition = valueLock.newCondition()
     private var lastGlucoseValueTimestamp: Long? = null
     private val glucoseUnitStr get() = if (loopHub.glucoseUnit == GlucoseUnit.MGDL) "mgdl" else "mmoll"
+    private val garminAapsKey get() = sp.getString("garmin_aaps_key", "")
 
     private fun onPreferenceChange(event: EventPreferenceChange) {
         aapsLogger.info(LTag.GARMIN, "preferences change ${event.changedKey}")
@@ -90,16 +91,13 @@ class GarminPlugin @Inject constructor(
     }
 
     private fun setupCiqMessenger() {
-        val enableDebug = sp.getBoolean("communication_debug_mode", false)
+        val enableDebug = sp.getBoolean("communication_ciq_debug_mode", false)
         ciqMessenger?.dispose()
         ciqMessenger = null
-        if (sp.getBoolean("communication_ciq", false)) {
-            aapsLogger.info(LTag.GARMIN, "initialize IQ messenger in debug=$enableDebug")
-            ciqMessenger = ConnectIqMessenger(
-                aapsLogger, context, glucoseAppIds, ::onConnectDevice, ::onMessage, enableDebug
-            ).also { disposable.add(it) }
-        }
-        setupHttpServer()
+        aapsLogger.info(LTag.GARMIN, "initialize IQ messenger in debug=$enableDebug")
+        ciqMessenger = ConnectIqMessenger(
+            aapsLogger, context, glucoseAppIds, ::onConnectDevice, {_, _ -> },
+            enableDebug).also { disposable.add(it) }
     }
 
     override fun onStart() {
@@ -111,28 +109,26 @@ class GarminPlugin @Inject constructor(
                 .observeOn(Schedulers.io())
                 .subscribe(::onPreferenceChange)
         )
-        setupHttpServer()
         disposable.add(
             rxBus
                 .toObservable(EventNewBG::class.java)
                 .observeOn(Schedulers.io())
                 .subscribe(::onNewBloodGlucose)
         )
-
         setupHttpServer()
         setupCiqMessenger()
     }
 
-    private fun setupHttpServer() {
+    fun setupHttpServer() {
         if (sp.getBoolean("communication_http", false)) {
             val port = sp.getInt("communication_http_port", 28891)
             if (server != null && server?.port == port) return
             aapsLogger.info(LTag.GARMIN, "starting HTTP server on $port")
             server?.close()
             server = HttpServer(aapsLogger, port).apply {
-                registerEndpoint("/get", ::onGetBloodGlucose)
-                registerEndpoint("/carbs", ::onPostCarbs)
-                registerEndpoint("/connect", ::onConnectPump)
+                registerEndpoint("/get", requestHandler(::onGetBloodGlucose))
+                registerEndpoint("/carbs", requestHandler(::onPostCarbs))
+                registerEndpoint("/connect", requestHandler(::onConnectPump))
             }
         } else if (server != null) {
             aapsLogger.info(LTag.GARMIN, "stopping HTTP server")
@@ -141,7 +137,7 @@ class GarminPlugin @Inject constructor(
         }
     }
 
-    override fun onStop() {
+    public override fun onStop() {
         disposable.clear()
         aapsLogger.info(LTag.GARMIN, "Stop")
         server?.close()
@@ -163,49 +159,26 @@ class GarminPlugin @Inject constructor(
             lastGlucoseValueTimestamp = timestamp
             newValue.signalAll()
         }
-
-        if (ciqMessenger != null) {
-            Schedulers.io().scheduleDirect(
-                { ciqMessenger?.sendMessage(getGlucoseMessage()) },
-                3,
-                TimeUnit.SECONDS
-            )
-        }
     }
 
     @VisibleForTesting
-    fun onMessage(app: DeviceApplication, msg: Any) {
-        if (msg is Map<*, *>) {
-            @Suppress("UNCHECKED_CAST")
-            onMessage(app, msg as Map<String, Any>)
-        } else {
-            aapsLogger.error(LTag.GARMIN, "unsupported message from $app ${msg.javaClass}")
-        }
-    }
-
-    private fun onConnectDevice(device: GarminDevice) {
+    fun onConnectDevice(device: GarminDevice) {
         aapsLogger.info(LTag.GARMIN, "onConnectDevice $device sending glucose")
-        ciqMessenger!!.sendMessage(device, getGlucoseMessage())
+        if (garminAapsKey.isNotEmpty()) sendPhoneAppMessage(device)
     }
 
-    private fun onMessage(app: DeviceApplication, msg: Map<String, Any>) {
-        val cmd = msg["command"] ?: "unknown"
-        val s = msg.entries.joinToString(",") { (k, v) -> "$k:${v.toString().take(100)}" }
-        aapsLogger.info(LTag.GARMIN, "onMessage $app $cmd {$s}")
-        Schedulers.io().scheduleDirect {
-            when (cmd) {
-                "ping"        ->
-                    ciqMessenger!!.sendMessage(app, mapOf("command" to "pong"))
-                "get_glucose" ->
-                    ciqMessenger!!.sendMessage(app, getGlucoseMessage())
-                "heartrate"   -> receiveHeartRate(msg, app.client.name == "Sim")
-                "carbs"       -> loopHub.postCarbs(msg["carbs"] as Int)
-            }
-        }
+    private fun sendPhoneAppMessage(device: GarminDevice) {
+        ciqMessenger?.sendMessage(device, getGlucoseMessage())
     }
+
+    private fun sendPhoneAppMessage() {
+        ciqMessenger?.sendMessage(getGlucoseMessage())
+    }
+
 
     @VisibleForTesting
     fun getGlucoseMessage() = mapOf<String, Any>(
+        "key" to garminAapsKey,
         "command" to "glucose",
         "profile" to loopHub.currentProfileName.first().toString(),
         "encodedGlucose" to encodedGlucose(getGlucoseValues()),
@@ -250,11 +223,25 @@ class GarminPlugin @Inject constructor(
             val glucoseMgDl: Int = glucose.value.roundToInt()
             encodedGlucose.add(timeSec, glucoseMgDl)
         }
-        aapsLogger.info(
-            LTag.GARMIN,
-            "retrieved ${glucoseValues.size} last ${Date(glucoseValues.lastOrNull()?.timestamp ?: 0L)} ${encodedGlucose.size}"
-        )
         return encodedGlucose.encodedBase64()
+    }
+
+    @VisibleForTesting
+    fun requestHandler(action: (URI) -> CharSequence) = {
+            caller: SocketAddress, uri: URI, _: String? ->
+        val key = garminAapsKey
+        val deviceKey = getQueryParameter(uri, "key")
+        if (key.isNotEmpty() && key != deviceKey) {
+            aapsLogger.warn(LTag.GARMIN, "Invalid AAPS Key from $caller, got '$deviceKey' want '$key'")
+            sendPhoneAppMessage()
+            Thread.sleep(1000L)
+            HttpURLConnection.HTTP_UNAUTHORIZED to "{}"
+        } else {
+            aapsLogger.info(LTag.GARMIN, "get from $caller resp , req: $uri")
+            HttpURLConnection.HTTP_OK to action(uri).also {
+                aapsLogger.info(LTag.GARMIN, "get from $caller resp , req: $uri, result: $it")
+            }
+        }
     }
 
     /** Responses to get glucose value request by the device.
@@ -262,9 +249,8 @@ class GarminPlugin @Inject constructor(
      * Also, gets the heart rate readings from the device.
      */
     @VisibleForTesting
-    @Suppress("UNUSED_PARAMETER")
-    fun onGetBloodGlucose(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
-        aapsLogger.info(LTag.GARMIN, "get from $caller resp , req: $uri")
+    // @Suppress("UNUSED_PARAMETER")
+    fun onGetBloodGlucose(uri: URI): CharSequence {
         receiveHeartRate(uri)
         val profileName = loopHub.currentProfileName
         val waitSec = getQueryParameter(uri, "wait", 0L)
@@ -278,9 +264,7 @@ class GarminPlugin @Inject constructor(
         }
         jo.addProperty("profile", profileName.first().toString())
         jo.addProperty("connected", loopHub.isConnected)
-        return jo.toString().also {
-            aapsLogger.info(LTag.GARMIN, "get from $caller resp , req: $uri, result: $it")
-        }
+        return jo.toString()
     }
 
     private fun getQueryParameter(uri: URI, name: String) = (uri.query ?: "")
@@ -350,9 +334,7 @@ class GarminPlugin @Inject constructor(
 
     /** Handles carb notification from the device. */
     @VisibleForTesting
-    @Suppress("UNUSED_PARAMETER")
-    fun onPostCarbs(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
-        aapsLogger.info(LTag.GARMIN, "carbs from $caller, req: $uri")
+    fun onPostCarbs(uri: URI): CharSequence {
         postCarbs(getQueryParameter(uri, "carbs", 0L).toInt())
         return ""
     }
@@ -365,9 +347,7 @@ class GarminPlugin @Inject constructor(
 
     /** Handles pump connected notification that the user entered on the Garmin device. */
     @VisibleForTesting
-    @Suppress("UNUSED_PARAMETER")
-    fun onConnectPump(caller: SocketAddress, uri: URI, requestBody: String?): CharSequence {
-        aapsLogger.info(LTag.GARMIN, "connect from $caller, req: $uri")
+    fun onConnectPump(uri: URI): CharSequence {
         val minutes = getQueryParameter(uri, "disconnectMinutes", 0L).toInt()
         if (minutes > 0) {
             loopHub.disconnectPump(minutes)

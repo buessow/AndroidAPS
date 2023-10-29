@@ -1,5 +1,6 @@
 package app.aaps.plugins.sync.garmin
 
+import android.content.Context
 import app.aaps.core.interfaces.db.GlucoseUnit
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.events.EventNewBG
@@ -15,9 +16,11 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.anyBoolean
+import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.ArgumentMatchers.eq
 import org.mockito.Mock
-import org.mockito.Mockito
 import org.mockito.Mockito.atMost
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
@@ -40,6 +43,7 @@ class GarminPluginTest: TestBase() {
     @Mock private lateinit var rh: ResourceHelper
     @Mock private lateinit var sp: SP
     @Mock private lateinit var loopHub: LoopHub
+    @Mock private lateinit var context: Context
     private val clock = Clock.fixed(Instant.ofEpochMilli(10_000), ZoneId.of("UTC"))
 
     private var injector: HasAndroidInjector = HasAndroidInjector {
@@ -49,9 +53,12 @@ class GarminPluginTest: TestBase() {
 
     @BeforeEach
     fun setup() {
-        gp = GarminPlugin(injector, aapsLogger, rh, loopHub, rxBus, sp)
+        gp = GarminPlugin(injector, aapsLogger, rh, context, loopHub, rxBus, sp)
         gp.clock = clock
         `when`(loopHub.currentProfileName).thenReturn("Default")
+        `when`(sp.getBoolean(anyString(), anyBoolean())).thenAnswer { i -> i.arguments[1] }
+        `when`(sp.getString(anyString(), anyString())).thenAnswer { i -> i.arguments[1] }
+        `when`(sp.getInt(anyString(), anyInt())).thenAnswer { i -> i.arguments[1] }
     }
 
     @AfterEach
@@ -156,8 +163,6 @@ class GarminPluginTest: TestBase() {
 
     @Test
     fun setupHttpServer_disabled() {
-        `when`(sp.getBoolean("communication_http", false)).thenReturn(false)
-        `when`(sp.getInt("communication_http_port", 28891)).thenReturn(28891)
         gp.setupHttpServer()
         val reqUri = URI("http://127.0.0.1:28891/get")
         assertThrows(ConnectException::class.java) {
@@ -219,7 +224,7 @@ class GarminPluginTest: TestBase() {
             body.toString()
         )
         verify(gp.newValue).awaitNanos(ArgumentMatchers.anyLong())
-        verify(loopHub, Mockito.times(2)).getGlucoseValues(from, true)
+        verify(loopHub, times(2)).getGlucoseValues(from, true)
         verify(loopHub).insulinOnboard
         verify(loopHub).temporaryBasal
         verify(loopHub).isConnected

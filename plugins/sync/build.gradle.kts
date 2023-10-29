@@ -12,6 +12,7 @@ android {
 }
 
 dependencies {
+    implementation(files("libs/connectiq.jar"))
     implementation(project(":shared:impl"))
     implementation(project(":database:entities"))
     implementation(project(":database:impl"))

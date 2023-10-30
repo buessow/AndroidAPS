@@ -11,6 +11,7 @@ import app.aaps.core.interfaces.logging.UserEntryLogger
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.queue.CommandQueue
+import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.database.ValueWrapper
 import app.aaps.database.entities.EffectiveProfileSwitch
 import app.aaps.database.entities.GlucoseValue
@@ -45,13 +46,14 @@ class LoopHubTest: TestBase() {
     @Mock lateinit var profileFunction: ProfileFunction
     @Mock lateinit var repo: AppRepository
     @Mock lateinit var userEntryLogger: UserEntryLogger
+    @Mock lateinit var sp: SP
 
     private lateinit var loopHub: LoopHubImpl
     private val clock = Clock.fixed(Instant.ofEpochMilli(10_000), ZoneId.of("UTC"))
 
     @BeforeEach
     fun setup() {
-        loopHub = LoopHubImpl(iobCobCalculator, loop, profileFunction, repo)
+        loopHub = LoopHubImpl(iobCobCalculator, loop, profileFunction, repo, sp)
         loopHub.clock = clock
     }
 
@@ -83,18 +85,10 @@ class LoopHubTest: TestBase() {
 
     @Test
     fun testGlucoseUnit() {
-        val profile = mock(Profile::class.java)
-        `when`(profile.units).thenReturn(GlucoseUnit.MMOL)
-        `when`(profileFunction.getProfile()).thenReturn(profile)
-        assertEquals(GlucoseUnit.MMOL, loopHub.glucoseUnit)
-        verify(profileFunction, times(1)).getProfile()
-    }
-
-    @Test
-    fun testGlucoseUnitNullProfile() {
-        `when`(profileFunction.getProfile()).thenReturn(null)
+        `when`(sp.getString(app.aaps.core.utils.R.string.key_units, GlucoseUnit.MGDL.asText)).thenReturn("mg/dl")
         assertEquals(GlucoseUnit.MGDL, loopHub.glucoseUnit)
-        verify(profileFunction, times(1)).getProfile()
+        `when`(sp.getString(app.aaps.core.utils.R.string.key_units, GlucoseUnit.MGDL.asText)).thenReturn("mmol")
+        assertEquals(GlucoseUnit.MMOL, loopHub.glucoseUnit)
     }
 
     @Test

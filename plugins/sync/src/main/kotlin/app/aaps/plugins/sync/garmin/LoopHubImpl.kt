@@ -6,6 +6,7 @@ import app.aaps.core.interfaces.db.GlucoseUnit
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.database.ValueWrapper
 import app.aaps.database.entities.EffectiveProfileSwitch
 import app.aaps.database.entities.GlucoseValue
@@ -26,6 +27,7 @@ class LoopHubImpl @Inject constructor(
     private val loop: Loop,
     private val profileFunction: ProfileFunction,
     private val repo: AppRepository,
+    private val sp: SP,
 ) : LoopHub {
 
     @VisibleForTesting
@@ -40,7 +42,9 @@ class LoopHubImpl @Inject constructor(
 
     /** Returns the glucose unit (mg/dl or mmol/l) as selected by the user. */
     override val glucoseUnit: GlucoseUnit
-        get() = profileFunction.getProfile()?.units ?: GlucoseUnit.MGDL
+        get() = GlucoseUnit.fromText(sp.getString(
+            app.aaps.core.utils.R.string.key_units,
+            GlucoseUnit.MGDL.asText))
 
     /** Returns the remaining bolus insulin on board. */
     override val insulinOnboard: Double

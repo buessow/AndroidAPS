@@ -87,6 +87,7 @@ class GarminPlugin @Inject constructor(
         when (event.changedKey) {
             "communication_debug_mode" -> setupCiqMessenger()
             "communication_http", "communication_http_port" -> setupHttpServer()
+            "garmin_aaps_key" -> sendPhoneAppMessage()
         }
     }
 
@@ -174,7 +175,6 @@ class GarminPlugin @Inject constructor(
     private fun sendPhoneAppMessage() {
         ciqMessenger?.sendMessage(getGlucoseMessage())
     }
-
 
     @VisibleForTesting
     fun getGlucoseMessage() = mapOf<String, Any>(

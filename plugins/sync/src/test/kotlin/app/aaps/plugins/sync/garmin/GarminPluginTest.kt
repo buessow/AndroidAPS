@@ -60,6 +60,8 @@ class GarminPluginTest: TestBase() {
         `when`(sp.getBoolean(anyString(), anyBoolean())).thenAnswer { i -> i.arguments[1] }
         `when`(sp.getString(anyString(), anyString())).thenAnswer { i -> i.arguments[1] }
         `when`(sp.getInt(anyString(), anyInt())).thenAnswer { i -> i.arguments[1] }
+        `when`(sp.getInt(eq("communication_http_port") ?: "", anyInt()))
+            .thenReturn(28890)
     }
 
     @AfterEach
@@ -144,7 +146,7 @@ class GarminPluginTest: TestBase() {
     }
 
     @Test
-    fun setupHttpServer_Enabled() {
+    fun setupHttpServer_enabled() {
         `when`(sp.getBoolean("communication_http", false)).thenReturn(true)
         `when`(sp.getInt("communication_http_port", 28891)).thenReturn(28892)
         gp.setupHttpServer()
@@ -176,7 +178,7 @@ class GarminPluginTest: TestBase() {
     @Test
     fun setupHttpServer_disabled() {
         gp.setupHttpServer()
-        val reqUri = URI("http://127.0.0.1:28891/get")
+        val reqUri = URI("http://127.0.0.1:28890/get")
         assertThrows(ConnectException::class.java) {
             (reqUri.toURL().openConnection() as HttpURLConnection).responseCode
         }

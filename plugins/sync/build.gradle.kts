@@ -1,3 +1,4 @@
+
 plugins {
     id("com.android.library")
     id("kotlin-android")
@@ -24,13 +25,13 @@ dependencies {
     implementation(project(":core:utils"))
     implementation(project(":core:validators"))
 
-
     testImplementation(Libs.KotlinX.coroutinesTest)
     testImplementation(Libs.AndroidX.Work.testing)
 
     testImplementation(project(":shared:tests"))
     testImplementation(project(":implementation"))
     testImplementation(project(":plugins:aps"))
+    androidTestImplementation(project(":shared:tests"))
 
     // OpenHuman
     api(Libs.Squareup.Okhttp3.okhttp)

@@ -60,7 +60,7 @@ class GarminPlugin @Inject constructor(
 ) {
     /** HTTP Server for local HTTP server communication (device app requests values) .*/
     private var server: HttpServer? = null
-    var ciqMessenger: ConnectIqMessenger? = null
+    var garminMessenger: GarminMessenger? = null
 
     /** Garmin ConnectIQ application id for native communication. Phone pushes values. */
     private val glucoseAppIds = mapOf(
@@ -85,20 +85,20 @@ class GarminPlugin @Inject constructor(
     private fun onPreferenceChange(event: EventPreferenceChange) {
         aapsLogger.info(LTag.GARMIN, "preferences change ${event.changedKey}")
         when (event.changedKey) {
-            "communication_debug_mode" -> setupCiqMessenger()
+            "communication_debug_mode" -> setupGarminMessenger()
             "communication_http", "communication_http_port" -> setupHttpServer()
             "garmin_aaps_key" -> sendPhoneAppMessage()
         }
     }
 
-    private fun setupCiqMessenger() {
+    private fun setupGarminMessenger() {
         val enableDebug = sp.getBoolean("communication_ciq_debug_mode", false)
-        ciqMessenger?.dispose()
-        ciqMessenger = null
+        garminMessenger?.dispose()
+        garminMessenger = null
         aapsLogger.info(LTag.GARMIN, "initialize IQ messenger in debug=$enableDebug")
-        ciqMessenger = ConnectIqMessenger(
-            aapsLogger, context, glucoseAppIds, ::onConnectDevice, {_, _ -> },
-            enableDebug).also { disposable.add(it) }
+        garminMessenger = GarminMessenger(
+            aapsLogger, context, glucoseAppIds, {_, _ -> },
+            true, enableDebug).also { disposable.add(it) }
     }
 
     override fun onStart() {
@@ -117,7 +117,7 @@ class GarminPlugin @Inject constructor(
                 .subscribe(::onNewBloodGlucose)
         )
         setupHttpServer()
-        setupCiqMessenger()
+        setupGarminMessenger()
     }
 
     fun setupHttpServer() {
@@ -169,11 +169,11 @@ class GarminPlugin @Inject constructor(
     }
 
     private fun sendPhoneAppMessage(device: GarminDevice) {
-        ciqMessenger?.sendMessage(device, getGlucoseMessage())
+        garminMessenger?.sendMessage(device, getGlucoseMessage())
     }
 
     private fun sendPhoneAppMessage() {
-        ciqMessenger?.sendMessage(getGlucoseMessage())
+        garminMessenger?.sendMessage(getGlucoseMessage())
     }
 
     @VisibleForTesting
@@ -232,7 +232,7 @@ class GarminPlugin @Inject constructor(
         val key = garminAapsKey
         val deviceKey = getQueryParameter(uri, "key")
         if (key.isNotEmpty() && key != deviceKey) {
-            aapsLogger.warn(LTag.GARMIN, "Invalid AAPS Key from $caller, got '$deviceKey' want '$key'")
+            aapsLogger.warn(LTag.GARMIN, "Invalid AAPS Key from $caller, got '$deviceKey' want '$key' " + uri)
             sendPhoneAppMessage()
             Thread.sleep(1000L)
             HttpURLConnection.HTTP_UNAUTHORIZED to "{}"

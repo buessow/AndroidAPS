@@ -1,49 +1,53 @@
 package app.aaps.plugins.sync.garmin
 
-import android.os.Parcel
-import android.os.Parcelable
+import com.garmin.android.connectiq.IQDevice
 
 data class GarminDevice(
+    val client: GarminClient,
     val id: Long,
-    val name: String): Parcelable {
+    var name: String,
+    var status: Status = Status.UNKNOWN) {
+
+    constructor(client: GarminClient, iqDevice: IQDevice): this(
+        client,
+        iqDevice.deviceIdentifier,
+        iqDevice.friendlyName,
+        Status.from(iqDevice.status)) {}
+
     enum class Status {
         NOT_PAIRED,
         NOT_CONNECTED,
         CONNECTED,
-        UNKNOWN,
+        UNKNOWN;
+
+        companion object {
+            fun from(iqDeviceStatus: IQDevice.IQDeviceStatus): Status =
+                from(iqDeviceStatus.ordinal)
+            fun from(ordinal: Int?): Status =
+                values().firstOrNull { s -> s.ordinal == ordinal } ?: UNKNOWN
+        }
     }
 
-    constructor(parcel: Parcel) : this(parcel.readLong(), parcel.readString() ?: "") {
-        parcel.readString()  // skip status
-    }
-
-    override fun writeToParcel(parcel: Parcel, flags: Int) {
-        parcel.writeLong(id)
-        parcel.writeString(name)
-        parcel.writeString("UNKNOWN")
-    }
-
-    override fun describeContents(): Int {
-        return 0
-    }
-
-    override fun equals(other: Any?): Boolean {
-        return this === other || id == (other as? GarminDevice)?.id
-    }
-
-    override fun hashCode(): Int {
-        return id.hashCode()
-    }
 
     override fun toString(): String = "D[$name/$id]"
 
-    companion object CREATOR : Parcelable.Creator<GarminDevice> {
-        override fun createFromParcel(parcel: Parcel): GarminDevice {
-            return GarminDevice(parcel)
-        }
+    fun toIQDevice() = IQDevice(id, name)
 
-        override fun newArray(size: Int): Array<GarminDevice?> {
-            return arrayOfNulls(size)
-        }
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as GarminDevice
+
+        if (client != other.client) return false
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = client.hashCode()
+        result = 31 * result + id.hashCode()
+        return result
     }
 }

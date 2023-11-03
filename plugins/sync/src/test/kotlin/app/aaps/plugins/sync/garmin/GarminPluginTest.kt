@@ -215,7 +215,7 @@ class GarminPluginTest: TestBase() {
 
     @Test
     fun requestHandler_KeyRequired() {
-        gp.ciqMessenger = mock(ConnectIqMessenger::class.java)
+        gp.garminMessenger = mock(GarminMessenger::class.java)
 
         `when`(sp.getString("garmin_aaps_key", "")).thenReturn("foo")
         val uri = createUri(emptyMap())
@@ -225,7 +225,7 @@ class GarminPluginTest: TestBase() {
             handler(mock(SocketAddress::class.java), uri, null))
 
         val captor = ArgumentCaptor.forClass(Any::class.java)
-        verify(gp.ciqMessenger)!!.sendMessage(captor.capture() ?: "")
+        verify(gp.garminMessenger)!!.sendMessage(captor.capture() ?: "")
         @Suppress("UNCHECKED_CAST")
         val r = captor.value as Map<String, Any>
         assertEquals("foo", r["key"])
@@ -246,13 +246,13 @@ class GarminPluginTest: TestBase() {
 
     @Test
     fun onConnectDevice() {
-        gp.ciqMessenger = mock(ConnectIqMessenger::class.java)
+        gp.garminMessenger = mock(GarminMessenger::class.java)
         `when`(sp.getString("garmin_aaps_key", "")).thenReturn("foo")
-        val device = GarminDevice(1, "Edge")
+        val device = GarminDevice(mock(),1, "Edge")
         gp.onConnectDevice(device)
 
         val captor = ArgumentCaptor.forClass(Any::class.java)
-        verify(gp.ciqMessenger)!!.sendMessage(eq(device) ?: device, captor.capture() ?: "")
+        verify(gp.garminMessenger)!!.sendMessage(eq(device) ?: device, captor.capture() ?: "")
         @Suppress("UNCHECKED_CAST")
         val r = captor.value as Map<String, Any>
         assertEquals("foo", r["key"])

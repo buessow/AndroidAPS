@@ -15,11 +15,11 @@ import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
 
-class ConnectIqSimulatorClient(
+class GarminSimulatorClient(
     private val aapsLogger: AAPSLogger,
-    private val receiver: ConnectIqReceiver,
+    private val receiver: GarminReceiver,
     private val port: Int = 7381
-): Disposable, ConnectIqClient {
+): Disposable, GarminClient {
 
     override val name = "Sim"
     private val executor: Executor = Executors.newCachedThreadPool()
@@ -30,28 +30,20 @@ class ConnectIqSimulatorClient(
 
     private inner class Connection(private val socket: Socket): Disposable {
         val device = GarminDevice(
-            nextDeviceId.getAndAdd(1),
-            "Sim@${socket.remoteSocketAddress}")
+            this@GarminSimulatorClient,
+            nextDeviceId.getAndAdd(1L),
+            "Sim@${socket.remoteSocketAddress}",
+            GarminDevice.Status.CONNECTED)
 
         fun start() {
             executor.execute {
                 try {
-                    receiver.onConnectDevice(this@ConnectIqSimulatorClient, device)
+                    receiver.onConnectDevice(this@GarminSimulatorClient, device.id, device.name)
                     run()
                 } catch (e: Throwable) {
                   aapsLogger.error(LTag.GARMIN, "$device failed", e)
                 }
             }
-        }
-
-        fun getDeviceApplication(appId: String): DeviceApplication {
-            return if (appId == app.applicationId)
-                DeviceApplication(this@ConnectIqSimulatorClient, device, app)
-            else
-                DeviceApplication(
-                    this@ConnectIqSimulatorClient,
-                    device,
-                    IQApp(appId, IQApp.IQAppStatus.NOT_INSTALLED, null,0))
         }
 
         fun send(data: ByteArray) {
@@ -72,7 +64,7 @@ class ConnectIqSimulatorClient(
                     val data = readAvailable(socket.inputStream) ?: break
                     if (data.isNotEmpty()) {
                         kotlin.runCatching {
-                            receiver.onReceiveMessage(this@ConnectIqSimulatorClient, device, app, data)
+                            receiver.onReceiveMessage(this@GarminSimulatorClient, device.id, app.applicationId, data)
                         }
                     }
                 } catch (e: SocketException) {
@@ -81,7 +73,7 @@ class ConnectIqSimulatorClient(
             }
             aapsLogger.info(LTag.GARMIN, "disconnect ${device.name}" )
             connections.remove(this)
-            receiver.onDisconnectDevice(this@ConnectIqSimulatorClient, device)
+            receiver.onDisconnectDevice(this@GarminSimulatorClient, device.id)
         }
 
         private fun readAvailable(input: InputStream): ByteArray? {
@@ -123,14 +115,14 @@ class ConnectIqSimulatorClient(
         val ip = Inet4Address.getByAddress(byteArrayOf(127, 0, 0, 1))
         aapsLogger.info(LTag.GARMIN, "bind to $ip:$port")
         socket.bind(InetSocketAddress(ip, port))
-        receiver.onConnect(this@ConnectIqSimulatorClient)
+        receiver.onConnect(this@GarminSimulatorClient)
         while (!socket.isClosed) {
             val s = socket.accept()
             aapsLogger.info(LTag.GARMIN, "accept " + s.remoteSocketAddress)
             connections.add(Connection(s))
             connections.last().start()
         }
-        receiver.onDisconnect(this@ConnectIqSimulatorClient)
+        receiver.onDisconnect(this@GarminSimulatorClient)
     }
 
     override fun dispose() {
@@ -141,27 +133,16 @@ class ConnectIqSimulatorClient(
 
     override fun isDisposed() = socket.isClosed
 
-    override val connectedDevices: List<GarminDevice> get() = connections.map { c -> c.device }
-    override val knownDevices: List<GarminDevice> get() = connections.map { c -> c.device }
-
     override fun retrieveApplicationInfo(device: GarminDevice, appId: String, appName: String) {
-        connections.forEach { c ->
-            receiver.onApplicationInfo(c.getDeviceApplication(app.applicationId))
-        }
+        receiver.onApplicationInfo(device, appId, true)
     }
 
     private fun getConnection(device: GarminDevice): Connection? {
         return connections.firstOrNull { c -> c.device.id == device.id }
     }
 
-    override fun getDeviceStatus(device: GarminDevice): GarminDevice.Status {
-        return if (getConnection(device) == null)
-            GarminDevice.Status.NOT_CONNECTED
-        else GarminDevice.Status.CONNECTED
-    }
-
-    override fun sendMessage(da: DeviceApplication, data: ByteArray) {
-        val c = getConnection(da.device) ?: return
+    override fun sendMessage(app: GarminApplication, data: ByteArray) {
+        val c = getConnection(app.device) ?: return
         try {
             c.send(data)
         } catch (e: SocketException) {

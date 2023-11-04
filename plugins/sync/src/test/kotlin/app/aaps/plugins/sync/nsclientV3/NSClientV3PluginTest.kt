@@ -20,6 +20,7 @@ import app.aaps.database.entities.EffectiveProfileSwitch
 import app.aaps.database.entities.ExtendedBolus
 import app.aaps.database.entities.Food
 import app.aaps.database.entities.GlucoseValue
+import app.aaps.database.entities.HeartRate
 import app.aaps.database.entities.OfflineEvent
 import app.aaps.database.entities.ProfileSwitch
 import app.aaps.database.entities.TemporaryBasal
@@ -222,6 +223,35 @@ internal class NSClientV3PluginTest : TestBaseWithProfile() {
         Mockito.`when`(nsAndroidClient.updateTreatment(anyObject())).thenReturn(CreateUpdateResponse(200, "aaa"))
         sut.nsUpdate("treatments", dataPair, "1/3")
         assertThat(storeDataForDb.nsIdCarbs).hasSize(2)
+    }
+
+    @Test
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun nsAddHeartRate() = runTest {
+        val hr = HeartRate(
+            timestamp = 10000,
+            isValid = true,
+            beatsPerMinute = 81.2,
+            duration = 300,
+            device = "test007",
+            interfaceIDs_backing = InterfaceIDs(
+                nightscoutId = "nightscoutId",
+                pumpId = 11000,
+                pumpType = InterfaceIDs.PumpType.DANA_I,
+                pumpSerial = "bbbb"
+            )
+        )
+        val dataPair = DataSyncSelector.PairHeartRate(hr, 1000)
+        // create
+        Mockito.`when`(nsAndroidClient.createHeartRate(anyObject()))
+            .thenReturn(CreateUpdateResponse(201, "aaa"))
+        sut.nsAdd("heartrate", dataPair, "1/3")
+        assertThat(storeDataForDb.nsIdHeartRates).hasSize(1)
+        // update
+        Mockito.`when`(nsAndroidClient.updateHeartRate(anyObject()))
+            .thenReturn(CreateUpdateResponse(200, "aaa"))
+        sut.nsUpdate("heartrate", dataPair, "1/3")
+        assertThat(storeDataForDb.nsIdHeartRates).hasSize(2)
     }
 
     @Test

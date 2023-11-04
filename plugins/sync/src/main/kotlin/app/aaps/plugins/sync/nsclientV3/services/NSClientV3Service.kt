@@ -22,6 +22,7 @@ import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.nssdk.mapper.toNSDeviceStatus
 import app.aaps.core.nssdk.mapper.toNSFood
+import app.aaps.core.nssdk.mapper.toNSHeartRate
 import app.aaps.core.nssdk.mapper.toNSSgvV3
 import app.aaps.core.nssdk.mapper.toNSTreatment
 import app.aaps.plugins.sync.R
@@ -238,6 +239,11 @@ class NSClientV3Service : DaggerService() {
             "foods"        -> docString.toNSFood()?.let {
                 nsIncomingDataProcessor.processFood(listOf(it))
                 storeDataForDb.storeFoodsToDb()
+            }
+
+            "heartrate"    -> docString.toNSHeartRate()?.let {
+                nsIncomingDataProcessor.processHeartRate(listOf(it))
+                storeDataForDb.storeHeartRatesToDb()
             }
 
             "settings"     -> {}

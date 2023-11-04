@@ -68,6 +68,7 @@ import app.aaps.plugins.sync.nsclientV3.extensions.toNSDeviceStatus
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSEffectiveProfileSwitch
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSExtendedBolus
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSFood
+import app.aaps.plugins.sync.nsclientV3.extensions.toNSHeartRate
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSOfflineEvent
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSProfileSwitch
 import app.aaps.plugins.sync.nsclientV3.extensions.toNSSvgV3
@@ -580,6 +581,56 @@ class NSClientV3Plugin @Inject constructor(
         return true
     }
 
+    private suspend fun dbOperationHeartRate(collection: String = "heartrate", dataPair: DataSyncSelector.PairHeartRate, progress: String, operation: Operation): Boolean {
+        val client = nsAndroidClient ?: return false.also {
+            aapsLogger.error(LTag.NSCLIENT, "no nsAndroidClient to upload HR")
+        }
+        val call = when (operation) {
+            Operation.CREATE -> client::createHeartRate
+            Operation.UPDATE -> client::updateHeartRate
+        }
+        try {
+            val data = dataPair.value.toNSHeartRate()
+            val id = dataPair.value.interfaceIDs.nightscoutId
+            rxBus.send(
+                EventNSClientNewLog(
+                    when (operation) {
+                        Operation.CREATE -> "► ADD $collection"
+                        Operation.UPDATE -> "► UPDATE $collection"
+                    },
+                    when (operation) {
+                        Operation.CREATE -> "Sent ${dataPair.javaClass.simpleName} <i>${gson.toJson(data)}</i> $progress"
+                        Operation.UPDATE -> "Sent ${dataPair.javaClass.simpleName} $id <i>${gson.toJson(data)}</i> $progress"
+                    }
+                )
+            )
+            val result = call(data)
+            when (result.response) {
+                200  -> rxBus.send(EventNSClientNewLog(
+                    "◄ UPDATED", "OK ${dataPair.value.javaClass.simpleName}"))
+                201  -> rxBus.send(EventNSClientNewLog(
+                    "◄ ADDED", "OK ${dataPair.value.javaClass.simpleName}"))
+                400  -> rxBus.send(EventNSClientNewLog(
+                    "◄ FAIL", "${dataPair.value.javaClass.simpleName} ${result.errorResponse}"))
+                404  -> rxBus.send(EventNSClientNewLog(
+                    "◄ NOT_FOUND", "${dataPair.value.javaClass.simpleName} ${result.errorResponse}"))
+                else -> {
+                    rxBus.send(EventNSClientNewLog("◄ ERROR", "${result.errorResponse} "))
+                    return true
+                }
+            }
+            result.identifier?.let {
+                dataPair.value.interfaceIDs.nightscoutId = it
+                storeDataForDb.nsIdHeartRates.add(dataPair.value)
+            }
+            slowDown()
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.NSCLIENT, "Upload exception", e)
+            return false
+        }
+        return true
+    }
+
     private suspend fun dbOperationTreatments(collection: String = "treatments", dataPair: DataSyncSelector.DataPair, progress: String, operation: Operation, profile: Profile?): Boolean {
         val call = when (operation) {
             Operation.CREATE -> nsAndroidClient?.let { return@let it::createTreatment }
@@ -708,6 +759,7 @@ class NSClientV3Plugin @Inject constructor(
             "entries"      -> dbOperationEntries(dataPair = dataPair as DataSyncSelector.PairGlucoseValue, progress = progress, operation = operation)
             "food"         -> dbOperationFood(dataPair = dataPair as DataSyncSelector.PairFood, progress = progress, operation = operation)
             "treatments"   -> dbOperationTreatments(dataPair = dataPair, progress = progress, operation = operation, profile = profile)
+            "heartrate"    -> dbOperationHeartRate(dataPair = dataPair as DataSyncSelector.PairHeartRate, progress = progress, operation = operation)
 
             else           -> false
         }

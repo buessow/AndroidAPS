@@ -28,7 +28,7 @@ class ConnectIqSerializerTest {
     }
 
     @Test fun testDeserializeMap() {
-        val o = mapOf("a" to "abc", "c" to 3, "d" to listOf(4, 9, "abc"))
+        val o = mapOf("a" to "abc", "c" to 3, "d" to listOf(4, 9, "abc"), true to null)
         val data = Serializer.serialize(o)
         assertEquals(o, ConnectIqSerializer.deserialize(data))
     }
@@ -45,6 +45,13 @@ class ConnectIqSerializerTest {
         assertEquals(o, Serializer.deserialize(data).firstOrNull()?.toJava())
     }
 
+    @Test fun testSerializeNull() {
+        val o = null
+        val data = ConnectIqSerializer.serialize(o)
+        assertEquals(o, ConnectIqSerializer.deserialize(data))
+        assertEquals(o, Serializer.deserialize(data).firstOrNull()?.toJava())
+    }
+
     @Test fun testSerializeArray() {
         val o = listOf("a", "b", 5)
         val data = ConnectIqSerializer.serialize(o)
@@ -52,6 +59,16 @@ class ConnectIqSerializerTest {
         @Suppress("unchecked_cast")
         val array = Serializer.deserialize(data).first().toJava() as List<MonkeyType<*>>
         assertEquals(o, array.map { it.toJava() })
+    }
+
+    @Test fun testSerializeAllPrimitiveTypes() {
+        val o = listOf(1, 1.2F, 1.3, "A", true, 2L, 'X', null)
+        val data = ConnectIqSerializer.serialize(o)
+        assertEquals(o, ConnectIqSerializer.deserialize(data))
+        @Suppress("unchecked_cast")
+        val array = Serializer.deserialize(data).first().toJava() as List<MonkeyType<*>>
+        val e = listOf(1, 1.2F, 1.3, "A", true, 2L, 'X'.code, null)
+        assertEquals(e, array.map { it.toJava() })
     }
 
     @Test fun testSerializeMap() {

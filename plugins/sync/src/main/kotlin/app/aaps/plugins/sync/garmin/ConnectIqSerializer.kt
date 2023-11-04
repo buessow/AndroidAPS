@@ -37,6 +37,8 @@ object ConnectIqSerializer {
 
     private const val STRS_MARKER = -1412584499
     private const val OBJS_MARKER = -629482886
+    // ArrayDeque doesn't like null so we use this instead.
+    private val NULL_MARKER = object {}
 
     private interface Container {
 
@@ -73,6 +75,7 @@ object ConnectIqSerializer {
         }
     }
 
+
     fun serialize(obj: Any?): ByteArray {
         val strsOut = ByteArrayOutputStream()
         val strsDataOut = DataOutputStream(strsOut)
@@ -80,7 +83,7 @@ object ConnectIqSerializer {
         val strings = mutableMapOf<String, Int>()
         val q = ArrayDeque<Any?>()
 
-        q.add(obj)
+        q.add(obj ?: NULL_MARKER)
         while (!q.isEmpty()) {
             serialize(q.poll(), strsDataOut, DataOutputStream(objsOut), strings, q)
         }
@@ -110,7 +113,7 @@ object ConnectIqSerializer {
         q: Queue<Any?>
     ) {
         when (obj) {
-            null         -> objOut.writeByte(NULL)
+            NULL_MARKER -> objOut.writeByte(NULL)
 
             is Int       -> {
                 objOut.writeByte(INT)
@@ -138,7 +141,7 @@ object ConnectIqSerializer {
             is List<*>   -> {
                 objOut.writeByte(ARRAY)
                 objOut.writeInt(obj.size)
-                q.addAll(obj)
+                obj.forEach { o -> q.add(o ?: NULL_MARKER) }
             }
 
             is Boolean   -> {
@@ -149,7 +152,8 @@ object ConnectIqSerializer {
             is Map<*, *> -> {
                 objOut.writeByte(MAP)
                 objOut.writeInt(obj.size)
-                obj.entries.forEach { (k, v) -> q.add(k); q.add(v) }
+                obj.entries.forEach { (k, v) ->
+                    q.add(k ?: NULL_MARKER); q.add(v ?: NULL_MARKER) }
             }
 
             is Long      -> {
@@ -168,7 +172,7 @@ object ConnectIqSerializer {
             }
 
             else         ->
-                throw IllegalArgumentException("Unsupported type ${obj.javaClass} '$obj'")
+                throw IllegalArgumentException("Unsupported type ${obj?.javaClass} '$obj'")
         }
     }
 

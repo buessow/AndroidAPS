@@ -40,6 +40,10 @@ class AppRepository @Inject internal constructor(
     internal val database: AppDatabase
 ) {
 
+    init {
+      // Thread { database.heartRateDao.deleteById(205L) }.start()
+    }
+
     private val changeSubject = PublishSubject.create<List<DBEntry>>()
 
     fun changeObservable(): Observable<List<DBEntry>> = changeSubject.subscribeOn(Schedulers.io())

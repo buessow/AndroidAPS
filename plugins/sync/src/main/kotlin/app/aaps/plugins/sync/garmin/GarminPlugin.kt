@@ -232,7 +232,7 @@ class GarminPlugin @Inject constructor(
         val key = garminAapsKey
         val deviceKey = getQueryParameter(uri, "key")
         if (key.isNotEmpty() && key != deviceKey) {
-            aapsLogger.warn(LTag.GARMIN, "Invalid AAPS Key from $caller, got '$deviceKey' want '$key' " + uri)
+            aapsLogger.warn(LTag.GARMIN, "Invalid AAPS Key from $caller, got '$deviceKey' want '$key' $uri")
             sendPhoneAppMessage()
             Thread.sleep(1000L)
             HttpURLConnection.HTTP_UNAUTHORIZED to "{}"
@@ -249,7 +249,6 @@ class GarminPlugin @Inject constructor(
      * Also, gets the heart rate readings from the device.
      */
     @VisibleForTesting
-    // @Suppress("UNUSED_PARAMETER")
     fun onGetBloodGlucose(uri: URI): CharSequence {
         receiveHeartRate(uri)
         val profileName = loopHub.currentProfileName
@@ -323,7 +322,7 @@ class GarminPlugin @Inject constructor(
     private fun receiveHeartRate(
         samplingStart: Instant, samplingEnd: Instant,
         avg: Int, device: String?, test: Boolean) {
-        aapsLogger.info(LTag.GARMIN, "average heart rate $avg BPM test=$test")
+        aapsLogger.info(LTag.GARMIN, "average heart rate $avg BPM $samplingStart to $samplingEnd")
         if (test) return
         if (avg > 10 && samplingStart > Instant.ofEpochMilli(0L) && samplingEnd > samplingStart) {
             loopHub.storeHeartRate(samplingStart, samplingEnd, avg, device)

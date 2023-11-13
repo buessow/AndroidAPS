@@ -4,29 +4,40 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import com.garmin.android.connectiq.IQApp
 import io.reactivex.rxjava3.disposables.Disposable
+import org.jetbrains.annotations.VisibleForTesting
 import java.io.InputStream
 import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
+import java.time.Duration
 import java.util.Collections
-import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
+/** [GarminClient] that talks to the ConnectIQ simulator via HTTP.
+ *
+ * This is needed for Garmin device app development. */
 class GarminSimulatorClient(
     private val aapsLogger: AAPSLogger,
     private val receiver: GarminReceiver,
-    private val port: Int = 7381
+    var port: Int = 7381
 ): Disposable, GarminClient {
 
     override val name = "Sim"
-    private val executor: Executor = Executors.newCachedThreadPool()
-    private val socket = ServerSocket()
+    private val executor: ExecutorService = Executors.newCachedThreadPool()
+    private val serverSocket = ServerSocket()
     private val connections: MutableList<Connection> = Collections.synchronizedList(mutableListOf())
     private var nextDeviceId = AtomicLong(1)
-    private val app = IQApp("SimApp", IQApp.IQAppStatus.INSTALLED, "Simulator", 1)
+    @VisibleForTesting
+    val iqApp = IQApp("SimApp", IQApp.IQAppStatus.INSTALLED, "Simulator", 1)
+    private val readyLock = ReentrantLock()
+    private val readyCond = readyLock.newCondition()
 
     private inner class Connection(private val socket: Socket): Disposable {
         val device = GarminDevice(
@@ -64,7 +75,7 @@ class GarminSimulatorClient(
                     val data = readAvailable(socket.inputStream) ?: break
                     if (data.isNotEmpty()) {
                         kotlin.runCatching {
-                            receiver.onReceiveMessage(this@GarminSimulatorClient, device.id, app.applicationId, data)
+                            receiver.onReceiveMessage(this@GarminSimulatorClient, device.id, iqApp.applicationId, data)
                         }
                     }
                 } catch (e: SocketException) {
@@ -114,10 +125,11 @@ class GarminSimulatorClient(
     private fun listen() {
         val ip = Inet4Address.getByAddress(byteArrayOf(127, 0, 0, 1))
         aapsLogger.info(LTag.GARMIN, "bind to $ip:$port")
-        socket.bind(InetSocketAddress(ip, port))
+        serverSocket.bind(InetSocketAddress(ip, port))
+        port = serverSocket.localPort
         receiver.onConnect(this@GarminSimulatorClient)
-        while (!socket.isClosed) {
-            val s = socket.accept()
+        while (!serverSocket.isClosed) {
+            val s = serverSocket.accept()
             aapsLogger.info(LTag.GARMIN, "accept " + s.remoteSocketAddress)
             connections.add(Connection(s))
             connections.last().start()
@@ -125,13 +137,25 @@ class GarminSimulatorClient(
         receiver.onDisconnect(this@GarminSimulatorClient)
     }
 
+    /** Wait for the server to start listing to requests. */
+    fun awaitReady(wait: Duration): Boolean {
+        var waitNanos = wait.toNanos()
+        readyLock.withLock {
+            while (!serverSocket.isBound && waitNanos > 0L) {
+                waitNanos = readyCond.awaitNanos(waitNanos)
+            }
+        }
+        return serverSocket.isBound
+    }
+
     override fun dispose() {
         connections.forEach { c -> c.dispose() }
         connections.clear()
-        socket.close()
+        serverSocket.close()
+        executor.awaitTermination(10, TimeUnit.SECONDS)
     }
 
-    override fun isDisposed() = socket.isClosed
+    override fun isDisposed() = serverSocket.isClosed
 
     override fun retrieveApplicationInfo(device: GarminDevice, appId: String, appName: String) {
         receiver.onApplicationInfo(device, appId, true)
@@ -145,8 +169,10 @@ class GarminSimulatorClient(
         val c = getConnection(app.device) ?: return
         try {
             c.send(data)
+            receiver.onSendMessage(this, app.device.id, app.id, null)
         } catch (e: SocketException) {
-            aapsLogger.error(LTag.GARMIN, "sending failed '${e.message}'")
+            val errorMessage = "sending failed '${e.message}'"
+            receiver.onSendMessage(this, app.device.id, app.id, errorMessage)
             c.dispose()
             connections.remove(c)
         }

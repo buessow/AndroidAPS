@@ -67,6 +67,9 @@ class GarminPlugin @Inject constructor(
        "c9e90ee7e6924829a8b45e7dafff5cb4" to "GlucoseWatch_Dev",
        "1107ca6c2d5644b998d4bcb3793f2b7c" to "GlucoseDataField_Dev",
        "928fe19a4d3a4259b50cb6f9ddaf0f4a" to "GlucoseWidget_Dev",
+       "662dfcf7f5a147de8bd37f09574adb11" to "GlucoseWatch",
+       "815c7328c21248c493ad9ac4682fe6b3" to "GlucoseDataField",
+       "4bddcc1740084a1fab83a3b2e2fcf55b" to "GlucoseWidget",
     )
 
     @VisibleForTesting

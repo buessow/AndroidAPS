@@ -10,10 +10,12 @@ plugins {
 
 android {
     namespace = "app.aaps.plugins.sync"
+    buildFeatures {
+        aidl = true
+    }
 }
 
 dependencies {
-    implementation(files("libs/connectiq.jar"))
     implementation(project(":shared:impl"))
     implementation(project(":database:entities"))
     implementation(project(":database:impl"))

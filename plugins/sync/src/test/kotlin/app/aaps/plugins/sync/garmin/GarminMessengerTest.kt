@@ -91,7 +91,7 @@ class GarminMessengerTest: TestBase() {
 
     @Test
     fun onReceiveMessage() {
-        val data = ConnectIqSerializer.serialize("foo")
+        val data = GarminSerializer.serialize("foo")
         messenger.onReceiveMessage(client1, device.id, appId1, data)
         val (app, payload) = msgs.remove()
         assertEquals(appId1, app.id)
@@ -112,8 +112,8 @@ class GarminMessengerTest: TestBase() {
         assertEquals(2, msgs.size)
         val msg1 = msgs.first { (app, _) -> app.id == appId1 }.second
         val msg2 = msgs.first { (app, _) -> app.id == appId2 }.second
-        assertEquals("foo", ConnectIqSerializer.deserialize(msg1))
-        assertEquals("foo", ConnectIqSerializer.deserialize(msg2))
+        assertEquals("foo", GarminSerializer.deserialize(msg1))
+        assertEquals("foo", GarminSerializer.deserialize(msg2))
         messenger.onSendMessage(client1, device.id, appId1, null)
     }
 
@@ -135,8 +135,8 @@ class GarminMessengerTest: TestBase() {
         assertEquals(2, msgs.size)
         val msg1 = msgs.first { (app, _) -> app.id == appId1 }.second
         val msg2 = msgs.first { (app, _) -> app.id == appId2 }.second
-        assertEquals(listOf("foo"), ConnectIqSerializer.deserialize(msg1))
-        assertEquals(listOf("foo"), ConnectIqSerializer.deserialize(msg2))
+        assertEquals(listOf("foo"), GarminSerializer.deserialize(msg1))
+        assertEquals(listOf("foo"), GarminSerializer.deserialize(msg2))
         messenger.onSendMessage(client1, device.id, appId1, null)
     }
 }

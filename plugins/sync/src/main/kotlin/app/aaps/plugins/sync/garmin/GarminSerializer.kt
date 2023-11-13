@@ -22,8 +22,7 @@ import java.util.Queue
  * the length, the actual objects will be in the list of objects. Similarly, maps only have the
  * length and the entries are represented by 2 objects (key + val) in the list of objects.
  */
-object ConnectIqSerializer {
-
+object GarminSerializer {
     private const val NULL = 0
     private const val INT = 1
     private const val FLOAT = 2
@@ -35,13 +34,12 @@ object ConnectIqSerializer {
     private const val DOUBLE = 15
     private const val CHAR = 19
 
-    private const val STRS_MARKER = -1412584499
-    private const val OBJS_MARKER = -629482886
+    private const val STRINGS_MARKER = -1412584499
+    private const val OBJECTS_MARKER = -629482886
     // ArrayDeque doesn't like null so we use this instead.
     private val NULL_MARKER = object {}
 
     private interface Container {
-
         fun read(buf: ByteBuffer, strings: Map<Int, String>, container: Queue<Container>)
     }
 
@@ -50,9 +48,7 @@ object ConnectIqSerializer {
         val list: MutableList<Any?>
     ) : Container {
 
-        override fun read(
-            buf: ByteBuffer, strings: Map<Int, String>, container: Queue<Container>
-        ) {
+        override fun read(buf: ByteBuffer, strings: Map<Int, String>, container: Queue<Container>) {
             for (i in 0 until size) {
                 list.add(readObject(buf, strings, container))
             }
@@ -64,9 +60,7 @@ object ConnectIqSerializer {
         val map: MutableMap<Any, Any?>
     ) : Container {
 
-        override fun read(
-            buf: ByteBuffer, strings: Map<Int, String>, container: Queue<Container>
-        ) {
+        override fun read(buf: ByteBuffer, strings: Map<Int, String>, container: Queue<Container>) {
             for (i in 0 until size) {
                 val k = readObject(buf, strings, container)
                 val v = readObject(buf, strings, container)
@@ -95,11 +89,11 @@ object ConnectIqSerializer {
 
         val buf = ByteBuffer.allocate(bufLen)
         if (strsOut.size() > 0) {
-            buf.putInt(STRS_MARKER)
+            buf.putInt(STRINGS_MARKER)
             buf.putInt(strsOut.size())
             buf.put(strsOut.toByteArray(), 0, strsOut.size())
         }
-        buf.putInt(OBJS_MARKER)
+        buf.putInt(OBJECTS_MARKER)
         buf.putInt(objsOut.size())
         buf.put(objsOut.toByteArray(), 0, objsOut.size())
         return buf.array()
@@ -179,14 +173,14 @@ object ConnectIqSerializer {
     fun deserialize(data: ByteArray): Any? {
         val buf = ByteBuffer.wrap(data)
         val marker1 = buf.getInt(0)
-        val strings = if (marker1 == STRS_MARKER) {
+        val strings = if (marker1 == STRINGS_MARKER) {
             buf.int // swallow the marker
             readStrings(buf)
         } else {
             emptyMap()
         }
         val marker2 = buf.int // swallow the marker
-        if (marker2 != OBJS_MARKER) {
+        if (marker2 != OBJECTS_MARKER) {
             throw IllegalArgumentException("expected data marker, got $marker2")
         }
         return readObjects(buf, strings)

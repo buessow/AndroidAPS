@@ -102,7 +102,7 @@ class GarminMessenger(
 
     override fun onReceiveMessage(client: GarminClient, deviceId: Long, appId: String, data: ByteArray) {
         val app = getApplication(client, deviceId, appId)
-        val msg = ConnectIqSerializer.deserialize(data)
+        val msg = GarminSerializer.deserialize(data)
         if (msg == null) {
             aapsLogger.warn(LTag.GARMIN, "receive NULL msg")
         } else {
@@ -138,7 +138,7 @@ class GarminMessenger(
             else ->
                 msg.toString()
         }
-        val data = ConnectIqSerializer.serialize(msg)
+        val data = GarminSerializer.serialize(msg)
         aapsLogger.info(LTag.GARMIN, "sendMessage $app $app ${data.size} bytes $s")
         try {
             app.client.sendMessage(app, data)

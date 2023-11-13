@@ -35,7 +35,11 @@ class GarminSimulatorClient(
     private val connections: MutableList<Connection> = Collections.synchronizedList(mutableListOf())
     private var nextDeviceId = AtomicLong(1)
     @VisibleForTesting
-    val iqApp = IQApp("SimApp", IQApp.IQAppStatus.INSTALLED, "Simulator", 1)
+    val iqApp = IQApp().apply {
+        applicationID = "SimApp"
+        status = GarminApplication.Status.INSTALLED.ordinal
+        displayName = "Simulator"
+        version = 1 }
     private val readyLock = ReentrantLock()
     private val readyCond = readyLock.newCondition()
 
@@ -75,7 +79,7 @@ class GarminSimulatorClient(
                     val data = readAvailable(socket.inputStream) ?: break
                     if (data.isNotEmpty()) {
                         kotlin.runCatching {
-                            receiver.onReceiveMessage(this@GarminSimulatorClient, device.id, iqApp.applicationId, data)
+                            receiver.onReceiveMessage(this@GarminSimulatorClient, device.id, iqApp.applicationID, data)
                         }
                     }
                 } catch (e: SocketException) {

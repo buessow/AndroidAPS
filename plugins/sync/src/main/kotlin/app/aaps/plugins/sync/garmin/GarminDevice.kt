@@ -21,8 +21,6 @@ data class GarminDevice(
         UNKNOWN;
 
         companion object {
-            fun from(iqDeviceStatus: IQDevice.IQDeviceStatus): Status =
-                from(iqDeviceStatus.ordinal)
             fun from(ordinal: Int?): Status =
                 values().firstOrNull { s -> s.ordinal == ordinal } ?: UNKNOWN
         }
@@ -31,7 +29,10 @@ data class GarminDevice(
 
     override fun toString(): String = "D[$name/$id]"
 
-    fun toIQDevice() = IQDevice(id, name)
+    fun toIQDevice() = IQDevice().apply {
+        deviceIdentifier = id
+        friendlyName = name
+        status = Status.UNKNOWN.ordinal }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

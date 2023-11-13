@@ -25,7 +25,7 @@ class GarminSimulatorClientTest: TestBase() {
         on { onConnectDevice(any(), any(), any()) }.doAnswer { i ->
             device = GarminDevice(client, i.getArgument(1), i.getArgument(2))
             app = GarminApplication(
-                client, device!!, client.iqApp.applicationId, client.iqApp.displayName)
+                client, device!!, client.iqApp.applicationID, client.iqApp.displayName)
         }
     }
 

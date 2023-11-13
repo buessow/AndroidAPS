@@ -11,7 +11,6 @@ import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.utils.waitMillis
 import com.garmin.android.apps.connectmobile.connectiq.IConnectIQService
-import com.garmin.android.connectiq.ConnectIQ
 import com.garmin.android.connectiq.IQApp
 import com.garmin.android.connectiq.IQDevice
 import com.garmin.android.connectiq.IQMessage
@@ -163,7 +162,7 @@ class GarminDeviceClient(
     private fun registerForMessages(deviceId: Long, appId: String) {
         aapsLogger.info(LTag.GARMIN, "registerForMessage $name $appId")
         val action = createAction("ON_MESSAGE_${deviceId}_$appId")
-        val app = IQApp(appId, "", 0)
+        val app = IQApp().apply { applicationID = appId; displayName = "" }
         synchronized (registeredActions) {
             if (!registeredActions.contains(action)) {
                 registerReceiver(action) { intent: Intent -> onReceiveMessage(app, intent) }
@@ -180,14 +179,12 @@ class GarminDeviceClient(
         val iqDevice = intent.getParcelableExtra(EXTRA_REMOTE_DEVICE) as IQDevice?
         val data = intent.getByteArrayExtra(EXTRA_PAYLOAD)
         if (iqDevice != null && data != null)
-            receiver.onReceiveMessage(this, iqDevice.deviceIdentifier, iqApp.applicationId, data)
+            receiver.onReceiveMessage(this, iqDevice.deviceIdentifier, iqApp.applicationID, data)
     }
 
     /** Receives callback from ConnectIQ about message transfers. */
     private fun onSendMessage(intent: Intent) {
-        val statusOrd = intent.getIntExtra(EXTRA_STATUS, 0)
-        val status = ConnectIQ.IQMessageStatus.values().firstOrNull { it.ordinal == statusOrd }
-            ?: ConnectIQ.IQMessageStatus.FAILURE_UNKNOWN
+        val status = intent.getIntExtra(EXTRA_STATUS, 0)
         val deviceId = getDevice(intent)
         val appId = intent.getStringExtra(EXTRA_APPLICATION_ID)?.lowercase()
         if (deviceId == null || appId == null) {
@@ -202,8 +199,8 @@ class GarminDeviceClient(
                 }
 
                 when (status) {
-                    ConnectIQ.IQMessageStatus.FAILURE_DEVICE_NOT_CONNECTED,
-                    ConnectIQ.IQMessageStatus.FAILURE_DURING_TRANSFER -> {
+                    IQMessage.FAILURE_DEVICE_NOT_CONNECTED,
+                    IQMessage.FAILURE_DURING_TRANSFER -> {
                         if (msg.attempt < MAX_RETRIES) {
                             val  delaySec = retryWaitFactor * msg.attempt
                             Schedulers.io().scheduleDirect({ retryMessage(deviceId, appId) }, delaySec, TimeUnit.SECONDS)
@@ -214,7 +211,8 @@ class GarminDeviceClient(
                     else -> {}
                 }
                 queue.remove(msg)
-                val errorMessage = status.takeUnless { it == ConnectIQ.IQMessageStatus.SUCCESS }?.toString()
+                val errorMessage = status
+                    .takeUnless { it == IQMessage.SUCCESS }?.let { s -> "error $s" }
                 receiver.onSendMessage(this, msg.app.device.id, msg.app.id, errorMessage)
                 if (queue.isNotEmpty()) {
                     Schedulers.io().scheduleDirect { retryMessage(deviceId, appId) }
@@ -235,7 +233,7 @@ class GarminDeviceClient(
         val data: ByteArray) {
         var attempt: Int = 0
         var lastAttempt: Instant? = null
-        val iqApp get() = IQApp(app.id, app.name, 0)
+        val iqApp get() = IQApp().apply { applicationID = app.id; displayName = app.name }
         val iqDevice get() = app.device.toIQDevice()
     }
 
@@ -263,7 +261,10 @@ class GarminDeviceClient(
     private fun sendMessage(msg: Message) {
         msg.attempt++
         msg.lastAttempt = Instant.now()
-        val iqMsg = IQMessage(msg.data, context.packageName, sendMessageAction)
+        val iqMsg = IQMessage().apply {
+            messageData = msg.data
+            notificationPackage = context.packageName
+            notificationAction = sendMessageAction }
         ciqService?.sendMessage(iqMsg, msg.iqDevice, msg.iqApp)
     }
 

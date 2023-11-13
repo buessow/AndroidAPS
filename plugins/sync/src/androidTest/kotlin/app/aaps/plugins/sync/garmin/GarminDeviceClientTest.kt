@@ -10,9 +10,9 @@ import android.os.IBinder
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.aaps.shared.tests.TestBase
 import com.garmin.android.apps.connectmobile.connectiq.IConnectIQService
-import com.garmin.android.connectiq.ConnectIQ
 import com.garmin.android.connectiq.IQApp
 import com.garmin.android.connectiq.IQDevice
+import com.garmin.android.connectiq.IQMessage
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -47,7 +47,9 @@ class GarminDeviceClientTest: TestBase() {
     }
     private val ciqService = mock<IConnectIQService>() {
         on { asBinder() } doReturn binder
-        on { connectedDevices } doReturn listOf(IQDevice(1L, "TDevice"))
+        on { connectedDevices } doReturn listOf(IQDevice().apply {
+            deviceIdentifier = 1L
+            friendlyName = "TDevice" })
     }
     private val context = mock<Context>() {
         on { packageName } doReturn this@GarminDeviceClientTest.packageName
@@ -180,10 +182,10 @@ class GarminDeviceClientTest: TestBase() {
                 && iqMsg.notificationPackage == packageName
                 && iqMsg.notificationAction == client.sendMessageAction },
             argThat {iqDevice -> iqDevice.deviceIdentifier == device.id },
-            argThat { iqApp -> iqApp?.applicationId == appId })
+            argThat { iqApp -> iqApp?.applicationID == appId })
 
         val intent = Intent().apply {
-            putExtra(GarminDeviceClient.EXTRA_STATUS, ConnectIQ.IQMessageStatus.SUCCESS.ordinal)
+            putExtra(GarminDeviceClient.EXTRA_STATUS, IQMessage.SUCCESS)
             putExtra(GarminDeviceClient.EXTRA_REMOTE_DEVICE, device.toIQDevice())
             putExtra(GarminDeviceClient.EXTRA_APPLICATION_ID, appId)
         }
@@ -203,15 +205,15 @@ class GarminDeviceClientTest: TestBase() {
                 && iqMsg.notificationPackage == packageName
                 && iqMsg.notificationAction == client.sendMessageAction },
             argThat {iqDevice -> iqDevice.deviceIdentifier == device.id },
-            argThat { iqApp -> iqApp?.applicationId == appId })
+            argThat { iqApp -> iqApp?.applicationID == appId })
 
         val intent = Intent().apply {
-            putExtra(GarminDeviceClient.EXTRA_STATUS, ConnectIQ.IQMessageStatus.FAILURE_MESSAGE_TOO_LARGE.ordinal)
+            putExtra(GarminDeviceClient.EXTRA_STATUS, IQMessage.FAILURE_MESSAGE_TOO_LARGE)
             putExtra(GarminDeviceClient.EXTRA_REMOTE_DEVICE, device.toIQDevice())
             putExtra(GarminDeviceClient.EXTRA_APPLICATION_ID, appId)
         }
         actions[client.sendMessageAction]!!.onReceive(context, intent)
-        verify(receiver).onSendMessage(client, device.id, appId, "FAILURE_MESSAGE_TOO_LARGE")
+        verify(receiver).onSendMessage(client, device.id, appId, "error 3")
     }
 
     @Test
@@ -225,10 +227,10 @@ class GarminDeviceClientTest: TestBase() {
                 && iqMsg.notificationPackage == packageName
                 && iqMsg.notificationAction == client.sendMessageAction },
             argThat {iqDevice -> iqDevice.deviceIdentifier == device.id },
-            argThat { iqApp -> iqApp?.applicationId == appId })
+            argThat { iqApp -> iqApp?.applicationID == appId })
 
         val intent = Intent().apply {
-            putExtra(GarminDeviceClient.EXTRA_STATUS, ConnectIQ.IQMessageStatus.FAILURE_DURING_TRANSFER.ordinal)
+            putExtra(GarminDeviceClient.EXTRA_STATUS, IQMessage.FAILURE_DURING_TRANSFER)
             putExtra(GarminDeviceClient.EXTRA_REMOTE_DEVICE, device.toIQDevice())
             putExtra(GarminDeviceClient.EXTRA_APPLICATION_ID, appId)
         }
@@ -241,9 +243,9 @@ class GarminDeviceClientTest: TestBase() {
                 && iqMsg.notificationPackage == packageName
                 && iqMsg.notificationAction == client.sendMessageAction },
             argThat {iqDevice -> iqDevice.deviceIdentifier == device.id },
-            argThat { iqApp -> iqApp?.applicationId == appId })
+            argThat { iqApp -> iqApp?.applicationID == appId })
 
-        intent.putExtra(GarminDeviceClient.EXTRA_STATUS, ConnectIQ.IQMessageStatus.SUCCESS.ordinal)
+        intent.putExtra(GarminDeviceClient.EXTRA_STATUS, IQMessage.SUCCESS)
         actions[client.sendMessageAction]!!.onReceive(context, intent)
         verify(receiver).onSendMessage(client, device.id, appId, null)
     }
@@ -261,12 +263,12 @@ class GarminDeviceClientTest: TestBase() {
                 && iqMsg.notificationPackage == packageName
                 && iqMsg.notificationAction == client.sendMessageAction },
             argThat {iqDevice -> iqDevice.deviceIdentifier == device.id },
-            argThat { iqApp -> iqApp?.applicationId == appId })
+            argThat { iqApp -> iqApp?.applicationID == appId })
         verify(ciqService, atLeastOnce()).asBinder()
         verifyNoMoreInteractions(ciqService)
 
         val intent = Intent().apply {
-            putExtra(GarminDeviceClient.EXTRA_STATUS, ConnectIQ.IQMessageStatus.SUCCESS.ordinal)
+            putExtra(GarminDeviceClient.EXTRA_STATUS, IQMessage.SUCCESS)
             putExtra(GarminDeviceClient.EXTRA_REMOTE_DEVICE, device.toIQDevice())
             putExtra(GarminDeviceClient.EXTRA_APPLICATION_ID, appId)
         }
@@ -278,7 +280,7 @@ class GarminDeviceClientTest: TestBase() {
                 && iqMsg.notificationPackage == packageName
                 && iqMsg.notificationAction == client.sendMessageAction },
             argThat {iqDevice -> iqDevice.deviceIdentifier == device.id },
-            argThat { iqApp -> iqApp?.applicationId == appId })
+            argThat { iqApp -> iqApp?.applicationID == appId })
 
         actions[client.sendMessageAction]!!.onReceive(context, intent)
         verify(receiver, times(2)).onSendMessage(client, device.id, appId, null)
@@ -298,16 +300,16 @@ class GarminDeviceClientTest: TestBase() {
                 && iqMsg.notificationPackage == packageName
                 && iqMsg.notificationAction == client.sendMessageAction },
             argThat {iqDevice -> iqDevice.deviceIdentifier == device.id },
-            argThat { iqApp -> iqApp?.applicationId == appId1 })
+            argThat { iqApp -> iqApp?.applicationID == appId1 })
         verify(ciqService, timeout(5000L)).sendMessage(
             argThat { iqMsg -> data2.contentEquals(iqMsg.messageData)
                 && iqMsg.notificationPackage == packageName
                 && iqMsg.notificationAction == client.sendMessageAction },
             argThat {iqDevice -> iqDevice.deviceIdentifier == device.id },
-            argThat { iqApp -> iqApp?.applicationId == appId2 })
+            argThat { iqApp -> iqApp?.applicationID == appId2 })
 
         val intent1 = Intent().apply {
-            putExtra(GarminDeviceClient.EXTRA_STATUS, ConnectIQ.IQMessageStatus.SUCCESS.ordinal)
+            putExtra(GarminDeviceClient.EXTRA_STATUS, IQMessage.SUCCESS)
             putExtra(GarminDeviceClient.EXTRA_REMOTE_DEVICE, device.toIQDevice())
             putExtra(GarminDeviceClient.EXTRA_APPLICATION_ID, appId1)
         }
@@ -315,7 +317,7 @@ class GarminDeviceClientTest: TestBase() {
         verify(receiver).onSendMessage(client, device.id, appId1, null)
 
         val intent2 = Intent().apply {
-            putExtra(GarminDeviceClient.EXTRA_STATUS, ConnectIQ.IQMessageStatus.SUCCESS.ordinal)
+            putExtra(GarminDeviceClient.EXTRA_STATUS, IQMessage.SUCCESS)
             putExtra(GarminDeviceClient.EXTRA_REMOTE_DEVICE, device.toIQDevice())
             putExtra(GarminDeviceClient.EXTRA_APPLICATION_ID, appId2)
         }

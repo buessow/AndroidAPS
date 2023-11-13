@@ -6,6 +6,16 @@ data class GarminApplication(
     val id: String,
     val name: String?) {
 
+    enum class Status {
+        @Suppress("UNUSED")
+        UNKNOWN,
+        INSTALLED,
+        @Suppress("UNUSED")
+        NOT_INSTALLED,
+        @Suppress("UNUSED")
+        NOT_SUPPORTED;
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

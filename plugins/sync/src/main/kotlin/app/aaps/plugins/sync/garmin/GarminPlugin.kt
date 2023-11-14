@@ -120,7 +120,7 @@ class GarminPlugin @Inject constructor(
                 .subscribe(::onNewBloodGlucose)
         )
         setupHttpServer()
-        setupGarminMessenger()
+        //setupGarminMessenger()
     }
 
     fun setupHttpServer() {

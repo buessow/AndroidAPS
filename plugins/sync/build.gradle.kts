@@ -10,9 +10,6 @@ plugins {
 
 android {
     namespace = "app.aaps.plugins.sync"
-    buildFeatures {
-        aidl = true
-    }
 }
 
 dependencies {
@@ -52,6 +49,10 @@ dependencies {
 
     // DataLayerListenerService
     api(Libs.Google.Android.PlayServices.wearable)
+
+    // Garmin
+    api("com.garmin.connectiq:ciq-companion-app-sdk:2.0.2@aar")
+    androidTestImplementation("com.garmin.connectiq:ciq-companion-app-sdk:2.0.2@aar")
 
     kapt(Libs.Dagger.compiler)
     kapt(Libs.Dagger.androidProcessor)

@@ -248,11 +248,9 @@ class GarminPluginTest: TestBase() {
     fun onConnectDevice() {
         gp.garminMessenger = mock(GarminMessenger::class.java)
         `when`(sp.getString("garmin_aaps_key", "")).thenReturn("foo")
-        val device = GarminDevice(mock(),1, "Edge")
-        gp.onConnectDevice(device)
-
+        gp.onGarminMessengerReady()
         val captor = ArgumentCaptor.forClass(Any::class.java)
-        verify(gp.garminMessenger)!!.sendMessage(eq(device) ?: device, captor.capture() ?: "")
+        verify(gp.garminMessenger)!!.sendMessage(captor.capture() ?: "")
         @Suppress("UNCHECKED_CAST")
         val r = captor.value as Map<String, Any>
         assertEquals("foo", r["key"])

@@ -89,18 +89,36 @@ class GarminPlugin @Inject constructor(
         when (event.changedKey) {
             "communication_debug_mode" -> setupGarminMessenger()
             "communication_http", "communication_http_port" -> setupHttpServer()
-            "garmin_aaps_key" -> sendPhoneAppMessage()
+            "garmin_aaps_key" -> setupGarminMessenger()
         }
     }
 
-    private fun setupGarminMessenger() {
-        val enableDebug = sp.getBoolean("communication_ciq_debug_mode", false)
-        garminMessenger?.dispose()
+    private fun shutdownGarminMessenger() {
+        val gm = garminMessenger ?: return
+        gm.dispose()
+        disposable.remove(gm)
         garminMessenger = null
-        aapsLogger.info(LTag.GARMIN, "initialize IQ messenger in debug=$enableDebug")
-        garminMessenger = GarminMessenger(
-            aapsLogger, context, glucoseAppIds, {_, _ -> },
-            true, enableDebug).also { disposable.add(it) }
+    }
+
+    private fun setupGarminMessenger() {
+        if (garminAapsKey.isEmpty()) {
+            shutdownGarminMessenger()
+        } else {
+            val enableDebug = sp.getBoolean("communication_ciq_debug_mode", false)
+            if (garminMessenger?.enableSimulator == enableDebug) {
+                return
+            }
+            shutdownGarminMessenger()
+            aapsLogger.info(LTag.GARMIN, "initialize IQ messenger in debug=$enableDebug")
+            garminMessenger = GarminMessenger(
+                aapsLogger, context, glucoseAppIds, { _, _ -> }, true, enableDebug, ::onGarminMessengerReady)
+                .also { disposable.add(it) }
+        }
+    }
+
+    @VisibleForTesting
+    fun onGarminMessengerReady() {
+        sendPhoneAppMessage()
     }
 
     override fun onStart() {
@@ -119,8 +137,7 @@ class GarminPlugin @Inject constructor(
                 .subscribe(::onNewBloodGlucose)
         )
         setupHttpServer()
-        if (garminAapsKey.isNotEmpty())
-            setupGarminMessenger()
+        setupGarminMessenger()
     }
 
     fun setupHttpServer() {
@@ -163,16 +180,6 @@ class GarminPlugin @Inject constructor(
             lastGlucoseValueTimestamp = timestamp
             newValue.signalAll()
         }
-    }
-
-    @VisibleForTesting
-    fun onConnectDevice(device: GarminDevice) {
-        aapsLogger.info(LTag.GARMIN, "onConnectDevice $device sending glucose")
-        if (garminAapsKey.isNotEmpty()) sendPhoneAppMessage(device)
-    }
-
-    private fun sendPhoneAppMessage(device: GarminDevice) {
-        garminMessenger?.sendMessage(device, getGlucoseMessage())
     }
 
     private fun sendPhoneAppMessage() {

@@ -199,13 +199,17 @@ class GarminPlugin @Inject constructor(
     @VisibleForTesting
     fun getGlucoseValues(): List<GlucoseValue> {
         val from = clock.instant().minus(Duration.ofHours(2).plusMinutes(9))
+        return getGlucoseValues(from)
+    }
+
+    private fun getGlucoseValues(from: Instant): List<GlucoseValue> {
         return loopHub.getGlucoseValues(from, true)
     }
 
     /** Get the last 2+ hours of glucose values and waits in case a new value should arrive soon. */
-    private fun getGlucoseValues(maxWait: Duration): List<GlucoseValue> {
+    private fun getGlucoseValues(from: Instant, maxWait: Duration): List<GlucoseValue> {
         val glucoseFrequency = Duration.ofMinutes(5)
-        val glucoseValues = getGlucoseValues()
+        val glucoseValues = getGlucoseValues(from)
         val last = glucoseValues.lastOrNull() ?: return emptyList()
         val delay = Duration.ofMillis(clock.millis() - last.timestamp)
         return if (!maxWait.isZero
@@ -258,7 +262,13 @@ class GarminPlugin @Inject constructor(
         receiveHeartRate(uri)
         val profileName = loopHub.currentProfileName
         val waitSec = getQueryParameter(uri, "wait", 0L)
-        val glucoseValues = getGlucoseValues(Duration.ofSeconds(waitSec))
+        val fromSec = getQueryParameter(uri, "from", 0L)
+        val from = if (fromSec == 0L) {
+            clock.instant().minus(Duration.ofHours(2).plusMinutes(9))
+        } else {
+            Instant.ofEpochSecond(fromSec)
+        }
+        val glucoseValues = getGlucoseValues(from, Duration.ofSeconds(waitSec))
         val jo = JsonObject()
         jo.addProperty("encodedGlucose", encodedGlucose(glucoseValues))
         jo.addProperty("remainingInsulin", loopHub.insulinOnboard)

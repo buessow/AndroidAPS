@@ -8,6 +8,7 @@ import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
+import app.aaps.core.interfaces.profile.DefaultValueHelper
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
@@ -44,6 +45,7 @@ class LoopHubImpl @Inject constructor(
     private val userEntryLogger: UserEntryLogger,
     private val sp: SP,
     private val overviewData: OverviewData,
+    private val defaultValueHelper: DefaultValueHelper
 ) : LoopHub {
 
     @VisibleForTesting
@@ -92,6 +94,12 @@ class LoopHubImpl @Inject constructor(
             val apsResult = loop.lastRun?.constraintsProcessed
             return if (apsResult == null) Double.NaN else apsResult.percent / 100.0
         }
+
+    private fun toMgDl(glucose: Double) =
+        if (glucoseUnit == GlucoseUnit.MGDL) glucose else glucose * 18.0
+
+    override val lowGlucoseMark get() = toMgDl(defaultValueHelper.determineLowLine())
+    override val highGlucoseMark get() = toMgDl(defaultValueHelper.determineHighLine())
 
     /** Tells the loop algorithm that the pump is physicallly connected. */
     override fun connectPump() {

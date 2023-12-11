@@ -193,19 +193,21 @@ class GarminPlugin @Inject constructor(
     }
 
     @VisibleForTesting
-    fun getGlucoseMessage() = mapOf<String, Any>(
+    fun getGlucoseMessage() = mapOf<String, Any?>(
         "key" to garminAapsKey,
         "command" to "glucose",
         "profile" to loopHub.currentProfileName.first().toString(),
         "encodedGlucose" to encodedGlucose(getGlucoseValues()),
         "remainingInsulin" to loopHub.insulinOnboard,
         "remainingBasalInsulin" to loopHub.insulinBasalOnboard,
+        "lowGlucoseMark" to loopHub.lowGlucoseMark.takeIf { it > 0.0 },
+        "highGlucoseMark" to loopHub.highGlucoseMark.takeIf { it > 0.0 },
         "glucoseUnit" to glucoseUnitStr,
         "temporaryBasalRate" to
             (loopHub.temporaryBasal.takeIf(java.lang.Double::isFinite) ?: 1.0),
         "connected" to loopHub.isConnected,
         "timestamp" to clock.instant().epochSecond
-    )
+    ).filterValues { it != null }
 
     /** Gets the last 2+ hours of glucose values. */
     @VisibleForTesting
@@ -285,10 +287,10 @@ class GarminPlugin @Inject constructor(
         jo.addProperty("encodedGlucose", encodedGlucose(glucoseValues))
         jo.addProperty("remainingInsulin", loopHub.insulinOnboard)
         jo.addProperty("remainingBasalInsulin", loopHub.insulinBasalOnboard)
-        loopHub.targetGlucoseLow?.takeIf { it > 0.0 }?.let {
-            jo.addProperty("targetGlucoseLow", it.roundToInt()) }
-        loopHub.targetGlucoseHigh?.takeIf { it > 0.0 }?.let {
-            jo.addProperty("targetGlucoseHigh", it.roundToInt()) }
+        loopHub.lowGlucoseMark.takeIf { it > 0.0 }?.let {
+            jo.addProperty("lowGlucoseMark", it.roundToInt()) }
+        loopHub.highGlucoseMark.takeIf { it > 0.0 }?.let {
+            jo.addProperty("highGlucoseMark", it.roundToInt()) }
         jo.addProperty("glucoseUnit", glucoseUnitStr)
         loopHub.temporaryBasal.also {
             if (!it.isNaN()) jo.addProperty("temporaryBasalRate", it)

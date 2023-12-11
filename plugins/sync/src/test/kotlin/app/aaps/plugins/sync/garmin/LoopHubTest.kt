@@ -9,6 +9,7 @@ import app.aaps.core.interfaces.iob.CobInfo
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.iob.IobTotal
 import app.aaps.core.interfaces.logging.UserEntryLogger
+import app.aaps.core.interfaces.profile.DefaultValueHelper
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
@@ -57,6 +58,7 @@ class LoopHubTest: TestBase() {
     @Mock lateinit var userEntryLogger: UserEntryLogger
     @Mock lateinit var sp: SP
     @Mock lateinit var overviewData: OverviewData
+    @Mock lateinit var defaultValueHelper: DefaultValueHelper
 
     private lateinit var loopHub: LoopHubImpl
     private val clock = Clock.fixed(Instant.ofEpochMilli(10_000), ZoneId.of("UTC"))
@@ -65,8 +67,7 @@ class LoopHubTest: TestBase() {
     fun setup() {
         loopHub = LoopHubImpl(
             aapsLogger, commandQueue, constraints, iobCobCalculator, loop,
-            profileFunction, repo, userEntryLogger, sp, overviewData
-        )
+            profileFunction, repo, userEntryLogger, sp, overviewData, defaultValueHelper)
         loopHub.clock = clock
     }
 
@@ -98,15 +99,25 @@ class LoopHubTest: TestBase() {
     }
     
     @Test
-    fun testTargetGlucoseRange() {
-        val profile = mock<Profile>() {
-            on { getTargetLowMgdl() }.thenReturn(76.0)
-            on { getTargetHighMgdl() }.thenReturn(125.0)
-        }
-        whenever(profileFunction.getProfile()).thenReturn(profile)
-        assertEquals(76.0, loopHub.targetGlucoseLow!!, 1e-6)
-        assertEquals(125.0, loopHub.targetGlucoseHigh!!, 1e-6)
-        verify(profileFunction, times(2)).getProfile()
+    fun testGlucoseRangeMgDl() {
+        whenever(sp.getString(app.aaps.core.utils.R.string.key_units, GlucoseUnit.MGDL.asText)).thenReturn("mgdl")
+        whenever(defaultValueHelper.determineLowLine()).thenReturn(76.0)
+        whenever(defaultValueHelper.determineHighLine()).thenReturn(125.0)
+        assertEquals(76.0, loopHub.lowGlucoseMark, 1e-6)
+        assertEquals(125.0, loopHub.highGlucoseMark, 1e-6)
+        verify(defaultValueHelper).determineLowLine()
+        verify(defaultValueHelper).determineHighLine()
+    }
+
+    @Test
+    fun testGlucoseRangeMmolL() {
+        whenever(sp.getString(app.aaps.core.utils.R.string.key_units, GlucoseUnit.MGDL.asText)).thenReturn("mmol")
+        whenever(defaultValueHelper.determineLowLine()).thenReturn(3.0)
+        whenever(defaultValueHelper.determineHighLine()).thenReturn(8.0)
+        assertEquals(54.0, loopHub.lowGlucoseMark, 1e-6)
+        assertEquals(144.0, loopHub.highGlucoseMark, 1e-6)
+        verify(defaultValueHelper).determineLowLine()
+        verify(defaultValueHelper).determineHighLine()
     }
 
     @Test

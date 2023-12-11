@@ -4,7 +4,6 @@ import android.content.Context
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import io.reactivex.rxjava3.disposables.Disposable
-import java.util.concurrent.atomic.AtomicInteger
 
 class GarminMessenger(
     private val aapsLogger: AAPSLogger,
@@ -12,30 +11,20 @@ class GarminMessenger(
     applicationIdNames: Map<String, String>,
     private val messageCallback: (app: GarminApplication, msg: Any) -> Unit,
     enableConnectIq: Boolean,
-    val enableSimulator: Boolean,
-    val onReady: ()->Unit = {}): Disposable, GarminReceiver {
+    enableSimulator: Boolean): Disposable, GarminReceiver {
 
     private var disposed: Boolean = false
     /** All devices that where connected since this instance was created. */
     private val devices = mutableMapOf<Long, GarminDevice>()
     private val clients = mutableListOf<GarminClient>()
     private val appIdNames = mutableMapOf<String, String>()
-    private val pendingClients = AtomicInteger(0)
-
     init {
         aapsLogger.info(LTag.GARMIN, "init CIQ debug=$enableSimulator")
         appIdNames.putAll(applicationIdNames)
-        if (enableConnectIq) {
-            startDeviceClient()
-            pendingClients.incrementAndGet()
-        }
+        if (enableConnectIq) startDeviceClient()
         if (enableSimulator) {
-            appIdNames["SimAp"] = "SimulatorApp"
+            appIdNames["SimApp"] = "SimulatorApp"
             GarminSimulatorClient(aapsLogger, this)
-            pendingClients.incrementAndGet()
-        }
-        if (pendingClients.get() == 0) {
-            onReady()
         }
     }
 
@@ -58,9 +47,6 @@ class GarminMessenger(
     override fun onConnect(client: GarminClient) {
         aapsLogger.info(LTag.GARMIN, "onConnect $client")
         clients.add(client)
-        if (pendingClients.decrementAndGet() == 0) {
-            onReady()
-        }
     }
 
     override fun onDisconnect(client: GarminClient) {

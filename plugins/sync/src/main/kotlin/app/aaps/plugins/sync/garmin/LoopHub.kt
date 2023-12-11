@@ -20,6 +20,12 @@ interface LoopHub {
     /** Returns the remaining bolus insulin on board. */
     val insulinOnboard: Double
 
+    /** Returns the basal insulin on board. */
+    val insulinBasalOnboard: Double
+
+    /** Returns the remaining carbs on board. */
+    val carbsOnboard: Double?
+
     /** Returns true if the pump is connected. */
     val isConnected: Boolean
 
@@ -28,6 +34,12 @@ interface LoopHub {
 
     /** Returns the factor by which the basal rate is currently raised (> 1) or lowered (< 1). */
     val temporaryBasal: Double
+
+    /** Returns the lower bound of the target glucose range. */
+    val targetGlucoseLow get() = currentProfile?.getTargetLowMgdl()
+
+    /** Returns the upper bound of the target glucose range. */
+    val targetGlucoseHigh get() = currentProfile?.getTargetHighMgdl()
 
     /** Tells the loop algorithm that the pump is physically connected. */
     fun connectPump()

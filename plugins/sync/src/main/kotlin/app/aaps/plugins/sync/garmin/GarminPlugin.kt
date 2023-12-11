@@ -93,36 +93,18 @@ class GarminPlugin @Inject constructor(
         when (event.changedKey) {
             "communication_debug_mode" -> setupGarminMessenger()
             "communication_http", "communication_http_port" -> setupHttpServer()
-            "garmin_aaps_key" -> setupGarminMessenger()
+            "garmin_aaps_key" -> sendPhoneAppMessage()
         }
-    }
-
-    private fun shutdownGarminMessenger() {
-        val gm = garminMessenger ?: return
-        gm.dispose()
-        disposable.remove(gm)
-        garminMessenger = null
     }
 
     private fun setupGarminMessenger() {
-        if (garminAapsKey.isEmpty()) {
-            shutdownGarminMessenger()
-        } else {
-            val enableDebug = sp.getBoolean("communication_ciq_debug_mode", false)
-            if (garminMessenger?.enableSimulator == enableDebug) {
-                return
-            }
-            shutdownGarminMessenger()
-            aapsLogger.info(LTag.GARMIN, "initialize IQ messenger in debug=$enableDebug")
-            garminMessenger = GarminMessenger(
-                aapsLogger, context, glucoseAppIds, { _, _ -> }, true, enableDebug, ::onGarminMessengerReady)
-                .also { disposable.add(it) }
-        }
-    }
-
-    @VisibleForTesting
-    fun onGarminMessengerReady() {
-        sendPhoneAppMessage()
+        val enableDebug = sp.getBoolean("communication_ciq_debug_mode", false)
+        garminMessenger?.dispose()
+        garminMessenger = null
+        aapsLogger.info(LTag.GARMIN, "initialize IQ messenger in debug=$enableDebug")
+        garminMessenger = GarminMessenger(
+            aapsLogger, context, glucoseAppIds, {_, _ -> },
+            true, enableDebug).also { disposable.add(it) }
     }
 
     override fun onStart() {
@@ -141,10 +123,16 @@ class GarminPlugin @Inject constructor(
                 .subscribe(::onNewBloodGlucose)
         )
         setupHttpServer()
-        setupGarminMessenger()
+        if (garminAapsKey.isNotEmpty())
+            setupGarminMessenger()
     }
 
-    fun setupHttpServer() {
+    private fun setupHttpServer() {
+      setupHttpServer(Duration.ZERO)
+    }
+
+    @VisibleForTesting
+    fun setupHttpServer(wait: Duration) {
         if (sp.getBoolean("communication_http", false)) {
             val port = sp.getInt("communication_http_port", 28891)
             if (server != null && server?.port == port) return
@@ -155,6 +143,7 @@ class GarminPlugin @Inject constructor(
                 registerEndpoint("/carbs", requestHandler(::onPostCarbs))
                 registerEndpoint("/connect", requestHandler(::onConnectPump))
                 registerEndpoint("/sgv.json", requestHandler(::onSgv))
+                awaitReady(wait)
             }
         } else if (server != null) {
             aapsLogger.info(LTag.GARMIN, "stopping HTTP server")
@@ -187,6 +176,18 @@ class GarminPlugin @Inject constructor(
         }
     }
 
+    @VisibleForTesting
+    fun onConnectDevice(device: GarminDevice) {
+        if (garminAapsKey.isNotEmpty()) {
+            aapsLogger.info(LTag.GARMIN, "onConnectDevice $device sending glucose")
+            sendPhoneAppMessage(device)
+        }
+    }
+
+    private fun sendPhoneAppMessage(device: GarminDevice) {
+        garminMessenger?.sendMessage(device, getGlucoseMessage())
+    }
+
     private fun sendPhoneAppMessage() {
         garminMessenger?.sendMessage(getGlucoseMessage())
     }
@@ -198,6 +199,7 @@ class GarminPlugin @Inject constructor(
         "profile" to loopHub.currentProfileName.first().toString(),
         "encodedGlucose" to encodedGlucose(getGlucoseValues()),
         "remainingInsulin" to loopHub.insulinOnboard,
+        "remainingBasalInsulin" to loopHub.insulinBasalOnboard,
         "glucoseUnit" to glucoseUnitStr,
         "temporaryBasalRate" to
             (loopHub.temporaryBasal.takeIf(java.lang.Double::isFinite) ?: 1.0),
@@ -282,6 +284,11 @@ class GarminPlugin @Inject constructor(
         val jo = JsonObject()
         jo.addProperty("encodedGlucose", encodedGlucose(glucoseValues))
         jo.addProperty("remainingInsulin", loopHub.insulinOnboard)
+        jo.addProperty("remainingBasalInsulin", loopHub.insulinBasalOnboard)
+        loopHub.targetGlucoseLow?.takeIf { it > 0.0 }?.let {
+            jo.addProperty("targetGlucoseLow", it.roundToInt()) }
+        loopHub.targetGlucoseHigh?.takeIf { it > 0.0 }?.let {
+            jo.addProperty("targetGlucoseHigh", it.roundToInt()) }
         jo.addProperty("glucoseUnit", glucoseUnitStr)
         loopHub.temporaryBasal.also {
             if (!it.isNaN()) jo.addProperty("temporaryBasalRate", it)
@@ -427,6 +434,14 @@ class GarminPlugin @Inject constructor(
                     GlucoseUnit.MGDL -> jo.addProperty("units_hint", "mgdl")
                     GlucoseUnit.MMOL -> jo.addProperty("units_hint", "mmol")
                 }
+                jo.addProperty("iob", loopHub.insulinOnboard + loopHub.insulinBasalOnboard)
+                loopHub.temporaryBasal.also {
+                    if (!it.isNaN()) {
+                        val temporaryBasalRateInPercent = (it * 100.0).toInt()
+                        jo.addProperty("tbr", temporaryBasalRateInPercent)
+                    }
+                }
+                jo.addProperty("cob", loopHub.carbsOnboard)
             }
             joa.add(jo)
         }

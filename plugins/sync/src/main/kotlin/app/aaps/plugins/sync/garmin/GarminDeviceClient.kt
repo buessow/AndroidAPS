@@ -54,8 +54,6 @@ class GarminDeviceClient(
                         state = State.RECONNECTING
                         bindService()
                     }
-                    // Wait for the connection, that is the call to onServiceConnected.
-                    // val wait = Duration.between(Instant.now(), waitUntil) //.coerceAtLeast(Duration.ofMillis(100))
                     bindLock.waitMillis(2_000L)
                     if (field?.asBinder()?.isBinderAlive != true) {
                         field = null

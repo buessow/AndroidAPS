@@ -13,6 +13,7 @@ import org.mockito.Mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.lang.Float.isNaN
 import java.time.Clock
 import java.time.Duration
 import java.time.Duration.ofMinutes
@@ -27,15 +28,17 @@ class DataLoaderTest: TestBase() {
     private val config = Config(
         trainingPeriod = ofMinutes(30),
         predictionPeriod = ofMinutes(15),
+        hrHighThreshold = 120,
         hrLong = listOf(Duration.ofHours(1), Duration.ofHours(2))
     )
 
     private val clock = Clock.fixed(Instant.parse("2013-12-13T20:00:00Z"), ZoneId.of("UTC"))
     private val now = clock.instant()
+    private val from = now - config.trainingPeriod
 
     @BeforeEach
     fun setup() {
-        dataLoader = DataLoader(aapsLogger, DataProviderLocal(repo), clock.instant(), config)
+        dataLoader = DataLoader(aapsLogger, DataProviderLocal(repo), from, config)
     }
 
     private fun createGlucoseValue(timestamp: Instant, value: Double) =
@@ -62,38 +65,48 @@ class DataLoaderTest: TestBase() {
     @Test
     fun align_empty() {
         val values = emptyList<DateValue>()
-        val aligned = dataLoader.align(now - ofMinutes(10), values)
+        val aligned = dataLoader.align(from - ofMinutes(10), values, from)
         assertCollectionEquals(aligned.toList(), Float.NaN, Float.NaN, eps = 1e-2)
     }
 
     @Test
-    fun align_one() {
-        val values1 = listOf(DateValue(now - ofMinutes(8), 8.0))
-        val aligned1 = dataLoader.align(now - ofMinutes(10), values1)
+    fun align_oneBefore() {
+        val values1 = listOf(DateValue(now + ofMinutes(-2), 8.0))
+        val aligned1 = dataLoader.align(now, values1, now + ofMinutes(10))
         assertCollectionEquals(aligned1.toList(), 8F, 8F, eps = 1e-2)
+    }
 
-        val values2 = listOf(DateValue(now - ofMinutes(11), 8.0))
-        val aligned2 = dataLoader.align(now - ofMinutes(10), values2)
-        assertCollectionEquals(aligned2.toList(), 8F, 8F, eps = 1e-2)
+    @Test
+    fun align_oneWithin() {
+        val values2 = listOf(DateValue(now + ofMinutes(2), 8.0))
+        val aligned2 = dataLoader.align(now, values2, now + ofMinutes(10))
+        assertCollectionEquals(aligned2.toList(), Float.NaN, 8F, eps = 1e-2)
+    }
+
+    @Test
+    fun align_oneAfter() {
+        val values2 = listOf(DateValue(now + ofMinutes(12), 8.0))
+        val aligned2 = dataLoader.align(now, values2, now + ofMinutes(10))
+        assertCollectionEquals(aligned2.toList(), Float.NaN, Float.NaN, eps = 1e-2)
     }
 
     @Test
     fun align_more() {
         val values = listOf(
-            DateValue(now - ofMinutes(14),15.0),
-            DateValue(now - ofMinutes(6),5.0))
-        val aligned = dataLoader.align(now - ofMinutes(10), values)
+            DateValue(now - ofMinutes(4),15.0),
+            DateValue(now + ofMinutes(4),5.0))
+        val aligned = dataLoader.align(now, values, now + ofMinutes(10))
         assertCollectionEquals(aligned.toList(), 10F, 5F, eps = 1e-2)
     }
 
     @Test
     fun align_more2() {
         val values = listOf(
-            DateValue(now - ofMinutes(23),25.0),
-            DateValue(now - ofMinutes(19),20.0),
-            DateValue(now - ofMinutes(14),15.0),
-            DateValue (now - ofMinutes(6),5.0))
-        val aligned = dataLoader.align(now - ofMinutes(15), values)
+            DateValue(now - ofMinutes(8),25.0),
+            DateValue(now - ofMinutes(4),20.0),
+            DateValue(now + ofMinutes(1),15.0),
+            DateValue (now + ofMinutes(9),5.0))
+        val aligned = dataLoader.align(now, values, now + ofMinutes(15))
         assertCollectionEquals(aligned.toList(), 16F, 10F, 5F, eps = 1e-2)
     }
 
@@ -101,7 +114,7 @@ class DataLoaderTest: TestBase() {
     fun loadGlucoseReadings_empty() {
         whenever(repo.compatGetBgReadingsDataFromTime(any(), any())).thenReturn(Single.just(emptyList()))
         val values = dataLoader.loadGlucoseReadings().blockingGet()
-        assertCollectionEquals(values, *Array<Float>(6) { Float.NaN }, eps = 1e-2)
+        assertCollectionEquals(values, *FloatArray(6) { Float.NaN }, eps = 1e-2)
         verify(repo).compatGetBgReadingsDataFromTime(
             (now - config.trainingPeriod - ofMinutes(6)).toEpochMilli(), true)
     }
@@ -121,7 +134,7 @@ class DataLoaderTest: TestBase() {
     fun loadHeartRates_empty() {
         whenever(repo.getHeartRatesFromTime(any())).thenReturn(Single.just(emptyList()))
         val values = dataLoader.loadHeartRates().blockingGet()
-        assertCollectionEquals(values, *Array<Float>(6) { Float.NaN }, 60.0F, 60.0F, 60.0F, eps = 1e-2)
+        assertCollectionEquals(values, *FloatArray(6) { Float.NaN }, 60.0F, 60.0F, 60.0F, eps = 1e-2)
         verify(repo).getHeartRatesFromTime(
             (now - config.trainingPeriod - ofMinutes(6)).toEpochMilli())
     }
@@ -150,7 +163,7 @@ class DataLoaderTest: TestBase() {
     fun loadCarbs_empty() {
         whenever(repo.getCarbsDataFromTime(any(), any())).thenReturn(Single.just(emptyList()))
         val values = dataLoader.loadCarbAction().blockingGet()
-        assertCollectionEquals(values, *Array<Float>(9) { 0F }, eps = 1e-2)
+        assertCollectionEquals(values, *FloatArray(9) { 0F }, eps = 1e-2)
         verify(repo).getCarbsDataFromTime(
             (now - config.trainingPeriod - Duration.ofHours(4)).toEpochMilli(), true)
     }
@@ -180,15 +193,16 @@ class DataLoaderTest: TestBase() {
 
 
 
-    private fun firstMismatch(expected: Array<out Number>, actual: List<Number>, e: Double): Int? {
+    private fun firstMismatch(expected: FloatArray, actual: List<Float>, e: Double): Int? {
         if (expected.size != actual.size) return expected.size.coerceAtMost(actual.size)
         for (i in expected.indices) {
+            if (isNaN(expected[i]) != isNaN(actual[i])) return i
             if (abs(expected[i].toDouble() - actual[i].toDouble()) > e) return i
         }
         return null
     }
 
-    private fun assertCollectionEquals(actual: Collection<Number>, vararg expected: Number, eps: Double) {
+    private fun assertCollectionEquals(actual: Collection<Float>, vararg expected: Float, eps: Double) {
         val mismatch = firstMismatch(expected, actual.toList(), eps) ?: return
         val a = actual.mapIndexed { i, f ->  if  (i == mismatch) "**${f}F" else "${f}F" }.joinToString(", ")
         val e = expected.mapIndexed { i, f ->  if  (i == mismatch) "**${f}F" else "${f}F" }.joinToString(", ")

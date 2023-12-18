@@ -14,14 +14,14 @@ class DataLoader(
     private val aapsLogger: AAPSLogger,
     private val dataProvider: DataProvider,
     time: Instant,
-    private val config: Config = Config()) {
+    private val config: Config) {
 
-    private val at: Instant
+    private val from: Instant
     private val carbAction = LogNormAction(Duration.ofMinutes(45), sigma=0.5)
     private val insulinAction = LogNormAction(Duration.ofMinutes(60), sigma=0.5)
 
     init {
-        at = time.truncatedTo(ChronoUnit.MINUTES)
+        from = time.truncatedTo(ChronoUnit.MINUTES)
     }
 
     companion object {
@@ -48,48 +48,48 @@ class DataLoader(
     @VisibleForTesting
     fun align(
         from: Instant, values: Iterable<DateValue>,
+        to: Instant = from + config.trainingPeriod,
         interval: Duration = config.freq) = sequence {
 
-        val start = from.truncatedTo(ChronoUnit.MINUTES)
-        var t = start
+        var t = from
         var last: DateValue? = null
         for (curr in values) {
-            // Skip over values before the start.
-            if (curr.timestamp < start) {
+            // Skip over values before the start but remember the last value
+            // for averaging.
+            if (curr.timestamp < from) {
                 last = curr
                 continue
             }
-            // Ignore duplicate values.
-            if (curr.timestamp == last?.timestamp) continue
-            while (t in (last?.timestamp ?: from) ..< curr.timestamp && t < at) {
-                if (last != null) {
+            while (t < curr.timestamp && t < to) {
+                if (last == null) {
+                    yield(Float.NaN)
+                } else {
                     val d1 = Duration.between(last.timestamp, t).seconds
                     val d2 = Duration.between(t, curr.timestamp).seconds
                     // We weigh the value that is close to t higher.
                     val avg = (curr.value * d1 + last.value * d2) / (d1 + d2)
                     yield(avg.toFloat())
-                } else {
-                    yield(Float.NaN)
                 }
+
                 t += interval
             }
             last = curr
         }
-        while (t in start ..< at) {
+
+        // Output the last value if we are missing values at the end.
+        while (t < to) {
             yield(last?.value?.toFloat() ?: Float.NaN)
             t += interval
         }
     }
 
     fun loadGlucoseReadings(): Single<List<Float>> {
-        val from = at - config.trainingPeriod
         return dataProvider.getGlucoseReadings(
             (from - Duration.ofMinutes(6))).map { gs ->
             align(from, gs).toList() }
     }
 
     fun loadHeartRates(): Single<List<Float>> {
-        val from = at - config.trainingPeriod
         return dataProvider.getHeartRates(from - Duration.ofMinutes(6)).map { hrs ->
             val futureHeartRates = FloatArray(
                 config.predictionPeriod / config.freq) { 60F }
@@ -100,22 +100,28 @@ class DataLoader(
     }
 
     fun loadLongHeartRates(): Single<List<Float>> {
-        val from = at - (config.hrLong.maxOrNull() ?: return Single.just(emptyList()))
-        return dataProvider.getHeartRates(from).map { hrs ->
-            val counts = IntArray(config.hrLong.size)
-            for (hr in hrs) {
-                for ((i, period) in config.hrLong.withIndex()) {
-                    if (hr.timestamp < at - period) continue
-                    if (hr.value >= config.hrLongThreshold) counts[i]++
-                }
-            }
-            counts.map(Int::toFloat).toList()
-        }
+        return dataProvider
+            .getLongHeartRates(
+                from + config.trainingPeriod, config.hrHighThreshold, config.hrLong)
+            .map { counts -> counts.map(Int::toFloat).toList() }
+        //     .subscribe({ counts ->
+        //         aapsLogger.debug("Long heart rate counts: ${counts.joinToString()}")
+        //     }, { e -> aapsLogger.error("Error loading long heart rates", e) })
+        // val from = at - (config.hrLong.maxOrNull() ?: return Single.just(emptyList()))
+        // return dataProvider.getHeartRates(from).map { hrs ->
+        //     val counts = IntArray(config.hrLong.size)
+        //     for (hr in hrs) {
+        //         for ((i, period) in config.hrLong.withIndex()) {
+        //             if (hr.timestamp < at - period) continue
+        //             if (hr.value >= config.hrHighThreshold) counts[i]++
+        //         }
+        //     }
+        //     counts.map(Int::toFloat).toList()
+        // }
     }
 
     fun loadCarbAction(): Single<List<Float>> {
-        val from = at - config.trainingPeriod
-        val to = at + config.predictionPeriod
+        val to = from + config.trainingPeriod + config.predictionPeriod
         return dataProvider.getCarbs(from - carbAction.maxAge).map { cs ->
             carbAction.valuesAt(
                 cs,
@@ -125,13 +131,12 @@ class DataLoader(
     }
 
     fun loadInsulinAction(): Single<List<Float>> {
-        val from = at - config.trainingPeriod
-        val to = at + config.predictionPeriod
+        val to = from + config.trainingPeriod + config.predictionPeriod
         return dataProvider.getBoluses(from - carbAction.maxAge).map { cs ->
              insulinAction.valuesAt(
-                cs,
-                { c -> c.timestamp to c.value },
-                from ..< to step config.freq).map(Double::toFloat)
+                 cs,
+                 { c -> c.timestamp to c.value },
+                 from ..< to step config.freq).map(Double::toFloat)
         }
     }
 
@@ -146,7 +151,7 @@ class DataLoader(
         }
     }
 
-    fun getInputVector(at: Instant): Single<FloatArray> =
+    fun getInputVector(at: Instant): Single<Pair<Float, FloatArray>> =
         Single.zip(
             loadGlucoseReadings(), loadLongHeartRates(), loadHeartRates(),
             loadCarbAction(), loadInsulinAction()) { gl, hrl, hr, ca, ia ->
@@ -166,6 +171,6 @@ class DataLoader(
 
             assert (input.size == config.inputSize) {
                 "Input size is ${input.size} instead of ${config.inputSize}" }
-            input.toFloatArray()
+            gl.last() to input.toFloatArray()
         }
 }

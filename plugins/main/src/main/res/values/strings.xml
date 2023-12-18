@@ -330,6 +330,10 @@
     <string name="send_logfiles">Send today\'s log files to developers along with this time. Unexpected situation.</string>
     <string name="iob_cob_calculator" translatable="false">IobCobCalculator</string>
 
+    <!-- ML Prediction -->
+    <string name="ml_prediction">ML Prediction</string>
+    <string name="ml_prediction_short">ML Prediction</string>
+
     <!--    PersistentNotification-->
     <string name="ongoingnotificaction" translatable="false">Ongoing Notification</string>
     <string name="description_persistent_notification">Shows an ongoing notification with a short overview of what your loop is doing</string>

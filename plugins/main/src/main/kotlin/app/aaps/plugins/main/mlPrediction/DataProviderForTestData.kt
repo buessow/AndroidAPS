@@ -1,5 +1,6 @@
 package app.aaps.plugins.main.mlPrediction
 
+import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import java.time.Duration
 import java.time.Instant
@@ -17,6 +18,11 @@ class DataProviderForTestData(private val testData: Config.TestData): DataProvid
 
     override fun getLongHeartRates(at: Instant, threshold: Int, durations: List<Duration>) =
         Single.just(testData.hrLongCounts)
+
+    override fun getBasalProfileSwitches(from: Instant): Maybe<MlProfileSwitches> = Maybe.empty()
+
+    override fun getTemporaryBasalRates(from: Instant): Single<List<MlTemporaryBasalRate>> =
+        Single.just(emptyList())
 
     override fun getCarbs(from: Instant) = Single.just(testData.carbEvents)
 

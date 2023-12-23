@@ -11,10 +11,12 @@ class PredictorTest: TestBase() {
     @Test
     fun loadAndVerifyModel() {
         val cl = this::class.java.classLoader!!
-        val p = Predictor(
+        Predictor.create(
             aapsLogger,
             cl.getResourceAsStream("glucose_model.json")!!,
-            cl.getResourceAsStream("glucose_model.tflite")!!)
-        assertTrue(p.isValid)
+            cl.getResourceAsStream("glucose_model.tflite")!!
+        )!!.use { p ->
+            assertTrue(p.isValid)
+        }
     }
 }

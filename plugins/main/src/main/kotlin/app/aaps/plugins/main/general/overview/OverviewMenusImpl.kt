@@ -138,6 +138,14 @@ class OverviewMenusImpl @Inject constructor(
             secondary = true,
             shortnameId = R.string.heartRate_shortname
         ),
+        ML_PRED(
+            R.string.overview_show_ml_prediction,
+            app.aaps.core.ui.R.attr.predictionColor,
+            app.aaps.core.ui.R.attr.menuTextColor,
+            primary = true,
+            secondary = true,
+            shortnameId = R.string.ml_prediction_shortname
+        ),
     }
 
     companion object {

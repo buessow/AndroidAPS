@@ -21,6 +21,7 @@ import app.aaps.database.entities.TemporaryTarget
 import com.jjoe64.graphview.series.BarGraphSeries
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
+import com.jjoe64.graphview.series.PointsGraphSeries
 
 interface OverviewData {
 
@@ -161,5 +162,6 @@ interface OverviewData {
     var dsMinSeries: LineGraphSeries<ScaledDataPoint>
     var heartRateScale: Scale
     var heartRateGraphSeries: PointsWithLabelGraphSeries<DataPointWithLabelInterface>
-
+    var mlPredictionScale: Scale
+    var mlPredictionGraphSeries: PointsWithLabelGraphSeries<DataPointWithLabelInterface>
 }

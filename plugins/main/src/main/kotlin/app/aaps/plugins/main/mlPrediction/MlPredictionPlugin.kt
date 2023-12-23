@@ -23,11 +23,11 @@ class MlPredictionPlugin @Inject constructor(
         .shortName(R.string.ml_prediction_short),
     aapsLogger, rh, injector) {
 
-    private var predictor: Predictor
+    private var predictor: Predictor?
 
 
     init {
-        predictor = Predictor(aapsLogger)
+        predictor = Predictor.create(aapsLogger)
     }
 
     // private fun initializeInterpreter() {

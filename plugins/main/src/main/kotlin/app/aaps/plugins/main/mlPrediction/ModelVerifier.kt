@@ -23,7 +23,8 @@ class ModelVerifier(
         aapsLogger.info(LTag.ML_PRED, "inference ${testData.name}")
         val slopes = predictor.predictGlucoseSlopes(testData.inputVector)
         val mismatch = ArrayApproxCompare.getMismatch(
-            slopes.toList(), testData.outputSlopes, eps = 0.1) ?: return true
+            slopes.toList().map(Double::toFloat),
+            testData.outputSlopes, eps = 0.1) ?: return true
         aapsLogger.error(LTag.ML_PRED, "Mismatch '${testData.name}': $mismatch")
         return false
     }
@@ -33,7 +34,8 @@ class ModelVerifier(
         val dataProvider = DataProviderForTestData(testData)
         val glucose = predictor.predictGlucose(testData.at, dataProvider)
         val mismatch = ArrayApproxCompare.getMismatch(
-            glucose, testData.outputGlucose, eps = 1e-4) ?: return true
+            glucose.map(Double::toFloat),
+            testData.outputGlucose, eps = 1e-4) ?: return true
         aapsLogger.error(LTag.ML_PRED, "Mismatch '${testData.name}': $mismatch")
         return false
     }

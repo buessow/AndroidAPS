@@ -146,6 +146,7 @@
     <color name="tempTargetConfirmation">#6BD16B</color>
 
     <color name="prediction">#ff00ff</color>
+    <color name="mlPrediction">#FFC0CB</color>
     <color name="iobPred">#00d2d2</color>
     <color name="bolus">#1ea3e5</color>
     <color name="ratio">#000000</color>

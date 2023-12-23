@@ -56,6 +56,7 @@ class GraphData(
         minY = 0.0
         addSeries(overviewData.bgReadingGraphSeries)
         if (addPredictions) addSeries(overviewData.predictionsGraphSeries)
+        addSeries(overviewData.mlPredictionGraphSeries)
         overviewData.bgReadingGraphSeries.setOnDataPointTapListener { _, dataPoint ->
             if (dataPoint is GlucoseValueDataPoint) ToastUtils.infoToast(context, dataPoint.label)
         }
@@ -267,5 +268,15 @@ class GraphData(
         }
         addSeries(overviewData.heartRateGraphSeries)
         overviewData.heartRateScale.multiplier = maxY * scale / maxHR
+    }
+
+    fun addMlPrediction(useForScale: Boolean, scale: Double) {
+        val maxMl = overviewData.mlPredictionGraphSeries.highestValueY
+        if (useForScale) {
+            minY = 0.0
+            maxY = maxMl
+        }
+        addSeries(overviewData.mlPredictionGraphSeries)
+        overviewData.mlPredictionScale.multiplier = maxY * scale / maxMl
     }
 }

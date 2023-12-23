@@ -40,6 +40,7 @@ import app.aaps.database.impl.AppRepository
 import com.jjoe64.graphview.series.BarGraphSeries
 import com.jjoe64.graphview.series.DataPoint
 import com.jjoe64.graphview.series.LineGraphSeries
+import com.jjoe64.graphview.series.PointsGraphSeries
 import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -342,4 +343,6 @@ class OverviewDataImpl @Inject constructor(
     override var dsMinSeries: LineGraphSeries<ScaledDataPoint> = LineGraphSeries()
     override var heartRateScale = Scale()
     override var heartRateGraphSeries: PointsWithLabelGraphSeries<DataPointWithLabelInterface> = PointsWithLabelGraphSeries()
+    override var mlPredictionScale = Scale()
+    override var mlPredictionGraphSeries = PointsWithLabelGraphSeries<DataPointWithLabelInterface>()
 }

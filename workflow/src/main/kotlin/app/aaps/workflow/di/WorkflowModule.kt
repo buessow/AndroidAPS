@@ -9,6 +9,7 @@ import app.aaps.workflow.PrepareBasalDataWorker
 import app.aaps.workflow.PrepareBgDataWorker
 import app.aaps.workflow.PrepareBucketedDataWorker
 import app.aaps.workflow.PrepareIobAutosensGraphDataWorker
+import app.aaps.workflow.PrepareMlPredictionWorker
 import app.aaps.workflow.PreparePredictionsWorker
 import app.aaps.workflow.PrepareTemporaryTargetDataWorker
 import app.aaps.workflow.PrepareTreatmentsDataWorker
@@ -41,6 +42,7 @@ abstract class WorkflowModule {
     @ContributesAndroidInjector abstract fun prepareBasalDataWorkerInjector(): PrepareBasalDataWorker
     @ContributesAndroidInjector abstract fun prepareTemporaryTargetDataWorkerInjector(): PrepareTemporaryTargetDataWorker
     @ContributesAndroidInjector abstract fun prepareTreatmentsDataWorkerInjector(): PrepareTreatmentsDataWorker
+    @ContributesAndroidInjector abstract fun prepareMlPredictionWorkerInjector(): PrepareMlPredictionWorker
     @ContributesAndroidInjector abstract fun loadIobCobResultsWorkerInjector(): UpdateIobCobSensWorker
     @ContributesAndroidInjector abstract fun preparePredictionsWorkerInjector(): PreparePredictionsWorker
     @ContributesAndroidInjector abstract fun updateGraphAndIobWorkerInjector(): UpdateGraphWorker

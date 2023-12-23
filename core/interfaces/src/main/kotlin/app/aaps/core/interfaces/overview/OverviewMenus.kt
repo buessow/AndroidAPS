@@ -16,7 +16,8 @@ interface OverviewMenus {
         SEN,
         ACT,
         DEVSLOPE,
-        HR
+        HR,
+        ML_PRED,
     }
 
     val setting: List<Array<Boolean>>

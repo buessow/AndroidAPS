@@ -24,8 +24,9 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:utils"))
     implementation(project(":core:validators"))
-    implementation("org.tensorflow:tensorflow-core-platform:0.3.3")
-    implementation("org.tensorflow:tensorflow-lite:2.4.0")
+    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+    implementation("org.tensorflow:tensorflow-lite-api:2.14.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
     // implementation("org.tensorflow:tensorflow-lite-gpu:2.3.0")
 
     testImplementation(project(":implementation"))

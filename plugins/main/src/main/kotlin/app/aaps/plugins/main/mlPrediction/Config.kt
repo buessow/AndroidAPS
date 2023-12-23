@@ -1,12 +1,12 @@
 package app.aaps.plugins.main.mlPrediction
 
-import app.aaps.plugins.main.mlPrediction.DataLoader.Companion.div
 import com.google.gson.GsonBuilder
 import com.google.gson.TypeAdapter
 import com.google.gson.annotations.SerializedName
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import java.io.File
+import java.io.InputStream
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
@@ -67,6 +67,10 @@ data class Config(
     companion object {
         fun fromJson(jsonFile: File): Config {
           return fromJson(jsonFile.readText())
+        }
+
+        fun fromJson(jsonInput: InputStream): Config {
+            return fromJson(jsonInput.bufferedReader().use { it.readText() })
         }
 
         fun fromJson(json: String): Config {

@@ -1040,6 +1040,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             var useDSForScale = false
             var useBGIForScale = false
             var useHRForScale = false
+            var useMlPredForScale = false
             when {
                 menuChartSettings[g + 1][OverviewMenus.CharType.ABS.ordinal]      -> useABSForScale = true
                 menuChartSettings[g + 1][OverviewMenus.CharType.IOB.ordinal]      -> useIobForScale = true
@@ -1049,6 +1050,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 menuChartSettings[g + 1][OverviewMenus.CharType.SEN.ordinal]      -> useRatioForScale = true
                 menuChartSettings[g + 1][OverviewMenus.CharType.DEVSLOPE.ordinal] -> useDSForScale = true
                 menuChartSettings[g + 1][OverviewMenus.CharType.HR.ordinal]       -> useHRForScale = true
+                menuChartSettings[g + 1][OverviewMenus.CharType.ML_PRED.ordinal]  -> useMlPredForScale = true
             }
             val alignDevBgiScale = menuChartSettings[g + 1][OverviewMenus.CharType.DEV.ordinal] && menuChartSettings[g + 1][OverviewMenus.CharType.BGI.ordinal]
 
@@ -1064,6 +1066,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 useRatioForScale
             )
             if (menuChartSettings[g + 1][OverviewMenus.CharType.HR.ordinal]) secondGraphData.addHeartRate(useHRForScale, if (useHRForScale) 1.0 else 0.8)
+            if (menuChartSettings[g + 1][OverviewMenus.CharType.ML_PRED.ordinal]) secondGraphData.addMlPrediction(useMlPredForScale, if (useMlPredForScale) 1.0 else 0.8)
 
             // set manual x bounds to have nice steps
             secondGraphData.formatAxis(overviewData.fromTime, overviewData.endTime)
@@ -1080,7 +1083,8 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                     menuChartSettings[g + 1][OverviewMenus.CharType.BGI.ordinal] ||
                     menuChartSettings[g + 1][OverviewMenus.CharType.SEN.ordinal] ||
                     menuChartSettings[g + 1][OverviewMenus.CharType.DEVSLOPE.ordinal] ||
-                    menuChartSettings[g + 1][OverviewMenus.CharType.HR.ordinal]
+                    menuChartSettings[g + 1][OverviewMenus.CharType.HR.ordinal] ||
+                    menuChartSettings[g + 1][OverviewMenus.CharType.ML_PRED.ordinal]
                 ).toVisibility()
             secondaryGraphsData[g].performUpdate()
         }

@@ -1,5 +1,6 @@
 package app.aaps.plugins.main.mlPrediction
 
+import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import java.time.Duration
 import java.time.Instant
@@ -22,4 +23,9 @@ interface DataProvider {
             counts
         }
     }
+
+    fun getBasalProfileSwitches(from: Instant): Maybe<MlProfileSwitches>
+
+    fun getTemporaryBasalRates(from: Instant): Single<List<MlTemporaryBasalRate>>
+
 }

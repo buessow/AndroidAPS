@@ -50,30 +50,16 @@ class PrepareMlPredictionWorker(
         }
     }
 
-    private fun createDataPointX(time: Instant, v: Double) = object : DataPointWithLabelInterface {
+    private fun createDataPoint(time: Instant, v: Double) = object : DataPointWithLabelInterface {
         override fun getX() = time.toEpochMilli().toDouble()
-        override fun getY() = v
+        override fun getY() = profileUtil.fromMgdlToUnits(v, profileUtil.units)
         override fun setY(y: Double) {}
-        override val label = ""
-        override val duration = Duration.ofMinutes(5).toMillis()
+        override val label = profileUtil.fromMgdlToStringInUnits(v)
+        override val duration = 0L
         override val shape = Shape.BG
         override val size = 1F
         override val paintStyle: Paint.Style = Paint.Style.FILL
-        override fun color(context: Context?): Int =
-            rh.gac(context, R.attr.predictionColor)
-    }
-
-    private fun createDataPoint(time: Instant, v: Double): DataPointWithLabelInterface {
-        val millis = time.toEpochMilli()
-        val glucoseValue = GV(
-            dateCreated = millis, timestamp = millis, raw = v, value = v,
-            trendArrow = TrendArrow.FLAT, noise = null,
-            sourceSensor = SourceSensor.COB_PREDICTION)
-        return GlucoseValueDataPoint(glucoseValue, profileUtil, rh)
-        // return object: GlucoseValueDataPoint(glucoseValue, profileUtil, rh) {
-        //     override fun color(context: Context?): Int =
-        //         rh.gac(context, R.attr.predictionColor)
-        // }
+        override fun color(context: Context?): Int = rh.gac(context, R.attr.predictionColor)
     }
 
     override suspend fun doWorkAndLog(): Result {

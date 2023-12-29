@@ -4,18 +4,21 @@ import android.content.Context
 import android.graphics.Paint
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import app.aaps.core.data.model.GV
+import app.aaps.core.data.model.SourceSensor
+import app.aaps.core.data.model.TrendArrow
+import app.aaps.core.graph.data.DataPointWithLabelInterface
+import app.aaps.core.graph.data.GlucoseValueDataPoint
+import app.aaps.core.graph.data.PointsWithLabelGraphSeries
+import app.aaps.core.graph.data.Shape
+import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.overview.OverviewData
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.main.graph.OverviewData
-import app.aaps.core.main.graph.data.DataPointWithLabelInterface
-import app.aaps.core.main.graph.data.GlucoseValueDataPoint
-import app.aaps.core.main.graph.data.PointsWithLabelGraphSeries
-import app.aaps.core.main.utils.worker.LoggingWorker
+import app.aaps.core.objects.workflow.LoggingWorker
 import app.aaps.core.ui.R
 import app.aaps.core.utils.receivers.DataWorkerStorage
-import app.aaps.database.entities.GlucoseValue
-import app.aaps.database.impl.AppRepository
 import app.aaps.plugins.main.mlPrediction.DataProvider
 import app.aaps.plugins.main.mlPrediction.DataProviderLocal
 import app.aaps.plugins.main.mlPrediction.DataProviderWithCache
@@ -30,7 +33,7 @@ class PrepareMlPredictionWorker(
     params: WorkerParameters): LoggingWorker(context, params, Dispatchers.Default) {
 
     @Inject lateinit var dataWorkerStorage: DataWorkerStorage
-    @Inject lateinit var repo: AppRepository
+    @Inject lateinit var repo: PersistenceLayer
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var profileUtil: ProfileUtil
 
@@ -53,7 +56,7 @@ class PrepareMlPredictionWorker(
         override fun setY(y: Double) {}
         override val label = ""
         override val duration = Duration.ofMinutes(5).toMillis()
-        override val shape = PointsWithLabelGraphSeries.Shape.BG
+        override val shape = Shape.BG
         override val size = 1F
         override val paintStyle: Paint.Style = Paint.Style.FILL
         override fun color(context: Context?): Int =
@@ -62,14 +65,15 @@ class PrepareMlPredictionWorker(
 
     private fun createDataPoint(time: Instant, v: Double): DataPointWithLabelInterface {
         val millis = time.toEpochMilli()
-        val glucoseValue = GlucoseValue(
+        val glucoseValue = GV(
             dateCreated = millis, timestamp = millis, raw = v, value = v,
-            trendArrow = GlucoseValue.TrendArrow.FLAT, noise = null,
-            sourceSensor = GlucoseValue.SourceSensor.COB_PREDICTION)
-        return object: GlucoseValueDataPoint(glucoseValue, profileUtil, rh) {
-            override fun color(context: Context?): Int =
-                rh.gac(context, R.attr.predictionColor)
-        }
+            trendArrow = TrendArrow.FLAT, noise = null,
+            sourceSensor = SourceSensor.COB_PREDICTION)
+        return GlucoseValueDataPoint(glucoseValue, profileUtil, rh)
+        // return object: GlucoseValueDataPoint(glucoseValue, profileUtil, rh) {
+        //     override fun color(context: Context?): Int =
+        //         rh.gac(context, R.attr.predictionColor)
+        // }
     }
 
     override suspend fun doWorkAndLog(): Result {

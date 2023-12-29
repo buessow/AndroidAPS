@@ -1,10 +1,12 @@
 package app.aaps.plugins.main.mlPrediction
 
-import app.aaps.database.entities.Bolus
-import app.aaps.database.entities.Carbs
-import app.aaps.database.entities.GlucoseValue
-import app.aaps.database.entities.HeartRate
-import app.aaps.database.impl.AppRepository
+import app.aaps.core.data.model.BS
+import app.aaps.core.data.model.CA
+import app.aaps.core.data.model.GV
+import app.aaps.core.data.model.HR
+import app.aaps.core.data.model.SourceSensor
+import app.aaps.core.data.model.TrendArrow
+import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.shared.tests.TestBase
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
@@ -25,7 +27,7 @@ import kotlin.math.abs
 
 class DataLoaderTest: TestBase() {
 
-    @Mock private lateinit var repo: AppRepository
+    @Mock private lateinit var persistenceLayer: PersistenceLayer
     private lateinit var dataLoader: DataLoader
     private val config = Config(
         trainingPeriod = ofMinutes(30),
@@ -40,27 +42,26 @@ class DataLoaderTest: TestBase() {
 
     @BeforeEach
     fun setup() {
-        dataLoader = DataLoader(aapsLogger, DataProviderLocal(repo), from, config)
+        dataLoader = DataLoader(aapsLogger, DataProviderLocal(persistenceLayer), from, config)
     }
 
     private fun createGlucoseValue(timestamp: Instant, value: Double) =
-        GlucoseValue(
+        GV(
             timestamp = timestamp.toEpochMilli(), raw = 90.0, value = value,
-            trendArrow = GlucoseValue.TrendArrow.FLAT, noise = null,
-            sourceSensor = GlucoseValue.SourceSensor.DEXCOM_G5_XDRIP
+            trendArrow = TrendArrow.FLAT, noise = null,
+            sourceSensor = SourceSensor.DEXCOM_G5_XDRIP
         )
 
     private fun createHeartRate(timestamp: Instant, value: Double) =
-        HeartRate(
-            timestamp = timestamp.toEpochMilli(), beatsPerMinute = value,
+        HR(timestamp = timestamp.toEpochMilli(), beatsPerMinute = value,
             device = "T", duration = 300_000
         )
 
     private fun createCarbs(timestamp: Instant, value: Double) =
-        Carbs(timestamp = timestamp.toEpochMilli(), amount = value, duration = 300_000)
+        CA(timestamp = timestamp.toEpochMilli(), amount = value, duration = 300_000)
 
     private fun createBolus(timestamp: Instant, value: Double) =
-        Bolus(timestamp = timestamp.toEpochMilli(), amount = value, type = Bolus.Type.NORMAL)
+        BS(timestamp = timestamp.toEpochMilli(), amount = value, type = BS.Type.NORMAL)
 
     private fun <T> createValues(c: (Instant, Double) -> T, vararg values: Pair<Int, Int>) =
         values.map { (t, v) -> c(now + ofMinutes(t.toLong()), v.toDouble()) }
@@ -117,22 +118,22 @@ class DataLoaderTest: TestBase() {
 
     @Test
     fun loadGlucoseReadings_empty() {
-        whenever(repo.compatGetBgReadingsDataFromTime(any(), any())).thenReturn(Single.just(emptyList()))
+        whenever(persistenceLayer.getBgReadingsDataFromTime(any(), any())).thenReturn(Single.just(emptyList()))
         val values = dataLoader.loadGlucoseReadings().blockingGet()
         assertCollectionEqualsF(values, *FloatArray(6) { Float.NaN }, eps = 1e-2)
-        verify(repo).compatGetBgReadingsDataFromTime(
+        verify(persistenceLayer).getBgReadingsDataFromTime(
             (now - config.trainingPeriod - ofMinutes(6)).toEpochMilli(), true
         )
     }
 
     @Test
     fun loadGlucoseReadings() {
-        whenever(repo.compatGetBgReadingsDataFromTime(any(), any())).thenReturn(
+        whenever(persistenceLayer.getBgReadingsDataFromTime(any(), any())).thenReturn(
             Single.just(createValues(::createGlucoseValue, -25 to 80, -20 to 120))
         )
         val values = dataLoader.loadGlucoseReadings().blockingGet()
         assertCollectionEqualsF(values, Float.NaN, 80F, 120F, 120F, 120F, 120F, eps = 1e-2)
-        verify(repo).compatGetBgReadingsDataFromTime(
+        verify(persistenceLayer).getBgReadingsDataFromTime(
             (now - config.trainingPeriod - ofMinutes(6)).toEpochMilli(),
             true
         )
@@ -140,51 +141,50 @@ class DataLoaderTest: TestBase() {
 
     @Test
     fun loadHeartRates_empty() {
-        whenever(repo.getHeartRatesFromTime(any())).thenReturn(Single.just(emptyList()))
+        whenever(persistenceLayer.getHeartRatesFromTime(any())).thenReturn(emptyList())
         val values = dataLoader.loadHeartRates().blockingGet()
         assertCollectionEqualsF(values, *FloatArray(6) { Float.NaN }, 60.0F, 60.0F, 60.0F, eps = 1e-2)
-        verify(repo).getHeartRatesFromTime(
+        verify(persistenceLayer).getHeartRatesFromTime(
             (now - config.trainingPeriod - ofMinutes(6)).toEpochMilli()
         )
     }
 
     @Test
     fun loadHeartRates() {
-        whenever(repo.getHeartRatesFromTime(any())).thenReturn(
-            Single.just(createValues(::createHeartRate, -25 to 80, -20 to 120))
-        )
+        whenever(persistenceLayer.getHeartRatesFromTime(any())).thenReturn(
+            createValues(::createHeartRate, -25 to 80, -20 to 120))
         val values = dataLoader.loadHeartRates().blockingGet()
         assertCollectionEqualsF(
             values, Float.NaN, 80F, 120F, 120F, 120F, 120F, 60.0F, 60.0F, 60.0F, eps = 1e-2
         )
-        verify(repo).getHeartRatesFromTime(
+        verify(persistenceLayer).getHeartRatesFromTime(
             (now - config.trainingPeriod - ofMinutes(6)).toEpochMilli()
         )
     }
 
     @Test
     fun loadLongHeartRates() {
-        whenever(repo.getHeartRatesFromTime(any())).thenReturn(
-            Single.just(createValues(::createHeartRate, -80 to 80, -75 to 130, -15 to 120, -5 to 150))
+        whenever(persistenceLayer.getHeartRatesFromTime(any())).thenReturn(
+            createValues(::createHeartRate, -80 to 80, -75 to 130, -15 to 120, -5 to 150)
         )
         val values = dataLoader.loadLongHeartRates().blockingGet()
         assertCollectionEqualsF(values, 2F, 3F, eps = 1e-2)
-        verify(repo).getHeartRatesFromTime((now - Duration.ofHours(2)).toEpochMilli())
+        verify(persistenceLayer).getHeartRatesFromTime((now - Duration.ofHours(2)).toEpochMilli())
     }
 
     @Test
     fun loadCarbs_empty() {
-        whenever(repo.getCarbsDataFromTime(any(), any())).thenReturn(Single.just(emptyList()))
+        whenever(persistenceLayer.getCarbsFromTime(any(), any())).thenReturn(Single.just(emptyList()))
         val values = dataLoader.loadCarbAction().blockingGet()
         assertCollectionEqualsF(values, *FloatArray(9) { 0F }, eps = 1e-2)
-        verify(repo).getCarbsDataFromTime(
+        verify(persistenceLayer).getCarbsFromTime(
             (now - config.trainingPeriod - Duration.ofHours(4)).toEpochMilli(), true
         )
     }
 
     @Test
     fun loadCarbs() {
-        whenever(repo.getCarbsDataFromTime(any(), any())).thenReturn(
+        whenever(persistenceLayer.getCarbsFromTime(any(), any())).thenReturn(
             Single.just(createValues(::createCarbs, -120 to 80, -45 to 120))
         )
         val values = dataLoader.loadCarbAction().blockingGet()
@@ -192,21 +192,21 @@ class DataLoaderTest: TestBase() {
             values,
             38.811302F, 54.82804F, 77.4348F, 98.96094F, 114.48894F, 122.4908F, 123.627625F, 119.49986F, 111.85238F, eps = 1e-2
         )
-        verify(repo).getCarbsDataFromTime(
+        verify(persistenceLayer).getCarbsFromTime(
             (now - config.trainingPeriod - Duration.ofHours(4)).toEpochMilli(), true
         )
     }
 
     @Test
     fun loadInsulinAction() {
-        whenever(repo.getBolusesDataFromTime(any(), any())).thenReturn(
+        whenever(persistenceLayer.getBolusesFromTime(any(), any())).thenReturn(
             Single.just(createValues(::createBolus, -120 to 80, -45 to 120))
         )
         val values = dataLoader.loadInsulinAction().blockingGet()
         assertCollectionEqualsF(
             values, 42.355312F, 44.484722F, 51.670033F, 62.434647F, 74.27621F, 84.97886F, 93.15497F, 98.23983F, 100.26634F, eps = 1e-3
         )
-        verify(repo).getBolusesDataFromTime(
+        verify(persistenceLayer).getBolusesFromTime(
             (now - config.trainingPeriod - Duration.ofHours(4)).toEpochMilli(), true
         )
     }

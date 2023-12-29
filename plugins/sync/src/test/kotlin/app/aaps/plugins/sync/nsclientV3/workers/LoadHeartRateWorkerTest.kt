@@ -2,22 +2,20 @@ package app.aaps.plugins.sync.nsclientV3.workers
 
 import android.content.Context
 import androidx.work.testing.TestListenableWorkerBuilder
-import dagger.android.AndroidInjector
-import app.aaps.database.entities.HeartRate
+import app.aaps.core.data.model.HR
 import app.aaps.core.interfaces.nsclient.StoreDataForDb
-import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.sync.NsClient
-import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.nssdk.interfaces.NSAndroidClient
+import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
+import app.aaps.core.nssdk.remotemodel.LastModified
 import app.aaps.plugins.sync.R
 import app.aaps.plugins.sync.nsclientV3.NSClientV3Plugin
 import app.aaps.plugins.sync.nsclientV3.extensions.toHeartRate
-import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
-import app.aaps.core.nssdk.remotemodel.LastModified
 import app.aaps.shared.impl.utils.DateUtilImpl
 import app.aaps.shared.tests.TestBase
+import dagger.android.AndroidInjector
 import dagger.android.HasAndroidInjector
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
@@ -26,10 +24,8 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
-import org.mockito.Mockito
 import org.mockito.Mockito.atLeast
 import org.mockito.Mockito.doAnswer
-import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
@@ -49,7 +45,7 @@ class LoadHeartRateWorkerTest: TestBase() {
     @Mock private lateinit var storeDataForDb: StoreDataForDb
     private lateinit var worker: LoadHeartRateWorker
     private lateinit var lastModified: LastModified
-    private val hrToStore = mutableListOf<HeartRate>()
+    private val hrToStore = mutableListOf<HR>()
 
     private val now = 100_000_000L
     private val maxAge = 10_000L

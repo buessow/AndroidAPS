@@ -42,9 +42,8 @@
                 android:summary="@string/ns_upload_summary"
                 android:title="@string/ns_upload" />
 
-            <SwitchPreference
-                android:defaultValue="false"
-                android:key="@string/key_do_ns_upload"
+            <app.aaps.core.keys.AdaptiveSwitchPreference
+                android:key="@string/key_do_bg_ns_upload"
                 android:title="@string/do_ns_upload_title" />
 
             <SwitchPreference
@@ -108,6 +107,7 @@
                 android:title="@string/ns_receive_heart_rate" />
 
         </androidx.preference.PreferenceScreen>>
+        >
 
         <androidx.preference.PreferenceScreen
             android:key="@string/ns_alarm_options"

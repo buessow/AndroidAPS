@@ -1,18 +1,18 @@
 package app.aaps.plugins.main.mlPrediction
 
+import app.aaps.core.data.plugin.PluginDescription
+import app.aaps.core.data.plugin.PluginType
+import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.plugin.PluginBase
-import app.aaps.core.interfaces.plugin.PluginDescription
-import app.aaps.core.interfaces.plugin.PluginType
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.database.impl.AppRepository
 import app.aaps.plugins.main.R
 import dagger.android.HasAndroidInjector
 import javax.inject.Inject
 
 class MlPredictionPlugin @Inject constructor(
     aapsLogger: AAPSLogger,
-    private val repo: AppRepository,
+    private val persistenceLayer: PersistenceLayer,
     rh: ResourceHelper,
     injector: HasAndroidInjector
     // private val modelPath: File =  File("/storage/emulated/0/Download/glucose_model.tflite")
@@ -21,7 +21,7 @@ class MlPredictionPlugin @Inject constructor(
         .mainType(PluginType.GENERAL)
         .pluginName(R.string.ml_prediction)
         .shortName(R.string.ml_prediction_short),
-    aapsLogger, rh, injector) {
+    aapsLogger, rh) {
 
     private var predictor: Predictor?
 

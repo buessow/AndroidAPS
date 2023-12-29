@@ -18,6 +18,7 @@ interface OverviewMenus {
         DEVSLOPE,
         HR,
         ML_PRED,
+        STEPS
     }
 
     val setting: List<Array<Boolean>>

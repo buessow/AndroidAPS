@@ -1,7 +1,8 @@
 package app.aaps.plugins.sync.nsclientV3.extensions
 
+import app.aaps.core.data.model.HR
+import app.aaps.core.data.model.IDs
 import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
-import app.aaps.database.entities.HeartRate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -9,14 +10,15 @@ class HeartRateExtensionKtTest {
 
     @Test
     fun convert() {
-        val hr = HeartRate(
+        val hr = HR(
             dateCreated = 1002L,
             timestamp = 1002L,
             duration = 60_0000L,
             beatsPerMinute = 77.5,
             device = "T",
             isValid = true,
-            utcOffset = 3_600_000L).apply { interfaceIDs.nightscoutId = "id1" }
+            ids = IDs(nightscoutId = "id1"),
+            utcOffset = 3_600_000L)
         val nsHr = NSHeartRate(
             createdAt = "1970-01-01T00:00:01.002Z",
             date = 1002L,

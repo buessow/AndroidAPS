@@ -10,9 +10,9 @@ import app.aaps.core.interfaces.rx.events.EventNSClientNewLog
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.sync.NsClient
 import app.aaps.core.interfaces.utils.DateUtil
-import app.aaps.core.main.utils.worker.LoggingWorker
 import app.aaps.plugins.sync.nsclientV3.extensions.toHeartRate
 import app.aaps.core.nssdk.localmodel.heartrate.NSHeartRate
+import app.aaps.core.objects.workflow.LoggingWorker
 import app.aaps.plugins.sync.R
 import app.aaps.plugins.sync.nsclientV3.NSClientV3Plugin
 import kotlinx.coroutines.Dispatchers

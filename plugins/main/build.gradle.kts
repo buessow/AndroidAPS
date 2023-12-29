@@ -14,20 +14,20 @@ android {
 var okhttp3_version = "4.11.0"
 
 dependencies {
-    implementation(project(":shared:impl"))
-    implementation(project(":database:entities"))
-    implementation(project(":database:impl"))
+    implementation(project(":core:data"))
+    implementation(project(":core:graph"))
     implementation(project(":core:graphview"))
     implementation(project(":core:interfaces"))
-    implementation(project(":core:main"))
+    implementation(project(":core:keys"))
+    implementation(project(":core:objects"))
     implementation(project(":core:nssdk"))
     implementation(project(":core:ui"))
     implementation(project(":core:utils"))
     implementation(project(":core:validators"))
+    implementation(project(":shared:impl"))
     implementation("org.tensorflow:tensorflow-lite:2.14.0")
     implementation("org.tensorflow:tensorflow-lite-api:2.14.0")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
-    // implementation("org.tensorflow:tensorflow-lite-gpu:2.3.0")
 
     testImplementation(project(":implementation"))
     testImplementation(project(":plugins:insulin"))

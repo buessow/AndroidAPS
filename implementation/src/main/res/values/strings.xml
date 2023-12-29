@@ -24,5 +24,7 @@
     <string name="day_tir">Day TIR</string>
     <string name="night_tir">Night TIR</string>
     <string name="carbs_short" comment="max 6 characters">Carbs</string>
+    <string name="uel_heart_rate">HEART RATE</string>
+    <string name="uel_heart_rate_deleted">HEART_RATE_DELETED</string>
 
 </resources>

@@ -12,6 +12,7 @@ android {
 }
 
 dependencies {
+    implementation(files("lib/cc.buessow.glumagic.input-1.0.jar"))
     implementation(project(":core:data"))
     implementation(project(":core:graph"))
     implementation(project(":core:graphview"))

@@ -2,6 +2,9 @@ package app.aaps.plugins.main.mlPrediction
 
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import cc.buessow.glumagic.input.Config
+import cc.buessow.glumagic.input.DataLoader
+import cc.buessow.glumagic.input.InputProviderForTestInput
 
 class ModelVerifier(
     private val aapsLogger: AAPSLogger,
@@ -9,11 +12,9 @@ class ModelVerifier(
 
     private fun runInput(testData: Config.TestData): Boolean {
         aapsLogger.info(LTag.ML_PRED, "input ${testData.name}")
-        val dataProvider = DataProviderForTestData(testData)
-        val dataLoader = DataLoader(
-            aapsLogger, dataProvider, testData.at, predictor.config)
+        val dataProvider = InputProviderForTestInput(testData)
         val mismatch = ArrayApproxCompare.getMismatch(
-            dataLoader.getInputVector(testData.at).blockingGet().second.toList(),
+            DataLoader.getInputVector(dataProvider, testData.at, predictor.config).second.toList(),
             testData.inputVector.toList(), 1e-4) ?: return true
         aapsLogger.error(LTag.ML_PRED, "Mismatch '${testData.name}': $mismatch")
         return false
@@ -31,7 +32,7 @@ class ModelVerifier(
 
     private fun runGlucose(testData: Config.TestData): Boolean {
         aapsLogger.info(LTag.ML_PRED, "glucose ${testData.name}")
-        val dataProvider = DataProviderForTestData(testData)
+        val dataProvider = InputProviderForTestInput(testData)
         val glucose = predictor.predictGlucose(testData.at, dataProvider)
         val mismatch = ArrayApproxCompare.getMismatch(
             glucose.map(Double::toFloat),

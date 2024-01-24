@@ -2,6 +2,9 @@ package app.aaps.plugins.main.mlPrediction
 
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import cc.buessow.glumagic.input.Config
+import cc.buessow.glumagic.input.DataLoader
+import cc.buessow.glumagic.input.InputProvider
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
@@ -80,9 +83,8 @@ class Predictor private constructor(
         return outputData[0].map(Float::toDouble).toList()
     }
 
-    fun predictGlucoseSlopes(at: Instant, dp: DataProvider): List<Double> {
-        val dataLoader = DataLoader(aapsLogger, dp, at - config.trainingPeriod, config)
-        val (_, input) = dataLoader.getInputVector(at).blockingGet()
+    fun predictGlucoseSlopes(at: Instant, dp: InputProvider): List<Double> {
+        val (_, input) =  DataLoader.getInputVector(dp, at - config.trainingPeriod, config)
         return predictGlucoseSlopes(input)
     }
     private fun computeGlucose(lastGlucose: Double, slopes: List<Double>): List<Double> {
@@ -90,10 +92,9 @@ class Predictor private constructor(
         return slopes.map { s -> (5 * s + p).also { p = it } }
     }
 
-    fun predictGlucose(at: Instant, dp: DataProvider): List<Double> {
+    fun predictGlucose(at: Instant, dp: InputProvider): List<Double> {
         aapsLogger.info(LTag.ML_PRED, "Predicting glucose at $at")
-        val dataLoader = DataLoader(aapsLogger, dp, at, config)
-        val (lastGlucose, input) = dataLoader.getInputVector(at).blockingGet()
+        val (lastGlucose, input) = DataLoader.getInputVector(dp, at, config)
         return computeGlucose(lastGlucose.toDouble(), predictGlucoseSlopes(input)).also {
             aapsLogger.info(LTag.ML_PRED, "Output glucose: ${it.joinToString()}")
         }

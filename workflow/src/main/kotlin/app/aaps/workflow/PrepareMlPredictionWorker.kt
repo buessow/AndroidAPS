@@ -4,11 +4,7 @@ import android.content.Context
 import android.graphics.Paint
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import app.aaps.core.data.model.GV
-import app.aaps.core.data.model.SourceSensor
-import app.aaps.core.data.model.TrendArrow
 import app.aaps.core.graph.data.DataPointWithLabelInterface
-import app.aaps.core.graph.data.GlucoseValueDataPoint
 import app.aaps.core.graph.data.PointsWithLabelGraphSeries
 import app.aaps.core.graph.data.Shape
 import app.aaps.core.interfaces.db.PersistenceLayer
@@ -19,9 +15,8 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.objects.workflow.LoggingWorker
 import app.aaps.core.ui.R
 import app.aaps.core.utils.receivers.DataWorkerStorage
-import app.aaps.plugins.main.mlPrediction.DataProvider
-import app.aaps.plugins.main.mlPrediction.DataProviderLocal
-import app.aaps.plugins.main.mlPrediction.DataProviderWithCache
+import app.aaps.plugins.main.mlPrediction.InputProviderLocal
+import app.aaps.plugins.main.mlPrediction.InputProviderWithCache
 import app.aaps.plugins.main.mlPrediction.Predictor
 import kotlinx.coroutines.Dispatchers
 import java.time.Duration
@@ -40,7 +35,7 @@ class PrepareMlPredictionWorker(
     data class WorkerState(
         val overviewData: OverviewData,
         var predictor: Predictor? = null,
-        var dataProvider: DataProvider? = null)
+        var dataProvider: InputProviderWithCache? = null)
 
     private fun toDataPoints(start: Instant, interval: Duration, values: List<Double>): List<DataPointWithLabelInterface> {
         var time = start
@@ -77,7 +72,7 @@ class PrepareMlPredictionWorker(
             aapsLogger.error(LTag.ML_PRED, "Predictor is not valid")
             return Result.success()
         }
-        val dp = data.dataProvider ?: DataProviderWithCache(DataProviderLocal(repo))
+        val dp = data.dataProvider ?: InputProviderWithCache(InputProviderLocal(repo))
         data.dataProvider = dp
 
         val now = Instant.now()

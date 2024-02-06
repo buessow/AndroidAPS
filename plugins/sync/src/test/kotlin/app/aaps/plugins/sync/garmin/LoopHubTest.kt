@@ -1,7 +1,7 @@
 package app.aaps.plugins.sync.garmin
 
 import app.aaps.core.data.iob.CobInfo
-import app.aaps.core.data.iob.IobTotal
+import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.data.model.EPS
 import app.aaps.core.data.model.GV
 import app.aaps.core.data.model.GlucoseUnit
@@ -21,12 +21,11 @@ import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.UserEntryLogger
-import app.aaps.core.interfaces.overview.OverviewData
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.pump.DetailedBolusInfo
 import app.aaps.core.interfaces.queue.CommandQueue
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.keys.Preferences
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.UnitDoubleKey
@@ -45,6 +44,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
+import org.mockito.kotlin.any
 import org.mockito.kotlin.atLeast
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
@@ -59,10 +59,9 @@ class LoopHubTest : TestBase() {
     @Mock lateinit var iobCobCalculator: IobCobCalculator
     @Mock lateinit var loop: Loop
     @Mock lateinit var profileFunction: ProfileFunction
+    @Mock lateinit var profileUtil: ProfileUtil
     @Mock lateinit var persistenceLayer: PersistenceLayer
     @Mock lateinit var userEntryLogger: UserEntryLogger
-    @Mock lateinit var sp: SP
-    @Mock lateinit var overviewData: OverviewData
     @Mock lateinit var preferences: Preferences
 
     private lateinit var loopHub: LoopHubImpl
@@ -70,9 +69,14 @@ class LoopHubTest : TestBase() {
 
     @BeforeEach
     fun setup() {
+        whenever(profileUtil.convertToMgdl(any(), any())).thenAnswer { i ->
+            val v: Double = i.getArgument(0)
+            val u: GlucoseUnit = i.getArgument(1)
+            if (u == GlucoseUnit.MGDL) v else (18.0 * v)
+        }
         loopHub = LoopHubImpl(
             aapsLogger, commandQueue, constraints, iobCobCalculator, loop,
-            profileFunction, persistenceLayer, userEntryLogger, preferences
+            profileFunction, profileUtil, persistenceLayer, userEntryLogger, preferences
         )
         loopHub.clock = clock
     }
@@ -286,8 +290,7 @@ class LoopHubTest : TestBase() {
             duration = samplingEnd.toEpochMilli() - samplingStart.toEpochMilli(),
             dateCreated = clock.millis(),
             beatsPerMinute = 101.0,
-            device = "Test Device"
-        )
+            device = "Test Device")
         whenever(persistenceLayer.insertOrUpdateHeartRate(hr)).thenReturn(
             Single.just(PersistenceLayer.TransactionResult())
         )

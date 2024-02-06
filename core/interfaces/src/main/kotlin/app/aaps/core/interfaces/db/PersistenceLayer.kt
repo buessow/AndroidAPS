@@ -23,13 +23,28 @@ import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ue.ValueWithUnit
+import app.aaps.core.interfaces.aps.APSResult
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 
 interface PersistenceLayer {
 
+    /**
+     *  Clear all DB tables
+     */
     fun clearDatabases()
+
+    /**
+     *  Clear ApsResults table
+     */
+    fun clearApsResults()
+
+    /**
+     * Perform database maintenance
+     * @param keepDays remove all records older than
+     * @param deleteTrackedChanges delete tracked changes from all tables
+     */
     fun cleanupDatabase(keepDays: Long, deleteTrackedChanges: Boolean): String
 
     // BS
@@ -1349,4 +1364,30 @@ interface PersistenceLayer {
     fun syncNsHeartRate(heartRates: List<HR>): Single<TransactionResult<HR>>
     fun updateNsIdHeartRateTransaction(heartRates: List<HR>): Single<TransactionResult<HR>>
     fun getNextSyncElementHeartRate(id: Long): Maybe<Pair<HR, HR?>>
+
+    /**
+     * Get nearest older APSResult (max age is 5 min)
+     *
+     * @param timestamp time
+     * @return APSResult or null
+     */
+    fun getApsResultCloseTo(timestamp: Long): APSResult?
+
+    /**
+     * Get list of APSResults for interval
+     *
+     * @param start from
+     * @param end to
+     * @return List of APSResult
+     */
+    fun getApsResults(start: Long, end: Long): List<APSResult>
+
+    /**
+     * Insert or update ApsResult record
+     *
+     * @param apsResult record
+     * @return List of inserted records
+     */
+    fun insertOrUpdateApsResult(apsResult: APSResult): Single<TransactionResult<APSResult>>
+
 }

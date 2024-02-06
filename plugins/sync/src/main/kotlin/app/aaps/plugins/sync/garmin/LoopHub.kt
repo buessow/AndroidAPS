@@ -35,10 +35,10 @@ interface LoopHub {
     /** Returns the factor by which the basal rate is currently raised (> 1) or lowered (< 1). */
     val temporaryBasal: Double
 
-    /** Returns the low glucose mark in mg/dl. */
+    /** Returns the lower bound of the target glucose range. */
     val lowGlucoseMark: Double
 
-    /** Returns the high glucose mark in mg/dl. */
+    /** Returns the upper bound of the target glucose range. */
     val highGlucoseMark: Double
 
     /** Tells the loop algorithm that the pump is physically connected. */

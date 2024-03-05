@@ -31,6 +31,7 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
 
     testImplementation(project(":implementation"))
+    testImplementation(project(":plugins:aps"))
     testImplementation(project(":plugins:insulin"))
     testImplementation(project(":shared:tests"))
     testImplementation(Libs.Squareup.Okhttp3.mockWebServer)

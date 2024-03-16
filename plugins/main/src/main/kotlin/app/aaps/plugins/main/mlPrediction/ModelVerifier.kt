@@ -20,20 +20,11 @@ class ModelVerifier(
         return false
     }
 
-    private fun runSlopes(testData: Config.TestData): Boolean {
-        aapsLogger.info(LTag.ML_PRED, "inference ${testData.name}")
-        val slopes = predictor.predictGlucoseSlopes(testData.inputVector)
-        val mismatch = ArrayApproxCompare.getMismatch(
-            slopes.toList().map(Double::toFloat),
-            testData.outputSlopes, eps = 0.1) ?: return true
-        aapsLogger.error(LTag.ML_PRED, "Mismatch '${testData.name}': $mismatch")
-        return false
-    }
-
     private fun runGlucose(testData: Config.TestData): Boolean {
         aapsLogger.info(LTag.ML_PRED, "glucose ${testData.name}")
         val dataProvider = InputProviderForTestInput(testData)
-        val glucose = predictor.predictGlucose(testData.at, dataProvider)
+        val glucose = predictor.predictGlucose(
+            testData.at + predictor.config.trainingPeriod, dataProvider)
         val mismatch = ArrayApproxCompare.getMismatch(
             glucose.map(Double::toFloat),
             testData.outputGlucose, eps = 1e-4) ?: return true
@@ -43,7 +34,6 @@ class ModelVerifier(
 
     fun runAll(): Boolean {
         return predictor.config.testData.all { runInput(it) }
-            && predictor.config.testData.all { runSlopes(it) }
             && predictor.config.testData.all { runGlucose(it) }
     }
 }

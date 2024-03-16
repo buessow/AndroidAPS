@@ -13,11 +13,11 @@ import app.aaps.core.interfaces.overview.OverviewData
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.objects.workflow.LoggingWorker
-import app.aaps.core.ui.R
 import app.aaps.core.utils.receivers.DataWorkerStorage
 import app.aaps.plugins.main.mlPrediction.InputProviderLocal
 import app.aaps.plugins.main.mlPrediction.InputProviderWithCache
 import app.aaps.plugins.main.mlPrediction.Predictor
+import app.aaps.core.ui.R
 import kotlinx.coroutines.Dispatchers
 import java.time.Duration
 import java.time.Instant
@@ -37,15 +37,7 @@ class PrepareMlPredictionWorker(
         var predictor: Predictor? = null,
         var dataProvider: InputProviderWithCache? = null)
 
-    private fun toDataPoints(start: Instant, interval: Duration, values: List<Double>): List<DataPointWithLabelInterface> {
-        var time = start
-        return values.map { v ->
-            time += interval
-            createDataPoint(time, v)
-        }
-    }
-
-    private fun createDataPoint(time: Instant, v: Double) = object : DataPointWithLabelInterface {
+    private fun createDataPoint(time: Instant, v: Double, colorRef: Int) = object : DataPointWithLabelInterface {
         override fun getX() = time.toEpochMilli().toDouble()
         override fun getY() = profileUtil.fromMgdlToUnits(v, profileUtil.units)
         override fun setY(y: Double) {}
@@ -54,7 +46,7 @@ class PrepareMlPredictionWorker(
         override val shape = Shape.BG
         override val size = 1F
         override val paintStyle: Paint.Style = Paint.Style.FILL
-        override fun color(context: Context?): Int = rh.gac(context, R.attr.predictionColor)
+        override fun color(context: Context?): Int = rh.gac(context, colorRef)
     }
 
     override suspend fun doWorkAndLog(): Result {
@@ -76,22 +68,27 @@ class PrepareMlPredictionWorker(
         data.dataProvider = dp
 
         val now = Instant.now()
-        val starts = listOf(
-            now - Duration.ofMinutes(180),
-            now - Duration.ofMinutes(150),
-            now - Duration.ofMinutes(120))
-        val predictions = starts.map { s -> s to p.predictGlucose(s, dp) }
-
         data.overviewData.toTime = data.overviewData.endTime.coerceAtLeast(
             now.plus(Duration.ofMinutes(70)).toEpochMilli())
         data.overviewData.endTime = data.overviewData.endTime.coerceAtLeast(
             now.plus(Duration.ofMinutes(70)).toEpochMilli())
 
+        val startColor = listOf(
+            now - Duration.ofMinutes( 0) to R.attr.mlPredictionColor1,
+            now - Duration.ofMinutes(30) to R.attr.mlPredictionColor2,
+            now - Duration.ofMinutes(60) to R.attr.mlPredictionColor3)
+
         data.overviewData.mlPredictionGraphSeries = PointsWithLabelGraphSeries(
-            predictions
-                .map { (s, d) -> toDataPoints(s + Duration.ofHours(2), p.config.freq, d) }
-                .flatten().toTypedArray())
+            startColor.map { (at, c) -> getPoints(p, dp, at, c) }.flatten().toTypedArray())
 
         return Result.success()
+    }
+
+    private fun getPoints(
+        p: Predictor, dp: InputProviderWithCache, at: Instant, colorRef: Int):
+        List<DataPointWithLabelInterface> {
+        val predictedGlucose = p.predictGlucose(at, dp)
+        return predictedGlucose.mapIndexed { i, glucose ->
+            createDataPoint(at + p.config.freq.multipliedBy(i+0L), glucose, colorRef) }
     }
 }

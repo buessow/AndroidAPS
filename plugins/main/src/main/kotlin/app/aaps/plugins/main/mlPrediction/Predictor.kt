@@ -5,9 +5,7 @@ import app.aaps.core.interfaces.logging.LTag
 import cc.buessow.glumagic.input.Config
 import cc.buessow.glumagic.input.DataLoader
 import cc.buessow.glumagic.input.InputProvider
-import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
-import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.Closeable
 import java.io.File
 import java.io.IOException
@@ -15,6 +13,7 @@ import java.io.InputStream
 import java.lang.Float.isNaN
 import java.nio.ByteBuffer
 import java.time.Instant
+import java.time.ZoneOffset
 
 class Predictor private constructor(
     private val aapsLogger: AAPSLogger,
@@ -22,15 +21,10 @@ class Predictor private constructor(
     private val interpreter: Interpreter): Closeable {
 
     companion object {
-        private val interpreterOptions = Interpreter.Options().apply {
-            numThreads = 1
-            useNNAPI = false
-        }
-
         fun create(
             aapsLogger: AAPSLogger,
             modelMetaInput: InputStream,
-            modelBytesInput: InputStream): Predictor? {
+            modelBytesInput: InputStream): Predictor {
 
             val modelBytes = modelBytesInput.readBytes()
             val modelByteBuf = ByteBuffer.allocateDirect(modelBytes.size).apply {
@@ -71,31 +65,19 @@ class Predictor private constructor(
 
     val isValid: Boolean = ModelVerifier(aapsLogger, this).runAll()
 
-    fun predictGlucoseSlopes(inputData: FloatArray): List<Double> {
+    fun predictGlucose(inputData: FloatArray): List<Double> {
         val cleanInput = inputData.map { f -> if (isNaN(f)) 0.0F else f }.toFloatArray()
-        aapsLogger.debug(LTag.ML_PRED, "input: ${cleanInput.joinToString { "%.2f".format(it) }}")
-        val inputTensor = TensorBuffer.createFixedSize(
-            intArrayOf(1, inputData.size), DataType.FLOAT32)
-        inputTensor.loadArray(cleanInput)
+        aapsLogger.debug("input: ${cleanInput.joinToString { "%.2f".format(it) }}")
         val outputData = Array(1) { FloatArray(config.outputSize) }
-        // interpreter.run(Array (1) { cleanInput }, outputData)
-        interpreter.run(inputTensor.buffer, outputData)
+        interpreter.run(Array (1) { cleanInput }, outputData)
         return outputData[0].map(Float::toDouble).toList()
     }
 
-    fun predictGlucoseSlopes(at: Instant, dp: InputProvider): List<Double> {
-        val (_, input) =  DataLoader.getInputVector(dp, at - config.trainingPeriod, config)
-        return predictGlucoseSlopes(input)
-    }
-    private fun computeGlucose(lastGlucose: Double, slopes: List<Double>): List<Double> {
-        var p = lastGlucose
-        return slopes.map { s -> (5 * s + p).also { p = it } }
-    }
-
     fun predictGlucose(at: Instant, dp: InputProvider): List<Double> {
-        aapsLogger.info(LTag.ML_PRED, "Predicting glucose at $at")
-        val (lastGlucose, input) = DataLoader.getInputVector(dp, at, config)
-        return computeGlucose(lastGlucose.toDouble(), predictGlucoseSlopes(input)).also {
+        val local = at.atZone(ZoneOffset.systemDefault())
+        aapsLogger.info(LTag.ML_PRED, "Predicting glucose at $local")
+        val (_, input) = DataLoader.getInputVector(dp, at - config.trainingPeriod, config)
+        return predictGlucose(input).also {
             aapsLogger.info(LTag.ML_PRED, "Output glucose: ${it.joinToString()}")
         }
     }

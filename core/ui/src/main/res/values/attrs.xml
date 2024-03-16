@@ -197,7 +197,9 @@
     <attr name="deviationGreenColor" format="reference|color" />
     <attr name="deviationRedColor" format="reference|color" />
     <attr name="predictionColor" format="reference|color" />
-    <attr name="mlPredictionColor" format="reference|color" />
+    <attr name="mlPredictionColor1" format="reference|color" />
+    <attr name="mlPredictionColor2" format="reference|color" />
+    <attr name="mlPredictionColor3" format="reference|color" />
     <attr name="iobPredASColor" format="reference|color" />
     <attr name="bgiColor" format="reference|color" />
     <attr name="ratioColor" format="reference|color" />

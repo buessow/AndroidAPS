@@ -221,7 +221,9 @@
         <item name="deviationGreenColor">@color/deviationGreen</item>
         <item name="deviationRedColor">@color/deviationRed</item>
         <item name="predictionColor">@color/prediction</item>
-        <item name="mlPredictionColor">@color/mlPrediction</item>
+        <item name="mlPredictionColor1">@color/mlPrediction1</item>
+        <item name="mlPredictionColor2">@color/mlPrediction2</item>
+        <item name="mlPredictionColor3">@color/mlPrediction3</item>
         <item name="iobPredASColor">@color/iobPredAS</item>
         <item name="bgiColor">@color/bgi</item>
         <item name="ratioColor">@color/ratio</item>

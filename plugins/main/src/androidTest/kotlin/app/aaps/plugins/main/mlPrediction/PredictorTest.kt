@@ -2,6 +2,7 @@ package app.aaps.plugins.main.mlPrediction
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.aaps.shared.tests.TestBase
+import cc.buessow.glumagic.predictor.Predictor
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -12,10 +13,10 @@ class PredictorTest: TestBase() {
     fun loadAndVerifyModel() {
         val cl = this::class.java.classLoader!!
         Predictor.create(
-            aapsLogger,
+            ::TensorflowInterpreter,
             cl.getResourceAsStream("glucose_model.json")!!,
             cl.getResourceAsStream("glucose_model.tflite")!!
-        )!!.use { p ->
+        ).use { p ->
             assertTrue(p.isValid)
         }
     }

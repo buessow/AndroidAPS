@@ -22,31 +22,4 @@ class MlPredictionPlugin @Inject constructor(
         .shortName(R.string.ml_prediction_short),
     aapsLogger, rh) {
 
-    private var predictor: Predictor?
-
-
-    init {
-        predictor = Predictor.create(aapsLogger)
-    }
-
-    // private fun initializeInterpreter() {
-    //     interpreter = Interpreter(modelBytes)
-    //     assert(ModelVerifier(aapsLogger, config, interpreter).runAll())
-    // }
-    //
-    //
-    // fun predictGlucoseSlopes(at: Instant): FloatArray {
-    //     val dataLoader = DataLoader(aapsLogger, DataProviderLocal(repo), at, config)
-    //     val input = dataLoader.getInputVector(at).blockingGet()
-    //     return predictGlucoseSlopes(input)
-    // }
-    //
-    // @VisibleForTesting
-    // fun predictGlucoseSlopes(inputData: FloatArray): FloatArray {
-    //     aapsLogger.info(LTag.ML_PRED, "input: ${inputData.joinToString { "%.2f".format(it) }}")
-    //     val outputData = Array(1) { FloatArray(config.outputSize) }
-    //     interpreter.inputTensorCount
-    //     interpreter.run(Array (1) {inputData }, outputData)
-    //     return outputData[0]
-    // }
 }

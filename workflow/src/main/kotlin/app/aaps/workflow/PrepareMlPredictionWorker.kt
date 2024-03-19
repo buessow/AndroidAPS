@@ -16,8 +16,10 @@ import app.aaps.core.objects.workflow.LoggingWorker
 import app.aaps.core.utils.receivers.DataWorkerStorage
 import app.aaps.plugins.main.mlPrediction.InputProviderLocal
 import app.aaps.plugins.main.mlPrediction.InputProviderWithCache
-import app.aaps.plugins.main.mlPrediction.Predictor
 import app.aaps.core.ui.R
+import app.aaps.plugins.main.mlPrediction.TensorflowInterpreter
+import cc.buessow.glumagic.input.DataLoader
+import cc.buessow.glumagic.predictor.Predictor
 import kotlinx.coroutines.Dispatchers
 import java.time.Duration
 import java.time.Instant
@@ -37,16 +39,17 @@ class PrepareMlPredictionWorker(
         var predictor: Predictor? = null,
         var dataProvider: InputProviderWithCache? = null)
 
-    private fun createDataPoint(time: Instant, v: Double, colorRef: Int) = object : DataPointWithLabelInterface {
-        override fun getX() = time.toEpochMilli().toDouble()
-        override fun getY() = profileUtil.fromMgdlToUnits(v, profileUtil.units)
-        override fun setY(y: Double) {}
-        override val label = profileUtil.fromMgdlToStringInUnits(v)
-        override val duration = 0L
-        override val shape = Shape.BG
-        override val size = 1F
-        override val paintStyle: Paint.Style = Paint.Style.FILL
-        override fun color(context: Context?): Int = rh.gac(context, colorRef)
+    private fun createDataPoint(time: Instant, v: Double, colorRef: Int) =
+        object : DataPointWithLabelInterface {
+            override fun getX() = time.toEpochMilli().toDouble()
+            override fun getY() = profileUtil.fromMgdlToUnits(v, profileUtil.units)
+            override fun setY(y: Double) {}
+            override val label = profileUtil.fromMgdlToStringInUnits(v)
+            override val duration = 0L
+            override val shape = Shape.BG
+            override val size = 1F
+            override val paintStyle: Paint.Style = Paint.Style.FILL
+            override fun color(context: Context?): Int = rh.gac(context, colorRef)
     }
 
     override suspend fun doWorkAndLog(): Result {
@@ -56,7 +59,7 @@ class PrepareMlPredictionWorker(
             ?: return Result.failure(workDataOf("Error" to "missing input data"))
 
         if (data.predictor == null)
-            data.predictor = Predictor.create(aapsLogger) ?: return Result.success()
+            data.predictor = Predictor.create(::TensorflowInterpreter) ?: return Result.success()
         val p = data.predictor ?: return Result.success(). also {
                 aapsLogger.error(LTag.ML_PRED, "Predictor failed to load")
             }
@@ -87,8 +90,12 @@ class PrepareMlPredictionWorker(
     private fun getPoints(
         p: Predictor, dp: InputProviderWithCache, at: Instant, colorRef: Int):
         List<DataPointWithLabelInterface> {
+        aapsLogger.info(
+            LTag.ML_PRED,
+            "input ${DataLoader.getInputVector(dp, at, p.config).second.joinToString()}")
         val predictedGlucose = p.predictGlucose(at, dp)
         return predictedGlucose.mapIndexed { i, glucose ->
-            createDataPoint(at + p.config.freq.multipliedBy(i+0L), glucose, colorRef) }
+            createDataPoint(at + p.config.freq.multipliedBy(i+0L), glucose, colorRef)
+        }
     }
 }

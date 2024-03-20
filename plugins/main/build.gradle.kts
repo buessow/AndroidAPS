@@ -14,7 +14,9 @@ android {
 var okhttp3_version = "4.11.0"
 
 dependencies {
-    api(files("libs/cc.buessow.glumagic.input-1.0.jar"))
+    api("cc.outabout.glumagic:input:1.0.+") {
+        isTransitive = false
+    }
     implementation(project(":core:data"))
     implementation(project(":core:graph"))
     implementation(project(":core:graphview"))

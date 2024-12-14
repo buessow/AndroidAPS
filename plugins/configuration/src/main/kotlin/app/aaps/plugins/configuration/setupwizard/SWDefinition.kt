@@ -23,6 +23,7 @@ import app.aaps.core.interfaces.pump.OmnipodEros
 import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
+import app.aaps.core.interfaces.rx.events.EventAAPSDirectorySelected
 import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
 import app.aaps.core.interfaces.rx.events.EventSWRLStatus
 import app.aaps.core.interfaces.rx.events.EventSWSyncStatus
@@ -39,6 +40,7 @@ import app.aaps.core.objects.crypto.CryptoUtil
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.utils.isRunningTest
 import app.aaps.plugins.configuration.R
+import app.aaps.plugins.configuration.activities.DaggerAppCompatActivityWithResult
 import app.aaps.plugins.configuration.setupwizard.elements.SWBreak
 import app.aaps.plugins.configuration.setupwizard.elements.SWButton
 import app.aaps.plugins.configuration.setupwizard.elements.SWEditEncryptedPassword
@@ -120,8 +122,8 @@ class SWDefinition @Inject constructor(
             .skippable(false)
             .add(
                 SWRadioButton(injector)
-                    .option(R.array.unitsArray, R.array.unitsValues)
-                    .preferenceId(StringKey.GeneralUnits.key).label(R.string.units)
+                    .option(uiInteraction.unitsEntries, uiInteraction.unitsValues)
+                    .preference(StringKey.GeneralUnits.key).label(R.string.units)
                     .comment(R.string.setupwizard_units_prompt)
             )
             .validator { preferences.getIfExists(StringKey.GeneralUnits) != null }
@@ -131,7 +133,7 @@ class SWDefinition @Inject constructor(
             .skippable(false)
             .add(
                 SWEditNumberWithUnits(injector, UnitDoubleKey.OverviewLowMark.defaultValue * Constants.MGDL_TO_MMOLL, 3.0, 8.0)
-                    .preferenceId(UnitDoubleKey.OverviewLowMark)
+                    .preference(UnitDoubleKey.OverviewLowMark)
                     .updateDelay(5)
                     .label(R.string.low_mark)
                     .comment(R.string.low_mark_comment)
@@ -139,7 +141,7 @@ class SWDefinition @Inject constructor(
             .add(SWBreak(injector))
             .add(
                 SWEditNumberWithUnits(injector, UnitDoubleKey.OverviewHighMark.defaultValue * Constants.MGDL_TO_MMOLL, 5.0, 20.0)
-                    .preferenceId(UnitDoubleKey.OverviewHighMark)
+                    .preference(UnitDoubleKey.OverviewHighMark)
                     .updateDelay(5)
                     .label(R.string.high_mark)
                     .comment(R.string.high_mark_comment)
@@ -149,25 +151,43 @@ class SWDefinition @Inject constructor(
         get() = SWScreen(injector, R.string.permission)
             .skippable(false)
             .add(SWInfoText(injector).label(rh.gs(R.string.need_system_window_permission)))
-            .add(SWBreak(injector))
             .add(SWButton(injector)
                      .text(R.string.askforpermission)
                      .visibility { !Settings.canDrawOverlays(activity) }
                      .action { activity.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + activity.packageName))) })
-            .visibility { !Settings.canDrawOverlays(activity) }
-            .validator { Settings.canDrawOverlays(activity) }
-
-    private val screenPermissionBattery
-        get() = SWScreen(injector, R.string.permission)
-            .skippable(false)
-            .add(SWInfoText(injector).label(rh.gs(R.string.need_whitelisting, rh.gs(config.appName))))
             .add(SWBreak(injector))
+            .add(SWInfoText(injector).label(rh.gs(R.string.need_whitelisting, rh.gs(config.appName))))
             .add(SWButton(injector)
                      .text(R.string.askforpermission)
                      .visibility { androidPermission.permissionNotGranted(context, Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) }
                      .action { androidPermission.askForPermission(activity, Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) })
-            .visibility { androidPermission.permissionNotGranted(activity, Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) }
-            .validator { !androidPermission.permissionNotGranted(activity, Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) }
+            .add(SWBreak(injector))
+            .add(SWInfoText(injector).label(rh.gs(R.string.need_storage_permission)))
+            .add(SWButton(injector)
+                     .text(R.string.askforpermission)
+                     .visibility { androidPermission.permissionNotGranted(activity, Manifest.permission.READ_EXTERNAL_STORAGE) }
+                     .action { androidPermission.askForPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE) })
+            .add(SWBreak(injector))
+            .add(SWInfoText(injector).label(rh.gs(R.string.select_aaps_directory)))
+            .add(SWButton(injector)
+                     .text(R.string.aaps_directory)
+                     .visibility { preferences.getIfExists(StringKey.AapsDirectoryUri) == null }
+                     .action { (activity as DaggerAppCompatActivityWithResult).accessTree?.launch(null) })
+            .add(SWBreak(injector))
+            .add(SWEventListener(injector, EventAAPSDirectorySelected::class.java).label(app.aaps.core.ui.R.string.settings).initialStatus(preferences.get(StringKey.AapsDirectoryUri)))
+            .add(SWBreak(injector))
+            .visibility {
+                !Settings.canDrawOverlays(activity) ||
+                    androidPermission.permissionNotGranted(activity, Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) ||
+                    androidPermission.permissionNotGranted(activity, Manifest.permission.READ_EXTERNAL_STORAGE) ||
+                    preferences.getIfExists(StringKey.AapsDirectoryUri) == null
+            }
+            .validator {
+                Settings.canDrawOverlays(activity) &&
+                    !androidPermission.permissionNotGranted(activity, Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS) &&
+                    !androidPermission.permissionNotGranted(activity, Manifest.permission.READ_EXTERNAL_STORAGE) &&
+                    preferences.getIfExists(StringKey.AapsDirectoryUri) != null
+            }
 
     private val screenPermissionBt
         get() = SWScreen(injector, R.string.permission)
@@ -178,27 +198,22 @@ class SWDefinition @Inject constructor(
                      .text(R.string.askforpermission)
                      .visibility { androidPermission.permissionNotGranted(activity, Manifest.permission.ACCESS_FINE_LOCATION) }
                      .action { androidPermission.askForPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) })
-            .visibility { androidPermission.permissionNotGranted(activity, Manifest.permission.ACCESS_FINE_LOCATION) }
-            .validator { !androidPermission.permissionNotGranted(activity, Manifest.permission.ACCESS_FINE_LOCATION) }
-
-    private val screenPermissionStore
-        get() = SWScreen(injector, R.string.permission)
-            .skippable(false)
-            .add(SWInfoText(injector).label(rh.gs(R.string.need_storage_permission)))
+            .add(SWBreak(injector))
+            .add(SWInfoText(injector).label(rh.gs(R.string.need_background_location_permission)))
             .add(SWBreak(injector))
             .add(SWButton(injector)
                      .text(R.string.askforpermission)
-                     .visibility { androidPermission.permissionNotGranted(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) }
-                     .action { androidPermission.askForPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) })
-            .visibility { androidPermission.permissionNotGranted(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) }
-            .validator { !androidPermission.permissionNotGranted(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) }
+                     .visibility { androidPermission.permissionNotGranted(activity, Manifest.permission.ACCESS_BACKGROUND_LOCATION) }
+                     .action { androidPermission.askForPermission(activity, Manifest.permission.ACCESS_BACKGROUND_LOCATION) })
+            .visibility { androidPermission.permissionNotGranted(activity, Manifest.permission.ACCESS_FINE_LOCATION) || androidPermission.permissionNotGranted(activity, Manifest.permission.ACCESS_BACKGROUND_LOCATION) }
+            .validator { !androidPermission.permissionNotGranted(activity, Manifest.permission.ACCESS_FINE_LOCATION) && !androidPermission.permissionNotGranted(activity, Manifest.permission.ACCESS_BACKGROUND_LOCATION) }
 
     private val screenImport
         get() = SWScreen(injector, R.string.import_setting)
             .add(SWInfoText(injector).label(R.string.storedsettingsfound))
             .add(SWBreak(injector))
             .add(SWButton(injector).text(R.string.import_setting).action { importExportPrefs.importSharedPreferences(activity) })
-            .visibility { importExportPrefs.prefsFileExists() && !androidPermission.permissionNotGranted(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) }
+            .visibility { importExportPrefs.prefsFileExists() && !androidPermission.permissionNotGranted(activity, Manifest.permission.READ_EXTERNAL_STORAGE) }
 
     private val screenNsClient
         get() = SWScreen(injector, R.string.configbuilder_sync)
@@ -214,16 +229,16 @@ class SWDefinition @Inject constructor(
         get() = SWScreen(injector, R.string.patient_name)
             .skippable(true)
             .add(SWInfoText(injector).label(R.string.patient_name_summary))
-            .add(SWEditString(injector).validator(String::isNotEmpty).preferenceId(app.aaps.core.utils.R.string.key_patient_name))
+            .add(SWEditString(injector).validator(String::isNotEmpty).preference(StringKey.GeneralPatientName))
 
     private val screenMasterPassword
         get() = SWScreen(injector, app.aaps.core.ui.R.string.master_password)
             .skippable(false)
             .add(SWInfoText(injector).label(app.aaps.core.ui.R.string.master_password))
-            .add(SWEditEncryptedPassword(injector, cryptoUtil).preferenceId(app.aaps.core.utils.R.string.key_master_password))
+            .add(SWEditEncryptedPassword(injector, cryptoUtil).preference(StringKey.ProtectionMasterPassword))
             .add(SWBreak(injector))
             .add(SWInfoText(injector).label(R.string.master_password_summary))
-            .validator { !cryptoUtil.checkPassword("", sp.getString(app.aaps.core.utils.R.string.key_master_password, "")) }
+            .validator { !cryptoUtil.checkPassword("", preferences.get(StringKey.ProtectionMasterPassword)) }
 
     private val screenAge
         get() = SWScreen(injector, app.aaps.core.ui.R.string.patient_type)
@@ -231,22 +246,22 @@ class SWDefinition @Inject constructor(
             .add(SWBreak(injector))
             .add(
                 SWRadioButton(injector)
-                    .option(activePlugin.activeSafety.ageEntries(), activePlugin.activeSafety.ageEntryValues())
-                    .preferenceId(StringKey.SafetyAge.key)
+                    .option(hardLimits.ageEntries(), hardLimits.ageEntryValues())
+                    .preference(StringKey.SafetyAge.key)
                     .label(app.aaps.core.ui.R.string.patient_type)
                     .comment(app.aaps.core.ui.R.string.patient_age_summary)
             )
             .add(SWBreak(injector))
             .add(
                 SWEditNumber(injector, 3.0, 0.1, 25.0)
-                    .preferenceId(DoubleKey.SafetyMaxBolus.key)
+                    .preference(DoubleKey.SafetyMaxBolus)
                     .updateDelay(5)
                     .label(app.aaps.core.ui.R.string.max_bolus_title)
                     .comment(R.string.common_values)
             )
             .add(
                 SWEditIntNumber(injector, 48, 1, 100)
-                    .preferenceId(IntKey.SafetyMaxCarbs.key)
+                    .preference(IntKey.SafetyMaxCarbs)
                     .updateDelay(5)
                     .label(app.aaps.core.ui.R.string.max_carbs_title)
                     .comment(R.string.common_values)
@@ -285,8 +300,7 @@ class SWDefinition @Inject constructor(
             )
             .validator {
                 activePlugin.activeProfileSource.profile?.getDefaultProfile()
-                    ?.let { ProfileSealed.Pure(it, activePlugin).isValid("StartupWizard", activePlugin.activePump, config, rh, rxBus, hardLimits, false).isValid }
-                    ?: false
+                    ?.let { ProfileSealed.Pure(it, activePlugin).isValid("StartupWizard", activePlugin.activePump, config, rh, rxBus, hardLimits, false).isValid } == true
             }
             .visibility { (activePlugin.activeProfileSource as PluginBase).isEnabled() }
 
@@ -355,7 +369,7 @@ class SWDefinition @Inject constructor(
             .add(
                 SWRadioButton(injector)
                     .option(loop.entries(), loop.entryValues())
-                    .preferenceId(StringKey.LoopApsMode.key).label(R.string.apsmode_title)
+                    .preference(StringKey.LoopApsMode.key).label(R.string.apsmode_title)
                     .comment(R.string.setupwizard_preferred_aps_mode)
             )
             .validator { preferences.getIfExists(StringKey.LoopApsMode) != null }
@@ -398,17 +412,15 @@ class SWDefinition @Inject constructor(
                     )
                 //.add(ObjectivesFragment())
             )
-            .validator { activePlugin.activeObjectives?.isStarted(Objectives.FIRST_OBJECTIVE) ?: false }
-            .visibility { config.APS && !(activePlugin.activeObjectives?.isStarted(Objectives.FIRST_OBJECTIVE) ?: false) }
+            .validator { activePlugin.activeObjectives?.isStarted(Objectives.FIRST_OBJECTIVE) == true }
+            .visibility { config.APS && activePlugin.activeObjectives?.isStarted(Objectives.FIRST_OBJECTIVE) == false }
 
     private fun swDefinitionFull() = // List all the screens here
         add(screenSetupWizard)
             //.add(screenLanguage)
             .add(screenEula)
-            .add(if (isRunningTest()) null else screenPermissionBattery) // cannot mock ask battery optimization
-            .add(screenPermissionWindow)
+            .add(if (isRunningTest()) null else screenPermissionWindow)  // cannot mock ask battery optimization
             .add(screenPermissionBt)
-            .add(screenPermissionStore)
             .add(screenMasterPassword)
             .add(screenImport)
             .add(screenUnits)
@@ -431,10 +443,8 @@ class SWDefinition @Inject constructor(
         add(screenSetupWizard)
             //.add(screenLanguage)
             .add(screenEula)
-            .add(if (isRunningTest()) null else screenPermissionBattery) // cannot mock ask battery optimization
-            .add(screenPermissionWindow)
+            .add(if (isRunningTest()) null else screenPermissionWindow) // cannot mock ask battery optimization
             .add(screenPermissionBt)
-            .add(screenPermissionStore)
             .add(screenMasterPassword)
             .add(screenImport)
             .add(screenUnits)
@@ -453,9 +463,7 @@ class SWDefinition @Inject constructor(
         add(screenSetupWizard)
             //.add(screenLanguage)
             .add(screenEula)
-            .add(if (isRunningTest()) null else screenPermissionBattery) // cannot mock ask battery optimization
-            .add(screenPermissionWindow)
-            .add(screenPermissionStore)
+            .add(if (isRunningTest()) null else screenPermissionWindow) // cannot mock ask battery optimization
             .add(screenMasterPassword)
             .add(screenImport)
             .add(screenUnits)

@@ -97,15 +97,11 @@ class OpenAPSFragment : DaggerFragment(), MenuProvider {
         disposable += rxBus
             .toObservable(EventOpenAPSUpdateGui::class.java)
             .observeOn(aapsSchedulers.main)
-            .subscribe({
-                           updateGUI()
-                       }, fabricPrivacy::logException)
+            .subscribe({ updateGUI() }, fabricPrivacy::logException)
         disposable += rxBus
             .toObservable(EventResetOpenAPSGui::class.java)
             .observeOn(aapsSchedulers.main)
-            .subscribe({
-                           resetGUI(it.text)
-                       }, fabricPrivacy::logException)
+            .subscribe({ resetGUI(it.text) }, fabricPrivacy::logException)
 
         updateGUI()
     }
@@ -134,7 +130,7 @@ class OpenAPSFragment : DaggerFragment(), MenuProvider {
             binding.glucosestatus.text = lastAPSResult.glucoseStatus?.dataClassToHtml(listOf("glucose", "delta", "shortAvgDelta", "longAvgDelta"))
             binding.currenttemp.text = lastAPSResult.currentTemp?.dataClassToHtml()
             binding.iobdata.text = rh.gs(R.string.array_of_elements, lastAPSResult.iobData?.size) + "\n" + lastAPSResult.iob?.dataClassToHtml()
-            binding.profile.text = lastAPSResult.oapsProfile?.dataClassToHtml()
+            binding.profile.text = lastAPSResult.oapsProfile?.dataClassToHtml() ?: lastAPSResult.oapsProfileAutoIsf?.dataClassToHtml()
             binding.mealdata.text = lastAPSResult.mealData?.dataClassToHtml()
             binding.scriptdebugdata.text = lastAPSResult.scriptDebug?.joinToString("\n")
             binding.constraints.text = lastAPSResult.inputConstraints?.getReasons()

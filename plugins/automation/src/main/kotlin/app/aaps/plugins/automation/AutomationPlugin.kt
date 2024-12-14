@@ -9,6 +9,7 @@ import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.plugin.PluginType
+import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.time.T
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.automation.Automation
@@ -31,8 +32,8 @@ import app.aaps.core.interfaces.rx.events.EventPreferenceChange
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
-import app.aaps.core.keys.AdaptiveListPreference
 import app.aaps.core.keys.StringKey
+import app.aaps.core.validators.preferences.AdaptiveListPreference
 import app.aaps.plugins.automation.actions.Action
 import app.aaps.plugins.automation.actions.ActionAlarm
 import app.aaps.plugins.automation.actions.ActionCarePortalEvent
@@ -41,6 +42,7 @@ import app.aaps.plugins.automation.actions.ActionProfileSwitch
 import app.aaps.plugins.automation.actions.ActionProfileSwitchPercent
 import app.aaps.plugins.automation.actions.ActionRunAutotune
 import app.aaps.plugins.automation.actions.ActionSendSMS
+import app.aaps.plugins.automation.actions.ActionSettingsExport
 import app.aaps.plugins.automation.actions.ActionStartTempTarget
 import app.aaps.plugins.automation.actions.ActionStopProcessing
 import app.aaps.plugins.automation.actions.ActionStopTempTarget
@@ -56,14 +58,21 @@ import app.aaps.plugins.automation.triggers.TriggerBTDevice
 import app.aaps.plugins.automation.triggers.TriggerBg
 import app.aaps.plugins.automation.triggers.TriggerBolusAgo
 import app.aaps.plugins.automation.triggers.TriggerCOB
+import app.aaps.plugins.automation.triggers.TriggerCannulaAge
 import app.aaps.plugins.automation.triggers.TriggerConnector
 import app.aaps.plugins.automation.triggers.TriggerDelta
 import app.aaps.plugins.automation.triggers.TriggerHeartRate
+import app.aaps.plugins.automation.triggers.TriggerInsulinAge
 import app.aaps.plugins.automation.triggers.TriggerIob
 import app.aaps.plugins.automation.triggers.TriggerLocation
+import app.aaps.plugins.automation.triggers.TriggerPodChange
 import app.aaps.plugins.automation.triggers.TriggerProfilePercent
+import app.aaps.plugins.automation.triggers.TriggerPumpBatteryAge
+import app.aaps.plugins.automation.triggers.TriggerPumpBatteryLevel
 import app.aaps.plugins.automation.triggers.TriggerPumpLastConnection
 import app.aaps.plugins.automation.triggers.TriggerRecurringTime
+import app.aaps.plugins.automation.triggers.TriggerReservoirLevel
+import app.aaps.plugins.automation.triggers.TriggerSensorAge
 import app.aaps.plugins.automation.triggers.TriggerTempTarget
 import app.aaps.plugins.automation.triggers.TriggerTempTargetValue
 import app.aaps.plugins.automation.triggers.TriggerTime
@@ -105,7 +114,7 @@ class AutomationPlugin @Inject constructor(
         .pluginIcon(app.aaps.core.objects.R.drawable.ic_automation)
         .pluginName(R.string.automation)
         .shortName(R.string.automation_short)
-        .showInList(config.APS)
+        .showInList { config.APS }
         .neverVisible(!config.APS)
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
         .description(R.string.automation_description),
@@ -120,36 +129,37 @@ class AutomationPlugin @Inject constructor(
     var executionLog: MutableList<String> = ArrayList()
     var btConnects: MutableList<EventBTChange> = ArrayList()
 
-    private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
-    private lateinit var refreshLoop: Runnable
+    private var handler: Handler? = null
+    private var refreshLoop: Runnable
 
     companion object {
 
-        const val event =
+        const val EMPTY_EVENT =
             "{\"title\":\"Low\",\"enabled\":true,\"trigger\":\"{\\\"type\\\":\\\"TriggerConnector\\\",\\\"data\\\":{\\\"connectorType\\\":\\\"AND\\\",\\\"triggerList\\\":[\\\"{\\\\\\\"type\\\\\\\":\\\\\\\"TriggerBg\\\\\\\",\\\\\\\"data\\\\\\\":{\\\\\\\"bg\\\\\\\":4,\\\\\\\"comparator\\\\\\\":\\\\\\\"IS_LESSER\\\\\\\",\\\\\\\"units\\\\\\\":\\\\\\\"mmol\\\\\\\"}}\\\",\\\"{\\\\\\\"type\\\\\\\":\\\\\\\"TriggerDelta\\\\\\\",\\\\\\\"data\\\\\\\":{\\\\\\\"value\\\\\\\":-0.1,\\\\\\\"units\\\\\\\":\\\\\\\"mmol\\\\\\\",\\\\\\\"deltaType\\\\\\\":\\\\\\\"DELTA\\\\\\\",\\\\\\\"comparator\\\\\\\":\\\\\\\"IS_LESSER\\\\\\\"}}\\\"]}}\",\"actions\":[\"{\\\"type\\\":\\\"ActionStartTempTarget\\\",\\\"data\\\":{\\\"value\\\":8,\\\"units\\\":\\\"mmol\\\",\\\"durationInMinutes\\\":60}}\"]}"
     }
 
     init {
         refreshLoop = Runnable {
             processActions()
-            handler.postDelayed(refreshLoop, T.secs(150).msecs())
+            handler?.postDelayed(refreshLoop, T.secs(150).msecs())
         }
     }
 
     override fun specialEnableCondition(): Boolean = !config.NSCLIENT
 
     override fun onStart() {
+        handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
         locationServiceHelper.startService(context)
 
         super.onStart()
         loadFromSP()
-        handler.postDelayed(refreshLoop, T.mins(1).msecs())
+        handler?.postDelayed(refreshLoop, T.mins(1).msecs())
 
         disposable += rxBus
             .toObservable(EventPreferenceChange::class.java)
             .observeOn(aapsSchedulers.io)
             .subscribe({ e ->
-                           if (e.isChanged(rh.gs(StringKey.AutomationLocation.key))) {
+                           if (e.isChanged(StringKey.AutomationLocation.key)) {
                                locationServiceHelper.stopService(context)
                                locationServiceHelper.startService(context)
                            }
@@ -185,7 +195,8 @@ class AutomationPlugin @Inject constructor(
 
     override fun onStop() {
         disposable.clear()
-        handler.removeCallbacks(refreshLoop)
+        handler?.removeCallbacks(refreshLoop)
+        handler = null
         locationServiceHelper.stopService(context)
         super.onStop()
     }
@@ -221,7 +232,7 @@ class AutomationPlugin @Inject constructor(
                 e.printStackTrace()
             }
         else
-            automationEvents.add(AutomationEventObject(injector).fromJSON(event))
+            automationEvents.add(AutomationEventObject(injector).fromJSON(EMPTY_EVENT))
     }
 
     internal fun processActions() {
@@ -375,6 +386,7 @@ class AutomationPlugin @Inject constructor(
             ActionStopTempTarget(injector),
             ActionNotification(injector),
             ActionAlarm(injector),
+            ActionSettingsExport(injector),
             ActionCarePortalEvent(injector),
             ActionProfileSwitchPercent(injector),
             ActionProfileSwitch(injector),
@@ -384,7 +396,7 @@ class AutomationPlugin @Inject constructor(
     }
 
     fun getTriggerDummyObjects(): List<Trigger> {
-        return listOf(
+        val triggers = mutableListOf(
             TriggerConnector(injector),
             TriggerTime(injector),
             TriggerRecurringTime(injector),
@@ -403,7 +415,27 @@ class AutomationPlugin @Inject constructor(
             TriggerPumpLastConnection(injector),
             TriggerBTDevice(injector),
             TriggerHeartRate(injector),
+            TriggerSensorAge(injector),
+            TriggerCannulaAge(injector),
+            TriggerReservoirLevel(injector)
         )
+
+        val pump = activePlugin.activePump
+
+        if (pump.pumpDescription.isPatchPump) {
+            triggers.add(TriggerPodChange(injector))
+        } else {
+            triggers.add(TriggerInsulinAge(injector))
+        }
+        if (pump.pumpDescription.isBatteryReplaceable || pump.isBatteryChangeLoggingEnabled()) {
+            triggers.add(TriggerPumpBatteryAge(injector))
+        }
+        val erosBatteryLinkAvailable = pump.model() == PumpType.OMNIPOD_EROS && pump.isUseRileyLinkBatteryLevel()
+        if (pump.model().supportBatteryLevel || erosBatteryLinkAvailable) {
+            triggers.add(TriggerPumpBatteryLevel(injector))
+        }
+
+        return triggers.toList()
     }
 
     /**

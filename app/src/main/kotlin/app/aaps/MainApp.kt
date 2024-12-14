@@ -23,7 +23,6 @@ import app.aaps.core.interfaces.configuration.ConfigBuilder
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
-import app.aaps.core.interfaces.notifications.Notification
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.sharedPreferences.SP
@@ -117,7 +116,7 @@ class MainApp : DaggerApplication() {
             registerLocalBroadcastReceiver()
 
             // trigger here to see the new version on app start after an update
-            versionCheckersUtils.triggerCheckVersion()
+            handler.postDelayed({ versionCheckersUtils.triggerCheckVersion() }, 30000)
 
             // Register all tabs in app here
             pluginStore.plugins = plugins
@@ -126,9 +125,6 @@ class MainApp : DaggerApplication() {
             // delayed actions to make rh context updated for translations
             handler.postDelayed(
                 {
-                    // check if identification is set
-                    if (config.isDev() && preferences.get(StringKey.MaintenanceIdentification).isBlank())
-                        notificationStore.add(Notification(Notification.IDENTIFICATION_NOT_SET, rh.get().gs(R.string.identification_not_set), Notification.INFO))
                     // log version
                     disposable += persistenceLayer.insertVersionChangeIfChanged(config.VERSION_NAME, BuildConfig.VERSION_CODE, gitRemote, commitHash).subscribe()
                     // log app start
@@ -145,14 +141,7 @@ class MainApp : DaggerApplication() {
                         ).subscribe()
                 }, 10000
             )
-            WorkManager.getInstance(this@MainApp).enqueueUniquePeriodicWork(
-                KeepAliveWorker.KA_0,
-                ExistingPeriodicWorkPolicy.UPDATE,
-                PeriodicWorkRequest.Builder(KeepAliveWorker::class.java, 15, TimeUnit.MINUTES)
-                    .setInputData(Data.Builder().putString("schedule", KeepAliveWorker.KA_0).build())
-                    .setInitialDelay(5, TimeUnit.SECONDS)
-                    .build()
-            )
+            KeepAliveWorker.schedule(this@MainApp)
             localAlertUtils.shortenSnoozeInterval()
             localAlertUtils.preSnoozeAlarms()
             doMigrations()

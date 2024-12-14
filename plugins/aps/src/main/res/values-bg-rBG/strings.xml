@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--Autotune-->
     <string name="high_temptarget_raises_sensitivity_title">Високите временни цели да вдигат ли чувствителността?</string>
     <string name="high_temptarget_raises_sensitivity_summary"><![CDATA[Да вдигам ли чувствителността при цели над 5.6]]></string>
     <string name="low_temptarget_lowers_sensitivity_title">Ниските цели да свалят ли чувствителността ?</string>
@@ -58,9 +59,7 @@
     <string name="enable_smb_summary">Използвай супер микро болуси вместо временен базал за по бързо действие</string>
     <string name="enable_uam_summary">Детекция на необявено хранене (UAM)</string>
     <string name="enable_smb_always">Разреши SMB постоянно</string>
-    <string name="enable_smb_always_summary">Разрешава SMB постоянно и независимо от болусите. Възможно само с източник на КЗ с добра филтрация като G5  </string>
     <string name="enable_smb_after_carbs">Разреши SMB след въглехидрати</string>
-    <string name="enable_smb_after_carbs_summary">Разрешава SMB 6 часа след въглехидрати, дори при COB=0. Възможно само с източник на КЗ с добра филтрация като G5 приложение </string>
     <string name="enable_smb_with_cob">Разреши SMB с COB (въглехидрати)</string>
     <string name="enable_smb_with_cob_summary">Разрешава SMB, когато има активни COB</string>
     <string name="enable_smb_with_temp_target">Разреши SMB с временни цели</string>
@@ -151,4 +150,5 @@
     <string name="autotune_update_local_profile_message">Да се обнови ли %1$s профил с Autotune профил?</string>
     <string name="autotune_revert_local_profile_message">Сменете профил %1$s с началния профил?</string>
     <string name="autotune_profile_invalid">Невалиден профил</string>
+    <!--    autoISF -->
 </resources>

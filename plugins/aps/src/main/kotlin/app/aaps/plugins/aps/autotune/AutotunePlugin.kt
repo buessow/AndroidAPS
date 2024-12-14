@@ -38,8 +38,8 @@ import app.aaps.core.objects.extensions.pureProfileFromJson
 import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.ui.elements.WeekDay
 import app.aaps.core.utils.JsonHelper
-import app.aaps.core.validators.AdaptiveIntPreference
-import app.aaps.core.validators.AdaptiveSwitchPreference
+import app.aaps.core.validators.preferences.AdaptiveIntPreference
+import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
 import app.aaps.plugins.aps.R
 import app.aaps.plugins.aps.autotune.data.ATProfile
 import app.aaps.plugins.aps.autotune.data.LocalInsulin
@@ -84,7 +84,7 @@ class AutotunePlugin @Inject constructor(
         .pluginName(app.aaps.core.ui.R.string.autotune)
         .shortName(R.string.autotune_shortname)
         .preferencesId(PluginDescription.PREFERENCE_SCREEN)
-        .showInList(config.isEngineeringMode() && config.isDev())
+        .showInList { config.isEngineeringMode() && config.isDev() }
         .description(R.string.autotune_description),
     aapsLogger, resourceHelper
 ), Autotune {
@@ -185,7 +185,7 @@ class AutotunePlugin @Inject constructor(
                 log("Tune day " + (i + 1) + " of " + daysBack + " (" + currentCalcDay + " of " + calcDays + ")")
                 tunedProfile?.let {
                     autotuneIob.initializeData(from, to, it)  //autotuneIob contains BG and Treatments data from history (<=> query for ns-treatments and ns-entries)
-                    if (autotuneIob.boluses.size == 0) {
+                    if (autotuneIob.boluses.isEmpty()) {
                         result = rh.gs(R.string.autotune_error)
                         log("No basal data on day ${i + 1}")
                         autotuneFS.exportResult(result)
@@ -407,14 +407,14 @@ class AutotunePlugin @Inject constructor(
         }
         json.put("result", result)
         json.put("updateButtonVisibility", updateButtonVisibility)
-        sp.putString(app.aaps.core.keys.R.string.key_autotune_last_run, json.toString())
+        sp.putString(R.string.key_autotune_last_run, json.toString())
     }
 
     fun loadLastRun() {
         result = ""
         lastRunSuccess = false
         try {
-            val json = JSONObject(sp.getString(app.aaps.core.keys.R.string.key_autotune_last_run, ""))
+            val json = JSONObject(sp.getString(R.string.key_autotune_last_run, ""))
             lastNbDays = JsonHelper.safeGetString(json, "lastNbDays", "")
             lastRun = JsonHelper.safeGetLong(json, "lastRun")
             val pumpPeak = JsonHelper.safeGetInt(json, "pumpPeak")

@@ -14,7 +14,6 @@ import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.Preferences
-import app.aaps.core.objects.extensions.round
 import app.aaps.core.objects.extensions.valueToUnits
 import app.aaps.core.utils.JsonHelper.safeGetInt
 import app.aaps.core.utils.JsonHelper.safeGetString
@@ -54,8 +53,8 @@ class QuickWizardEntry @Inject constructor(private val injector: HasAndroidInjec
 
         const val YES = 0
         const val NO = 1
-        private const val POSITIVE_ONLY = 2
-        private const val NEGATIVE_ONLY = 3
+        const val POSITIVE_ONLY = 2
+        const val NEGATIVE_ONLY = 3
         const val DEVICE_ALL = 0
         const val DEVICE_PHONE = 1
         const val DEVICE_WATCH = 2
@@ -122,20 +121,15 @@ class QuickWizardEntry @Inject constructor(private val injector: HasAndroidInjec
         val cob =
             if (useCOB() == YES) iobCobCalculator.getCobInfo("QuickWizard COB").displayCob ?: 0.0
             else 0.0
-        // Bolus IOB
-        var bolusIOB = false
-        if (useBolusIOB() == YES) {
-            bolusIOB = true
+        // IOB
+        var uIOB = false
+        if (useIOB() == YES) {
+            uIOB = true
         }
-        // Basal IOB
-        val basalIob = iobCobCalculator.calculateIobFromTempBasalsIncludingConvertedExtended().round()
-        var basalIOB = false
-        if (useBasalIOB() == YES) {
-            basalIOB = true
-        } else if (useBasalIOB() == POSITIVE_ONLY && basalIob.iob > 0) {
-            basalIOB = true
-        } else if (useBasalIOB() == NEGATIVE_ONLY && basalIob.iob < 0) {
-            basalIOB = true
+
+        var uPositiveIOBOnly = false
+        if (usePositiveIOBOnly() == YES) {
+            uPositiveIOBOnly = true
         }
         // SuperBolus
         var superBolus = false
@@ -165,14 +159,16 @@ class QuickWizardEntry @Inject constructor(private val injector: HasAndroidInjec
             percentage,
             true,
             useCOB() == YES,
-            bolusIOB,
-            basalIOB,
+            uIOB, //always use or don't both bolus
+            uIOB, // & basal IOB
             superBolus,
             useTempTarget() == YES,
             trend,
-            false,
+            useAlarm() == YES,
             buttonText(),
-            quickWizard = true
+            carbTime(),
+            quickWizard = true,
+            positiveIOBOnly = uPositiveIOBOnly
         ) //tbc, ok if only quickwizard, but if other sources elsewhere use Sources.QuickWizard
     }
 
@@ -198,9 +194,9 @@ class QuickWizardEntry @Inject constructor(private val injector: HasAndroidInjec
 
     fun useCOB(): Int = safeGetInt(storage, "useCOB", NO)
 
-    fun useBolusIOB(): Int = safeGetInt(storage, "useBolusIOB", YES)
+    fun useIOB(): Int = safeGetInt(storage, "useIOB", YES)
 
-    fun useBasalIOB(): Int = safeGetInt(storage, "useBasalIOB", YES)
+    fun usePositiveIOBOnly(): Int = safeGetInt(storage, "usePositiveIOBOnly", NO)
 
     fun useTrend(): Int = safeGetInt(storage, "useTrend", NO)
 
@@ -208,7 +204,19 @@ class QuickWizardEntry @Inject constructor(private val injector: HasAndroidInjec
 
     fun useTempTarget(): Int = safeGetInt(storage, "useTempTarget", NO)
 
-    fun usePercentage(): Int = safeGetInt(storage, "usePercentage", DEFAULT)
+    fun usePercentage(): Int = safeGetInt(storage, "usePercentage", CUSTOM)
 
     fun percentage(): Int = safeGetInt(storage, "percentage", 100)
+
+    fun useEcarbs(): Int = safeGetInt(storage, "useEcarbs", NO)
+
+    fun carbs2(): Int = safeGetInt(storage, "carbs2")
+
+    fun time(): Int = safeGetInt(storage, "time")
+
+    fun duration(): Int = safeGetInt(storage, "duration")
+
+    fun carbTime(): Int = safeGetInt(storage, "carbTime")
+
+    fun useAlarm(): Int = safeGetInt(storage, "useAlarm", NO)
 }

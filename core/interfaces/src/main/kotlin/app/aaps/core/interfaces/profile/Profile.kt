@@ -2,6 +2,7 @@ package app.aaps.core.interfaces.profile
 
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.interfaces.configuration.Config
+import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
 import app.aaps.core.interfaces.pump.Pump
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
@@ -75,9 +76,9 @@ interface Profile {
     fun getProfileIsfMgdl(): Double
 
     /**
-     * ISF value according to timestamp in MGDL
+     * ISF value according to timestamp in MGDL for use in Wizard and COB calculations
      */
-    fun getIsfMgdl(timestamp: Long, bg: Double, caller: String): Double
+    fun getIsfMgdlForCarbs(timestamp: Long, caller: String, config: Config, processedDeviceStatusData: ProcessedDeviceStatusData): Double
 
     /**
      * Average target value according to "now" in MGDL

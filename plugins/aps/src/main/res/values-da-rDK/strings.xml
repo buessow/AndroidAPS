@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--Autotune-->
     <string name="high_temptarget_raises_sensitivity_title">Høj midlertidig basal øger sensitivitet</string>
     <string name="high_temptarget_raises_sensitivity_summary"><![CDATA[Hæv følsomheden for midlertidige basaler >= 100]]></string>
     <string name="low_temptarget_lowers_sensitivity_title">Lav midlertidig basal sænker sensitivitet</string>
@@ -58,9 +59,7 @@
     <string name="enable_smb_summary">Brug Super Mikro Boluser i stedet for midlertidig basal for hurtigere handling</string>
     <string name="enable_uam_summary">Detektering af uanmeldte måltider</string>
     <string name="enable_smb_always">Aktiver SMB altid</string>
-    <string name="enable_smb_always_summary">Aktiver SMB altid uafhængig af bolusser. Kun muligt med BS kilde, der har god filtrering af data såsom G5</string>
     <string name="enable_smb_after_carbs">Aktiver SMB efter kulhydrater</string>
-    <string name="enable_smb_after_carbs_summary">Aktiver SMB i 6 timer efter kulhydrater, selv med 0 COB. Kun muligt med BS kilde, der har god filtrering af data såsom G5</string>
     <string name="enable_smb_with_cob">Aktiver SMB med COB</string>
     <string name="enable_smb_with_cob_summary">Aktiver SMB når der er COB aktiv.</string>
     <string name="enable_smb_with_temp_target">Aktiver SMB med midlertidige mål</string>
@@ -152,4 +151,5 @@
     <string name="autotune_update_local_profile_message">Opdater %1$s profil med Autotune profil?</string>
     <string name="autotune_revert_local_profile_message">Gendan %1$s profil med Input-profilen?</string>
     <string name="autotune_profile_invalid">Profil ugyldig</string>
+    <!--    autoISF -->
 </resources>

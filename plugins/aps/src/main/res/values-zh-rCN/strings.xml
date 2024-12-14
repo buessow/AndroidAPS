@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--Autotune-->
     <string name="high_temptarget_raises_sensitivity_title">高临时目标增加灵敏度</string>
     <string name="high_temptarget_raises_sensitivity_summary"><![CDATA[当临时目标 >=100 mg/dl (5.5 mmol/l) 时提高灵敏度]]></string>
     <string name="low_temptarget_lowers_sensitivity_title">低临时目标降低灵敏度</string>
@@ -58,9 +59,7 @@
     <string name="enable_smb_summary">使用微型大剂量代替使用临时基础率，更快的干预</string>
     <string name="enable_uam_summary">检测未输入的膳食</string>
     <string name="enable_smb_always">始终启用 SMB</string>
-    <string name="enable_smb_always_summary">启用SMB微型大剂量，总是独立于常规大剂量。 可能只能使用带有良好的数据过滤功能的血糖值来源。例如G5</string>
     <string name="enable_smb_after_carbs">在输入碳水化合物后启用SMB</string>
-    <string name="enable_smb_after_carbs_summary">在输入碳水化合物后，启用SMB微型大剂量6个小时，即使活性碳水化合物COB为0。 可能只能使用带有良好的数据过滤功能的血糖值来源。例如G5</string>
     <string name="enable_smb_with_cob">启用带活性碳水化合物的SMB</string>
     <string name="enable_smb_with_cob_summary">当有活性碳水化合物时启动SMB</string>
     <string name="enable_smb_with_temp_target">启用带有临时目标的SMB</string>
@@ -133,4 +132,5 @@
     <string name="autotune_update_local_profile_message">用 Autotune 配置文件更新 %1$s 配置文件？</string>
     <string name="autotune_revert_local_profile_message">使用输入配置文件还原 %1$s 配置文件？</string>
     <string name="autotune_profile_invalid">配置文件无效</string>
+    <!--    autoISF -->
 </resources>

@@ -25,7 +25,7 @@ import app.aaps.core.objects.extensions.put
 import app.aaps.core.objects.extensions.store
 import app.aaps.core.utils.MidnightUtils
 import app.aaps.core.utils.Percentile
-import app.aaps.core.validators.AdaptiveDoublePreference
+import app.aaps.core.validators.preferences.AdaptiveDoublePreference
 import app.aaps.plugins.sensitivity.extensions.isPSEvent5minBack
 import app.aaps.plugins.sensitivity.extensions.isTherapyEventEvent5minBack
 import org.json.JSONObject
@@ -146,7 +146,7 @@ class SensitivityOref1Plugin @Inject constructor(
             if (deviations.size < deviationCategory[i]) {
                 val pad = ((1 - deviations.size.toDouble() / deviationCategory[i]) * 18).roundToInt()
                 aapsLogger.debug(LTag.AUTOSENS, "Adding $pad more zero deviations")
-                for (d in 0 until pad) {
+                (0 until pad).forEach {
                     deviations.add(0.0)
                 }
             }
@@ -214,17 +214,17 @@ class SensitivityOref1Plugin @Inject constructor(
 
     override fun configuration(): JSONObject =
         JSONObject()
-            .put(DoubleKey.ApsSmbMin5MinCarbsImpact, preferences, rh)
-            .put(DoubleKey.AbsorptionCutOff, preferences, rh)
-            .put(DoubleKey.AutosensMin, preferences, rh)
-            .put(DoubleKey.AutosensMax, preferences, rh)
+            .put(DoubleKey.ApsSmbMin5MinCarbsImpact, preferences)
+            .put(DoubleKey.AbsorptionCutOff, preferences)
+            .put(DoubleKey.AutosensMin, preferences)
+            .put(DoubleKey.AutosensMax, preferences)
 
     override fun applyConfiguration(configuration: JSONObject) {
         configuration
-            .store(DoubleKey.ApsSmbMin5MinCarbsImpact, preferences, rh)
-            .store(DoubleKey.AbsorptionCutOff, preferences, rh)
-            .store(DoubleKey.AutosensMin, preferences, rh)
-            .store(DoubleKey.AutosensMax, preferences, rh)
+            .store(DoubleKey.ApsSmbMin5MinCarbsImpact, preferences)
+            .store(DoubleKey.AbsorptionCutOff, preferences)
+            .store(DoubleKey.AutosensMin, preferences)
+            .store(DoubleKey.AutosensMax, preferences)
     }
 
     override val id: SensitivityType
@@ -249,7 +249,7 @@ class SensitivityOref1Plugin @Inject constructor(
                 key = "absorption_oref1_advanced"
                 title = rh.gs(app.aaps.core.ui.R.string.advanced_settings_title)
                 addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AutosensMax, dialogMessage = R.string.openapsama_autosens_max_summary, title = R.string.openapsama_autosens_max))
-                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AutosensMin, dialogMessage = R.string.openapsama_autosens_max_summary, title = R.string.openapsama_autosens_max))
+                addPreference(AdaptiveDoublePreference(ctx = context, doubleKey = DoubleKey.AutosensMin, dialogMessage = R.string.openapsama_autosens_min_summary, title = R.string.openapsama_autosens_min))
             })
         }
     }

@@ -182,6 +182,7 @@ class CareDialog : DialogFragmentWithDate() {
         )
 
         val actions: LinkedList<String> = LinkedList()
+        actions.add(rh.gs(R.string.confirm_treatment))
         if (options == UiInteraction.EventType.BGCHECK || options == UiInteraction.EventType.QUESTION || options == UiInteraction.EventType.ANNOUNCEMENT) {
             val meterType =
                 when {
@@ -199,7 +200,7 @@ class CareDialog : DialogFragmentWithDate() {
         if (options == UiInteraction.EventType.NOTE || options == UiInteraction.EventType.EXERCISE) {
             actions.add(rh.gs(app.aaps.core.ui.R.string.duration_label) + ": " + rh.gs(app.aaps.core.ui.R.string.format_mins, binding.duration.value.toInt()))
             therapyEvent.duration = T.mins(binding.duration.value.toLong()).msecs()
-            valuesWithUnit.add(ValueWithUnit.Minute(binding.duration.value.toInt()).takeIf { !binding.duration.value.equals(0.0) })
+            valuesWithUnit.add(ValueWithUnit.Minute(binding.duration.value.toInt()).takeIf { binding.duration.value != 0.0 })
         }
         val notes = binding.notesLayout.notes.text.toString()
         if (notes.isNotEmpty()) {
@@ -230,7 +231,7 @@ class CareDialog : DialogFragmentWithDate() {
                     action = Action.CAREPORTAL,
                     source = source,
                     note = notes,
-                    listValues = valuesWithUnit
+                    listValues = valuesWithUnit.filterNotNull()
                 ).subscribe()
             }, null)
         }

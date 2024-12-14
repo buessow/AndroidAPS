@@ -17,7 +17,7 @@
     <string name="bolus_delivered_successfully">Bolo %1$.2fU entregado correctamente</string>
     <string name="no_valid_basal_rate">Tasa basal no válida leída en la bomba</string>
     <string name="limiting_iob">Limitando IOB a %1$.1f U debido a %2$s</string>
-    <string name="loop_disabled">BUCLE DESACTIVADO POR RESTRICCIONES</string>
+    <string name="loop_disabled">LAZO DESACTIVADO POR RESTRICCIONES</string>
     <string name="event_type">Tipo de evento</string>
     <string name="reload">Recargar</string>
     <string name="mgdl">mg/dl</string>
@@ -87,12 +87,13 @@
     <string name="pump_time_updated">Hora actualizada en la bomba</string>
     <string name="exit">Salir</string>
     <string name="removerecord">Eliminar registro</string>
-    <string name="loopisdisabled">Bucle desactivado</string>
+    <string name="loopisdisabled">Lazo desactivado</string>
     <string name="alarm">Alarma</string>
-    <string name="disableloop">Desactivar bucle</string>
-    <string name="enableloop">Activar bucle</string>
-    <string name="resumeloop">Reanudar el bucle</string>
-    <string name="suspendloop">Suspender bucle</string>
+    <string name="exportsettings">Exportar ajustes</string>
+    <string name="disableloop">Desactivar lazo</string>
+    <string name="enableloop">Activar lazo</string>
+    <string name="resumeloop">Reanudar el lazo</string>
+    <string name="suspendloop">Suspender lazo</string>
     <string name="duration_min_label">Duración [min]</string>
     <string name="notification">Notificación</string>
     <string name="noprofile">Ningún perfil cargado desde Nightscout</string>
@@ -113,13 +114,13 @@
     <string name="bg_label">BG</string>
     <string name="calibration">Calibración</string>
     <string name="alarminxmin">Ejecutar alarma en %1$d min</string>
-    <string name="treatmentdeliveryerror">El bolo reportó un error. Comprueba manualmente la cantidad real de insulina entregada</string>
+    <string name="treatmentdeliveryerror">El bolo reportó un error. Comprueba manualmente la cantidad real de insulina entregada y la cantidad de carbohidratos</string>
     <string name="bolus_reminder">Recordatorio de bolo</string>
     <string name="duration_label">Duración</string>
     <string name="shortgramm">g</string>
     <string name="pumpsuspended">Bomba parada</string>
     <string name="notconfigured">Sin configurar</string>
-    <string name="loopsuspended">Bucle suspendido</string>
+    <string name="loopsuspended">Lazo suspendido</string>
     <string name="trend_arrow">Flecha de tendencia</string>
     <string name="a11y_autosens_label">Auto sens</string>
     <string name="required">req</string>
@@ -157,8 +158,8 @@
     <string name="prime_fill">Cebar/Llenar</string>
     <string name="overview_insulin_label">Insulina</string>
     <string name="stoptemptarget">Detener objetivo temporal</string>
-    <string name="closedloop">Bucle cerrado</string>
-    <string name="openloop">Bucle abierto</string>
+    <string name="closedloop">Lazo cerrado</string>
+    <string name="openloop">Lazo abierto</string>
     <string name="lowglucosesuspend">Suspensión por glucosa baja (LGS)</string>
     <string name="dia">DIA</string>
     <string name="ic_short">IC</string>
@@ -166,7 +167,7 @@
     <string name="canceling_tbr_failed">Error cancelando la basal temporal</string>
     <string name="canceling_eb_failed">Error cancelando el bolo extendido</string>
     <string name="virtualpump_uploadstatus_title">Subir estado de la bomba a NS o Tidepool</string>
-    <string name="suspendloop_label">Desactiva/suspende el bucle</string>
+    <string name="suspendloop_label">Desactiva/suspende el lazo</string>
     <string name="iob_label">Insulina a bordo (IOB)</string>
     <string name="loopstatus_targets">OBJETIVOS:</string>
     <string name="loopstatus_OAPS_result">RESULTADO OAPS:</string>
@@ -176,6 +177,8 @@
     <string name="temp_basal_tsf_percent">%1$.0f%% @%2$s</string>
     <string name="extended_bolus_full">E %1$.2f U/h @%2$s %3$s/%4$s min</string>
     <string name="extended_bolus_medium">%1$.2f U/h %2$s/%3$s\'</string>
+    <string name="nav_export">Exportar ajustes</string>
+    <string name="location_permission_not_granted">Permiso de ubicación no concedido. Permitir en la configuración de Android.</string>
     <!--    Protection-->
     <string name="wrongpassword">Contraseña incorrecta</string>
     <string name="wrongpin">Pin erróneo</string>
@@ -206,10 +209,12 @@
     <string name="careportal_bgcheck">Medir glucosa</string>
     <string name="careportal_mbg">Calibración o BG Manual</string>
     <string name="careportal_announcement">Aviso</string>
+    <string name="careportal_settings_export">Exportación de configuraciones</string>
     <string name="careportal_note">Nota</string>
     <string name="careportal_question">Pregunta</string>
     <string name="careportal_exercise">Ejercicio</string>
     <string name="careportal_announcement_message">Anuncio: %1$s</string>
+    <string name="careportal_settings_export_message">Exportación de configuraciones: %1$s</string>
     <string name="careportal_note_message">Nota : %1$s</string>
     <string name="careportal_question_message">Pregunta : %1$s</string>
     <string name="careportal_exercise_message">Ejercicio : %1$s</string>
@@ -242,8 +247,9 @@
     <string name="activity">Actividad</string>
     <string name="wear">Reloj</string>
     <string name="automation">Automatización</string>
+    <string name="settingsexport">Exportación de configuraciones</string>
     <string name="custom">Personalizado</string>
-    <string name="loop">Bucle</string>
+    <string name="loop">Lazo</string>
     <string name="ns">NS</string>
     <string name="record">Registro</string>
     <!--    Command-->
@@ -287,11 +293,11 @@
     <string name="uel_store_profile">GUARDAR PERFIL</string>
     <string name="uel_profile_switch">CAMBIO DE PERFIL</string>
     <string name="uel_profile_switch_cloned">CAMBIO DE PERFIL CLONADO</string>
-    <string name="uel_closed_loop_mode">MODO BUCLE CERRADO</string>
-    <string name="uel_lgs_loop_mode">MODO BUCLE LGS</string>
-    <string name="uel_open_loop_mode">MODO BUCLE ABIERTO</string>
-    <string name="uel_loop_disabled">BUCLE DESACTIVADO</string>
-    <string name="uel_loop_enabled">BUCLE ACTIVADO</string>
+    <string name="uel_closed_loop_mode">MODO LAZO CERRADO</string>
+    <string name="uel_lgs_loop_mode">MODO LAZO LGS</string>
+    <string name="uel_open_loop_mode">MODO LAZO ABIERTO</string>
+    <string name="uel_loop_disabled">LAZO DESACTIVADO</string>
+    <string name="uel_loop_enabled">LAZO ACTIVADO</string>
     <string name="uel_reconnect">RECONECTAR</string>
     <string name="uel_disconnect">DESCONECTAR</string>
     <string name="uel_resume">REANUDAR</string>
@@ -343,6 +349,7 @@
     <string name="delete_future_treatments">Eliminar tratamientos futuros</string>
     <string name="uel_export_settings">EXPORTAR AJUSTES</string>
     <string name="uel_import_settings">IMPORTAR AJUSTES</string>
+    <string name="uel_select_directory">SELECCIONAR DIRECTORIO</string>
     <string name="uel_reset_databases">RESTABLECER BASES DE DATOS</string>
     <string name="uel_reset_aps_results">RESTABLECER RESULTADOS DE APS</string>
     <string name="uel_cleanup_databases">LIMPIAR BASE DE DATOS</string>
@@ -363,8 +370,8 @@
     <string name="ue_action">Acción</string>
     <string name="ue_timestamp">Fecha y hora</string>
     <string name="ue_none">Sin Unidad</string>
-    <string name="uel_loop_change">BUCLE CAMBIADO</string>
-    <string name="uel_loop_removed">BUCLE ELIMINADO</string>
+    <string name="uel_loop_change">LAZO CAMBIADO</string>
+    <string name="uel_loop_removed">LAZO ELIMINADO</string>
     <string name="uel_other">OTROS</string>
     <!-- HardLimits -->
     <string name="profile_low_target">Perfil de objetivo bajo</string>
@@ -505,6 +512,19 @@
     <string name="close">Cerrar</string>
     <!-- TwoMessagesDialog -->
     <string name="password_preferences_decrypt_prompt">Se te solicitará la contraseña maestra, ya que es necesaria para descifrar las perferencias importadas</string>
+    <!-- <unattended_export> -->
+    <string name="export_ok">OK</string>
+    <string name="export_warning">Advertencia</string>
+    <string name="export_expired">Expirado</string>
+    <string name="export_disabled">Desactivado</string>
+    <string name="export_failed">Fallido</string>
+    <string name="export_alert">ALERTA</string>
+    <!-- <unattended_export result messages> -->
+    <string name="export_result_message_exported">Ajustes exportados</string>
+    <string name="export_result_message_failed">¡Exportación de configuraciónes FALLIDA!</string>
+    <string name="export_result_message_about_to_expire">Configuración exportada: la contraseña expirará pronto. Exporta manualmente y (re)introduce la contraseña.</string>
+    <string name="export_result_message_expired">Exportación de ajustes cancelada: contraseña caducada. Exporta manualmente y (re)introduzca!</string>
+    <string name="export_result_message_disabled">Advertencia (automatización): Exportación de configuración no activada!</string>
     <!-- NumberPicker -->
     <string name="a11y_min_button_description">decremento %1$s por %2$s</string>
     <string name="a11y_plus_button_description">incremento %1$s por %2$s</string>

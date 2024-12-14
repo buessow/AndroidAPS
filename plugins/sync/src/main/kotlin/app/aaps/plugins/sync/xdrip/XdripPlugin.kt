@@ -44,7 +44,6 @@ import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
-import app.aaps.core.keys.AdaptiveIntentPreference
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.IntentKey
 import app.aaps.core.keys.Preferences
@@ -53,7 +52,8 @@ import app.aaps.core.objects.extensions.round
 import app.aaps.core.objects.extensions.toStringShort
 import app.aaps.core.ui.toast.ToastUtils
 import app.aaps.core.utils.HtmlHelper
-import app.aaps.core.validators.AdaptiveSwitchPreference
+import app.aaps.core.validators.preferences.AdaptiveIntentPreference
+import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
 import app.aaps.plugins.sync.R
 import app.aaps.plugins.sync.nsclient.extensions.toJson
 import app.aaps.plugins.sync.xdrip.events.EventXdripUpdateGUI
@@ -108,7 +108,7 @@ class XdripPlugin @Inject constructor(
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val disposable = CompositeDisposable()
-    private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
+    private var handler: Handler? = null
     private val listLog: MutableList<EventXdripNewLog> = ArrayList()
 
     // Not used Sync interface members
@@ -118,6 +118,7 @@ class XdripPlugin @Inject constructor(
 
     override fun onStart() {
         super.onStart()
+        handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
         disposable += rxBus
             .toObservable(EventAppExit::class.java)
             .observeOn(aapsSchedulers.io)
@@ -152,12 +153,13 @@ class XdripPlugin @Inject constructor(
 
     override fun onStop() {
         super.onStop()
-        handler.removeCallbacksAndMessages(null)
+        handler?.removeCallbacksAndMessages(null)
+        handler = null
         disposable.clear()
     }
 
     fun clearLog() {
-        handler.post {
+        handler?.post {
             synchronized(listLog) { listLog.clear() }
             rxBus.send(EventXdripUpdateGUI())
         }
@@ -181,7 +183,7 @@ class XdripPlugin @Inject constructor(
                 for (log in listLog) newTextLog.append(log.toPreparedHtml())
             }
             return HtmlHelper.fromHtml(newTextLog.toString())
-        } catch (e: OutOfMemoryError) {
+        } catch (_: OutOfMemoryError) {
             uiInteraction.showToastAndNotification(context, "Out of memory!\nStop using this phone !!!", app.aaps.core.ui.R.raw.error)
         }
         return HtmlHelper.fromHtml("")
@@ -283,7 +285,7 @@ class XdripPlugin @Inject constructor(
             aapsLogger.debug(rh.gs(R.string.xdrip_not_installed))
             false
         } else {
-            ToastUtils.errorToast(context, R.string.calibration_sent)
+            ToastUtils.infoToast(context, R.string.calibration_sent)
             aapsLogger.debug(rh.gs(R.string.calibration_sent))
             true
         }

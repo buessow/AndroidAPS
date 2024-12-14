@@ -4,6 +4,7 @@ import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.plugins.aps.autotune.AutotunePlugin
 import app.aaps.plugins.aps.loop.LoopPlugin
 import app.aaps.plugins.aps.openAPSAMA.OpenAPSAMAPlugin
+import app.aaps.plugins.aps.openAPSAutoISF.OpenAPSAutoISFPlugin
 import app.aaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
 import app.aaps.plugins.automation.AutomationPlugin
 import app.aaps.plugins.configuration.configBuilder.ConfigBuilderPlugin
@@ -33,15 +34,16 @@ import app.aaps.plugins.sensitivity.SensitivityWeightedAveragePlugin
 import app.aaps.plugins.smoothing.AvgSmoothingPlugin
 import app.aaps.plugins.smoothing.ExponentialSmoothingPlugin
 import app.aaps.plugins.smoothing.NoSmoothingPlugin
-import app.aaps.plugins.source.AidexPlugin
 import app.aaps.plugins.source.DexcomPlugin
 import app.aaps.plugins.source.GlimpPlugin
 import app.aaps.plugins.source.GlunovoPlugin
 import app.aaps.plugins.source.IntelligoPlugin
 import app.aaps.plugins.source.MM640gPlugin
 import app.aaps.plugins.source.NSClientSourcePlugin
+import app.aaps.plugins.source.OttaiPlugin
 import app.aaps.plugins.source.PoctechPlugin
 import app.aaps.plugins.source.RandomBgPlugin
+import app.aaps.plugins.source.SyaiTagPlugin
 import app.aaps.plugins.source.TomatoPlugin
 import app.aaps.plugins.source.XdripSourcePlugin
 import app.aaps.plugins.sync.garmin.GarminPlugin
@@ -56,20 +58,20 @@ import app.aaps.pump.danar.DanaRPlugin
 import app.aaps.pump.danarkorean.DanaRKoreanPlugin
 import app.aaps.pump.danars.DanaRSPlugin
 import app.aaps.pump.danarv2.DanaRv2Plugin
+import app.aaps.pump.diaconn.DiaconnG8Plugin
+import app.aaps.pump.eopatch.EopatchPumpPlugin
 import app.aaps.pump.equil.EquilPumpPlugin
 import app.aaps.pump.insight.InsightPlugin
+import app.aaps.pump.medtronic.MedtronicPumpPlugin
+import app.aaps.pump.medtrum.MedtrumPlugin
+import app.aaps.pump.omnipod.dash.OmnipodDashPumpPlugin
+import app.aaps.pump.omnipod.eros.OmnipodErosPumpPlugin
 import app.aaps.pump.virtual.VirtualPumpPlugin
 import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntKey
 import dagger.multibindings.IntoMap
-import info.nightscout.androidaps.plugins.pump.eopatch.EopatchPumpPlugin
-import info.nightscout.androidaps.plugins.pump.medtronic.MedtronicPumpPlugin
-import info.nightscout.androidaps.plugins.pump.omnipod.dash.OmnipodDashPumpPlugin
-import info.nightscout.androidaps.plugins.pump.omnipod.eros.OmnipodErosPumpPlugin
 import info.nightscout.pump.combov2.ComboV2Plugin
-import info.nightscout.pump.diaconn.DiaconnG8Plugin
-import info.nightscout.pump.medtrum.MedtrumPlugin
 import javax.inject.Qualifier
 
 @Suppress("unused")
@@ -215,7 +217,7 @@ abstract class PluginsListModule {
     abstract fun bindMedtrumPlugin(plugin: MedtrumPlugin): PluginBase
 
     @Binds
-    @AllConfigs
+    @PumpDriver
     @IntoMap
     @IntKey(170)
     abstract fun bindEquilPumpPlugin(plugin: EquilPumpPlugin): PluginBase
@@ -233,16 +235,22 @@ abstract class PluginsListModule {
     abstract fun bindLoopPlugin(plugin: LoopPlugin): PluginBase
 
     @Binds
-    @APS
+    @AllConfigs
     @IntoMap
     @IntKey(210)
     abstract fun bindOpenAPSAMAPlugin(plugin: OpenAPSAMAPlugin): PluginBase
 
     @Binds
-    @APS
+    @AllConfigs
     @IntoMap
     @IntKey(220)
     abstract fun bindOpenAPSSMBPlugin(plugin: OpenAPSSMBPlugin): PluginBase
+
+    @Binds
+    @AllConfigs
+    @IntoMap
+    @IntKey(225)
+    abstract fun bindOpenAPSAutoISFPlugin(plugin: OpenAPSAutoISFPlugin): PluginBase
 
     @Binds
     @AllConfigs
@@ -415,20 +423,26 @@ abstract class PluginsListModule {
     @Binds
     @AllConfigs
     @IntoMap
-    @IntKey(465)
-    abstract fun bindAidexPlugin(plugin: AidexPlugin): PluginBase
-
-    @Binds
-    @AllConfigs
-    @IntoMap
     @IntKey(470)
     abstract fun bindGlunovoPlugin(plugin: GlunovoPlugin): PluginBase
 
     @Binds
     @AllConfigs
     @IntoMap
+    @IntKey(471)
+    abstract fun bindPatchedOttaiPlugin(plugin: OttaiPlugin): PluginBase
+
+    @Binds
+    @AllConfigs
+    @IntoMap
     @IntKey(473)
     abstract fun bindIntelligoPlugin(plugin: IntelligoPlugin): PluginBase
+
+    @Binds
+    @AllConfigs
+    @IntoMap
+    @IntKey(474)
+    abstract fun bindPatchedSyaiTagPlugin(plugin: SyaiTagPlugin): PluginBase
 
     @Binds
     @AllConfigs

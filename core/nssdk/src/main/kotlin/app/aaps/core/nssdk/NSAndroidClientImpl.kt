@@ -83,7 +83,6 @@ class NSAndroidClientImpl(
         logger = logger
     )
     override var lastStatus: Status? = null
-        private set
 
     /*
     * TODO: how should our result look like?
@@ -179,7 +178,7 @@ class NSAndroidClientImpl(
             return@callWrapper CreateUpdateResponse(
                 response = response.code(),
                 identifier = responseBody?.identifier,
-                isDeduplication = responseBody?.isDeduplication ?: false,
+                isDeduplication = responseBody?.isDeduplication == true,
                 deduplicatedIdentifier = responseBody?.deduplicatedIdentifier,
                 lastModified = responseBody?.lastModified
             )
@@ -307,7 +306,7 @@ class NSAndroidClientImpl(
             return@callWrapper CreateUpdateResponse(
                 response = response.code(),
                 identifier = response.body()?.identifier,
-                isDeduplication = response.body()?.isDeduplication ?: false,
+                isDeduplication = response.body()?.isDeduplication == true,
                 deduplicatedIdentifier = response.body()?.deduplicatedIdentifier,
                 lastModified = response.body()?.lastModified
             )

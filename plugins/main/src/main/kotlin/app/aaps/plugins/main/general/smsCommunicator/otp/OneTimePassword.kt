@@ -3,7 +3,6 @@ package app.aaps.plugins.main.general.smsCommunicator.otp
 import android.util.Base64
 import app.aaps.core.data.configuration.Constants
 import app.aaps.core.interfaces.resources.ResourceHelper
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.Preferences
 import app.aaps.core.keys.StringKey
@@ -18,7 +17,6 @@ import javax.inject.Singleton
 
 @Singleton
 class OneTimePassword @Inject constructor(
-    private val sp: SP,
     private val preferences: Preferences,
     private val rh: ResourceHelper,
     private val dateUtil: DateUtil
@@ -37,7 +35,7 @@ class OneTimePassword @Inject constructor(
      */
     fun name(): String {
         val defaultUserName = rh.gs(app.aaps.core.ui.R.string.patient_name_default)
-        var userName = sp.getString(app.aaps.core.utils.R.string.key_patient_name, defaultUserName).replace(":", "").trim()
+        var userName = preferences.get(StringKey.GeneralPatientName).replace(":", "").trim()
         if (userName.isEmpty())
             userName = defaultUserName
         return userName

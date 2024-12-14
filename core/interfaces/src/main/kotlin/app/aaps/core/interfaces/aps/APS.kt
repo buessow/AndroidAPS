@@ -1,6 +1,7 @@
 package app.aaps.core.interfaces.aps
 
 import app.aaps.core.interfaces.configuration.ConfigExportImport
+import app.aaps.core.interfaces.profile.Profile
 
 interface APS : ConfigExportImport {
 
@@ -33,42 +34,38 @@ interface APS : ConfigExportImport {
 
     /**
      * Calculate current ISF
-     * @param multiplier Multiplier from profile switch. Algorithm can take it into a count or ignore
-     * @param timeShift Time shift from profile switch. Algorithm can take it into a count or ignore
+     * @param profile Actual profile to get multiplier form [ProfileSealed.EPS]
+     * @param caller Caller identification for logging purposes
      * @return isf or null if not available
      *
      * Remember calculation must be as fast as possible. It's called very often
      */
-    fun getIsfMgdl(multiplier: Double, timeShift: Int, caller: String): Double? = error("Not implemented")
+    fun getIsfMgdl(profile: Profile, caller: String): Double? = error("Not implemented")
 
     /**
      * Calculate ISF to specified timestamp
      * @param timestamp time
-     * @param bg glycemia
-     * @param multiplier Multiplier from profile switch. Algorithm can take it into a count or ignore
-     * @param timeShift Time shift from profile switch. Algorithm can take it into a count or ignore
+     * @param caller Caller identification for logging purposes
      * @return isf or null if not available
      *
      * Remember calculation must be as fast as possible. It's called very often
      */
-    fun getIsfMgdl(timestamp: Long, bg: Double, multiplier: Double, timeShift: Int, caller: String): Double? = error("Not implemented")
+    fun getAverageIsfMgdl(timestamp: Long, caller: String): Double? = error("Not implemented")
 
     /**
      * Calculate current IC
-     * @param multiplier Multiplier from profile switch. Algorithm can take it into a count or ignore
-     * @param timeShift Time shift from profile switch. Algorithm can take it into a count or ignore
+     * @param profile Actual profile to get multiplier form [ProfileSealed.EPS]
      * @return ic or null if not available
      */
-    fun getIc(multiplier: Double, timeShift: Int): Double? = error("Not implemented")
+    fun getIc(profile: Profile): Double? = error("Not implemented")
 
     /**
      * Calculate IC to specified timestamp
      * @param timestamp time
-     * @param multiplier Multiplier from profile switch. Algorithm can take it into a count or ignore
-     * @param timeShift Time shift from profile switch. Algorithm can take it into a count or ignore
+     * @param profile Actual profile to get multiplier form [ProfileSealed.EPS]
      * @return ic or null if not available
      */
-    fun getIc(timestamp: Long, multiplier: Double, timeShift: Int): Double? = error("Not implemented")
+    fun getIc(timestamp: Long, profile: Profile): Double? = error("Not implemented")
 
     /**
      * Is plugin enabled?

@@ -77,6 +77,7 @@ fun UserEntry.Action.fromDb(): Action =
         UserEntry.Action.DELETE_FUTURE_TREATMENTS        -> Action.DELETE_FUTURE_TREATMENTS
         UserEntry.Action.EXPORT_SETTINGS                 -> Action.EXPORT_SETTINGS
         UserEntry.Action.IMPORT_SETTINGS                 -> Action.IMPORT_SETTINGS
+        UserEntry.Action.SELECT_DIRECTORY                -> Action.SELECT_DIRECTORY
         UserEntry.Action.RESET_DATABASES                 -> Action.RESET_DATABASES
         UserEntry.Action.RESET_APS_RESULTS               -> Action.RESET_APS_RESULTS
         UserEntry.Action.CLEANUP_DATABASES               -> Action.CLEANUP_DATABASES
@@ -86,9 +87,9 @@ fun UserEntry.Action.fromDb(): Action =
         UserEntry.Action.OTP_RESET                       -> Action.OTP_RESET
         UserEntry.Action.STOP_SMS                        -> Action.STOP_SMS
         UserEntry.Action.FOOD                            -> Action.FOOD
-        UserEntry.Action.HEART_RATE         -> Action.HEART_RATE
-        UserEntry.Action.HEART_RATE_REMOVED -> Action.HEART_RATE_REMOVED
-        UserEntry.Action.EXPORT_CSV         -> Action.EXPORT_CSV
+        UserEntry.Action.HEART_RATE                      -> Action.HEART_RATE
+        UserEntry.Action.HEART_RATE_REMOVED              -> Action.HEART_RATE_REMOVED
+        UserEntry.Action.EXPORT_CSV                      -> Action.EXPORT_CSV
         UserEntry.Action.START_AAPS                      -> Action.START_AAPS
         UserEntry.Action.EXIT_AAPS                       -> Action.EXIT_AAPS
         UserEntry.Action.PLUGIN_ENABLED                  -> Action.PLUGIN_ENABLED
@@ -170,6 +171,7 @@ fun Action.toDb(): UserEntry.Action =
         Action.DELETE_FUTURE_TREATMENTS        -> UserEntry.Action.DELETE_FUTURE_TREATMENTS
         Action.EXPORT_SETTINGS                 -> UserEntry.Action.EXPORT_SETTINGS
         Action.IMPORT_SETTINGS                 -> UserEntry.Action.IMPORT_SETTINGS
+        Action.SELECT_DIRECTORY                -> UserEntry.Action.SELECT_DIRECTORY
         Action.RESET_DATABASES                 -> UserEntry.Action.RESET_DATABASES
         Action.RESET_APS_RESULTS               -> UserEntry.Action.RESET_APS_RESULTS
         Action.CLEANUP_DATABASES               -> UserEntry.Action.CLEANUP_DATABASES
@@ -179,9 +181,9 @@ fun Action.toDb(): UserEntry.Action =
         Action.OTP_RESET                       -> UserEntry.Action.OTP_RESET
         Action.STOP_SMS                        -> UserEntry.Action.STOP_SMS
         Action.FOOD                            -> UserEntry.Action.FOOD
-        Action.HEART_RATE         -> UserEntry.Action.HEART_RATE
-        Action.HEART_RATE_REMOVED -> UserEntry.Action.HEART_RATE_REMOVED
-        Action.EXPORT_CSV         -> UserEntry.Action.EXPORT_CSV
+        Action.HEART_RATE                      -> UserEntry.Action.HEART_RATE
+        Action.HEART_RATE_REMOVED              -> UserEntry.Action.HEART_RATE_REMOVED
+        Action.EXPORT_CSV                      -> UserEntry.Action.EXPORT_CSV
         Action.START_AAPS                      -> UserEntry.Action.START_AAPS
         Action.EXIT_AAPS                       -> UserEntry.Action.EXIT_AAPS
         Action.PLUGIN_ENABLED                  -> UserEntry.Action.PLUGIN_ENABLED

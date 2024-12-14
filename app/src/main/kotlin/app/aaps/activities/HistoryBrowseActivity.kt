@@ -3,7 +3,6 @@ package app.aaps.activities
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
-import android.util.DisplayMetrics
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
@@ -112,6 +111,7 @@ class HistoryBrowseActivity : TranslatedDaggerAppCompatActivity() {
             loadAll("onLongClickZoom")
             true
         }
+        binding.chartMenuButton.visibility = preferences.simpleMode.not().toVisibility()
 
         binding.date.setOnClickListener {
             MaterialDatePicker.Builder.datePicker()
@@ -128,19 +128,21 @@ class HistoryBrowseActivity : TranslatedDaggerAppCompatActivity() {
                 .show(supportFragmentManager, "history_date_picker")
         }
 
-        val dm = DisplayMetrics()
-        @Suppress("DEPRECATION")
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R)
-            display?.getRealMetrics(dm)
-        else
-            windowManager.defaultDisplay.getMetrics(dm)
+        windowManager.currentWindowMetrics
 
-        axisWidth = if (dm.densityDpi <= 120) 3 else if (dm.densityDpi <= 160) 10 else if (dm.densityDpi <= 320) 35 else if (dm.densityDpi <= 420) 50 else if (dm.densityDpi <= 560) 70 else 80
+        axisWidth = when {
+            resources.displayMetrics.densityDpi <= 120 -> 3
+            resources.displayMetrics.densityDpi <= 160 -> 10
+            resources.displayMetrics.densityDpi <= 320 -> 35
+            resources.displayMetrics.densityDpi <= 420 -> 50
+            resources.displayMetrics.densityDpi <= 560 -> 70
+            else                                       -> 80
+        }
         binding.bgGraph.gridLabelRenderer?.gridColor = rh.gac(this, app.aaps.core.ui.R.attr.graphGrid)
         binding.bgGraph.gridLabelRenderer?.reloadStyles()
         binding.bgGraph.gridLabelRenderer?.labelVerticalWidth = axisWidth
 
-        overviewMenus.setupChartMenu(context, binding.chartMenuButton)
+        overviewMenus.setupChartMenu(binding.chartMenuButton, binding.scaleButton)
         prepareGraphsIfNeeded(overviewMenus.setting.size)
         savedInstanceState?.let { bundle ->
             rangeToDisplay = bundle.getInt("rangeToDisplay", 0)
@@ -180,6 +182,10 @@ class HistoryBrowseActivity : TranslatedDaggerAppCompatActivity() {
             .observeOn(aapsSchedulers.main)
             .subscribe({ updateGUI("EventRefreshOverview") }, fabricPrivacy::logException)
         disposable += rxBus
+            .toObservable(EventRefreshOverview::class.java)
+            .observeOn(aapsSchedulers.main)
+            .subscribe({ updateGUI("EventRefreshOverview") }, fabricPrivacy::logException)
+        disposable += rxBus
             .toObservable(EventScale::class.java)
             .observeOn(aapsSchedulers.main)
             .subscribe({
@@ -211,7 +217,7 @@ class HistoryBrowseActivity : TranslatedDaggerAppCompatActivity() {
             secondaryGraphs.clear()
             secondaryGraphsLabel.clear()
             binding.iobGraph.removeAllViews()
-            for (i in 1 until numOfGraphs) {
+            (1 until numOfGraphs).forEach { i ->
                 val relativeLayout = RelativeLayout(this)
                 relativeLayout.layoutParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
 
@@ -296,7 +302,7 @@ class HistoryBrowseActivity : TranslatedDaggerAppCompatActivity() {
         aapsLogger.debug(LTag.UI, "updateGui $from")
 
         updateDate()
-
+        binding.scaleButton.text = overviewMenus.scaleString(rangeToDisplay)
         val pump = activePlugin.activePump
         val graphData = GraphData(injector, binding.bgGraph, historyBrowserData.overviewData)
         val menuChartSettings = overviewMenus.setting

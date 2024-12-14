@@ -1,6 +1,5 @@
 package app.aaps.pump.danars.services
 
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Binder
@@ -30,14 +29,15 @@ import app.aaps.core.interfaces.rx.events.EventInitializationChanged
 import app.aaps.core.interfaces.rx.events.EventOverviewBolusProgress
 import app.aaps.core.interfaces.rx.events.EventProfileSwitchChanged
 import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
-import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.keys.Preferences
 import app.aaps.pump.dana.DanaPump
 import app.aaps.pump.dana.R
 import app.aaps.pump.dana.comm.RecordTypes
 import app.aaps.pump.dana.events.EventDanaRNewStatus
+import app.aaps.pump.dana.keys.DanaIntKey
 import app.aaps.pump.danars.DanaRSPlugin
 import app.aaps.pump.danars.comm.DanaRSPacket
 import app.aaps.pump.danars.comm.DanaRSPacketAPSBasalSetTemporaryBasal
@@ -97,7 +97,7 @@ class DanaRSService : DaggerService() {
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var aapsSchedulers: AapsSchedulers
     @Inject lateinit var rxBus: RxBus
-    @Inject lateinit var sp: SP
+    @Inject lateinit var preferences: Preferences
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var profileFunction: ProfileFunction
     @Inject lateinit var commandQueue: CommandQueue
@@ -289,7 +289,7 @@ class DanaRSService : DaggerService() {
         if (!isConnected) return false
         if (BolusProgressData.stopPressed) return false
         rxBus.send(EventPumpStatusChanged(rh.gs(R.string.startingbolus)))
-        val preferencesSpeed = sp.getInt(R.string.key_danars_bolusspeed, 0)
+        val preferencesSpeed = preferences.get(DanaIntKey.DanaBolusSpeed)
         danaPump.bolusDone = false
         danaPump.bolusingTreatment = t
         danaPump.bolusAmountToBeDelivered = insulin
@@ -519,7 +519,7 @@ class DanaRSService : DaggerService() {
             SystemClock.sleep(200)
             sendMessage(DanaRSPacketGeneralSetHistoryUploadMode(injector, 0))
         }
-        result.success = msg?.success() ?: false
+        result.success = msg?.success() == true
         return result
     }
 
@@ -534,7 +534,7 @@ class DanaRSService : DaggerService() {
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        return Service.START_STICKY
+        return START_STICKY
     }
 
     private fun waitForWholeMinute() {

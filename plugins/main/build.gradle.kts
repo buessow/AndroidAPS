@@ -1,7 +1,7 @@
 plugins {
-    id("com.android.library")
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.ksp)
     id("kotlin-android")
-    id("kotlin-kapt")
     id("android-module-dependencies")
     id("test-module-dependencies")
     id("jacoco-module-dependencies")
@@ -10,8 +10,6 @@ plugins {
 android {
     namespace = "app.aaps.plugins.main"
 }
-
-var okhttp3_version = "4.11.0"
 
 dependencies {
     api("cc.outabout.glumagic:input:1.0.+") {
@@ -36,26 +34,26 @@ dependencies {
     testImplementation(project(":plugins:aps"))
     testImplementation(project(":plugins:insulin"))
     testImplementation(project(":shared:tests"))
-    testImplementation(Libs.Squareup.Okhttp3.mockWebServer)
+    testImplementation(libs.com.squareup.okhttp3.mockwebserver)
     androidTestImplementation(project(":shared:tests"))
 
-    api(Libs.AndroidX.appCompat)
-    api(Libs.Google.Android.material)
+    api(libs.androidx.appcompat)
+    api(libs.com.google.android.material)
 
     // Actions
-    api(Libs.AndroidX.gridLayout)
+    api(libs.androidx.gridlayout)
 
     //SmsCommunicator
-    api(Libs.javaOtp)
-    api(Libs.qrGen)
+    api(libs.com.eatthepath.java.otp)
+    api(libs.com.github.kenglxn.qrgen.android)
 
     // Overview
-    api(Libs.Google.Android.flexbox)
+    api(libs.com.google.android.flexbox)
 
     // Food
-    api(Libs.AndroidX.Work.runtimeKtx)
     androidTestImplementation(project(":shared:tests"))
+    api(libs.androidx.work.runtime)
 
-    kapt(Libs.Dagger.compiler)
-    kapt(Libs.Dagger.androidProcessor)
+    ksp(libs.com.google.dagger.compiler)
+    ksp(libs.com.google.dagger.android.processor)
 }

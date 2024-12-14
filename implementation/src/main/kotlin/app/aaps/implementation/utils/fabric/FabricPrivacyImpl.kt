@@ -6,6 +6,7 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.rx.weardata.EventData
 import app.aaps.core.interfaces.sharedPreferences.SP
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.keys.BooleanKey
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
@@ -31,7 +32,7 @@ class FabricPrivacyImpl @Inject constructor(
 
     init {
         firebaseAnalytics.setAnalyticsCollectionEnabled(!java.lang.Boolean.getBoolean("disableFirebase") && fabricEnabled())
-        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(!java.lang.Boolean.getBoolean("disableFirebase") && fabricEnabled())
+        FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = !java.lang.Boolean.getBoolean("disableFirebase") && fabricEnabled()
     }
 
     override fun setUserProperty(key: String, value: String) {
@@ -78,9 +79,9 @@ class FabricPrivacyImpl @Inject constructor(
             } else {
                 aapsLogger.debug(LTag.CORE, "Ignoring recently opted-out event: $event")
             }
-        } catch (e: NullPointerException) {
+        } catch (_: NullPointerException) {
             aapsLogger.debug(LTag.CORE, "Ignoring opted-out non-initialized event: $event")
-        } catch (e: IllegalStateException) {
+        } catch (_: IllegalStateException) {
             aapsLogger.debug(LTag.CORE, "Ignoring opted-out non-initialized event: $event")
         }
     }
@@ -98,7 +99,7 @@ class FabricPrivacyImpl @Inject constructor(
     }
 
     override fun fabricEnabled(): Boolean {
-        return sp.getBoolean(app.aaps.core.keys.R.string.key_enable_fabric, true)
+        return sp.getBoolean(BooleanKey.MaintenanceEnableFabric.key, BooleanKey.MaintenanceEnableFabric.defaultValue)
     }
 
     override fun logWearException(wearException: EventData.WearException) {

@@ -7,6 +7,10 @@ import android.os.HandlerThread
 import android.os.SystemClock
 import android.text.Spanned
 import androidx.appcompat.app.AppCompatActivity
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import app.aaps.annotations.OpenForTesting
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.EPS
@@ -45,6 +49,7 @@ import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.keys.Preferences
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.extensions.getCustomizedName
 import app.aaps.core.objects.profile.ProfileSealed
@@ -91,6 +96,7 @@ class CommandQueueImplementation @Inject constructor(
     private val activePlugin: ActivePlugin,
     private val context: Context,
     private val sp: SP,
+    private val preferences: Preferences,
     private val config: Config,
     private val dateUtil: DateUtil,
     private val fabricPrivacy: FabricPrivacy,
@@ -98,14 +104,16 @@ class CommandQueueImplementation @Inject constructor(
     private val uiInteraction: UiInteraction,
     private val persistenceLayer: PersistenceLayer,
     private val decimalFormatter: DecimalFormatter,
-    private val instantiator: Instantiator
+    private val instantiator: Instantiator,
+    private val jobName: CommandQueueName,
+    private val workManager: WorkManager
 ) : CommandQueue {
 
     private val disposable = CompositeDisposable()
     internal var handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
 
     private val queue = LinkedList<Command>()
-    @Volatile private var thread: QueueThread? = null
+    override var waitingForDisconnect = false
 
     @Volatile var performing: Command? = null
 
@@ -171,7 +179,7 @@ class CommandQueueImplementation @Inject constructor(
     @Synchronized
     fun isLastScheduled(type: CommandType): Boolean {
         synchronized(queue) {
-            if (queue.size > 0 && queue[queue.size - 1].commandType == type) {
+            if (queue.isNotEmpty() && queue[queue.size - 1].commandType == type) {
                 return true
             }
         }
@@ -209,25 +217,33 @@ class CommandQueueImplementation @Inject constructor(
         performing = null
     }
 
+    private fun workIsRunning(): Boolean {
+        for (workInfo in workManager.getWorkInfosForUniqueWork(jobName.name).get())
+            if (workInfo.state == WorkInfo.State.BLOCKED || workInfo.state == WorkInfo.State.ENQUEUED || workInfo.state == WorkInfo.State.RUNNING)
+                return true
+        return false
+    }
+
     // After new command added to the queue
     // start thread again if not already running
     @Synchronized fun notifyAboutNewCommand() = handler.post {
         waitForFinishedThread()
-        if (thread == null || thread!!.state == Thread.State.TERMINATED) {
-            thread = QueueThread(this, context, aapsLogger, rxBus, activePlugin, rh, sp, androidPermission, config)
-            thread!!.start()
-            aapsLogger.debug(LTag.PUMPQUEUE, "Starting new thread")
+        if (!workIsRunning()) {
+            workManager.enqueueUniqueWork(
+                jobName.name, ExistingWorkPolicy.APPEND_OR_REPLACE,
+                OneTimeWorkRequest.Builder(QueueWorker::class.java)
+                    .build()
+            )
+            aapsLogger.debug(LTag.PUMPQUEUE, "Starting new work")
         } else {
-            aapsLogger.debug(LTag.PUMPQUEUE, "Thread is already running")
+            aapsLogger.debug(LTag.PUMPQUEUE, "Work is already running")
         }
     }
 
     fun waitForFinishedThread() {
-        thread?.let { thread ->
-            while (thread.state != Thread.State.TERMINATED && thread.waitingForDisconnect) {
-                aapsLogger.debug(LTag.PUMPQUEUE, "Waiting for previous thread finish")
-                SystemClock.sleep(500)
-            }
+        while (workIsRunning() && waitingForDisconnect) {
+            aapsLogger.debug(LTag.PUMPQUEUE, "Waiting for previous work finish")
+            SystemClock.sleep(500)
         }
     }
 
@@ -235,8 +251,8 @@ class CommandQueueImplementation @Inject constructor(
         aapsLogger.debug(LTag.PUMPQUEUE, "Starting new queue")
         val tempCommandQueue = CommandQueueImplementation(
             injector, aapsLogger, rxBus, aapsSchedulers, rh,
-            constraintChecker, profileFunction, activePlugin, context, sp,
-            config, dateUtil, fabricPrivacy, androidPermission, uiInteraction, persistenceLayer, decimalFormatter, instantiator
+            constraintChecker, profileFunction, activePlugin, context, sp, preferences,
+            config, dateUtil, fabricPrivacy, androidPermission, uiInteraction, persistenceLayer, decimalFormatter, instantiator, CommandQueueName("CommandQueueIndependentInstance"), workManager
         )
         tempCommandQueue.readStatus(reason, callback)
         tempCommandQueue.disposable.clear()
@@ -264,7 +280,7 @@ class CommandQueueImplementation @Inject constructor(
 
         var carbsRunnable = Runnable { }
         val originalCarbs = detailedBolusInfo.carbs
-        if ((detailedBolusInfo.carbs > 0) /*&&
+        if ((detailedBolusInfo.carbs != 0.0) /*&&
             (!activePlugin.activePump.pumpDescription.storesCarbInfo ||
                 detailedBolusInfo.carbsDuration != 0L ||
                 (detailedBolusInfo.carbsTimestamp ?: detailedBolusInfo.timestamp) > dateUtil.now())*/
@@ -275,7 +291,7 @@ class CommandQueueImplementation @Inject constructor(
                 disposable += persistenceLayer.insertOrUpdateCarbs(
                     carbs = detailedBolusInfo.createCarbs(),
                     action = Action.CARBS,
-                    source = Sources.TreatmentDialog
+                    source = Sources.Database
                 ).subscribe(
                     { callback?.result(instantiator.providePumpEnactResult().enacted(false).success(true))?.run() },
                     { callback?.result(instantiator.providePumpEnactResult().enacted(false).success(false))?.run() }
@@ -290,7 +306,7 @@ class CommandQueueImplementation @Inject constructor(
             }
 
         }
-        var type = if (detailedBolusInfo.bolusType == BS.Type.SMB) CommandType.SMB_BOLUS else CommandType.BOLUS
+        val type = if (detailedBolusInfo.bolusType == BS.Type.SMB) CommandType.SMB_BOLUS else CommandType.BOLUS
         if (type == CommandType.SMB_BOLUS) {
             if (bolusInQueue()) {
                 aapsLogger.debug(LTag.PUMPQUEUE, "Rejecting SMB since a bolus is queue/running")

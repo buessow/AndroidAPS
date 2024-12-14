@@ -12,6 +12,7 @@ import app.aaps.core.interfaces.aps.GlucoseStatus
 import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.interfaces.aps.MealData
 import app.aaps.core.interfaces.aps.OapsProfile
+import app.aaps.core.interfaces.aps.OapsProfileAutoIsf
 import app.aaps.core.interfaces.aps.Predictions
 import app.aaps.core.interfaces.constraints.Constraint
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
@@ -70,6 +71,7 @@ open class APSResultObject(protected val injector: HasAndroidInjector) : APSResu
     override var carbsReq = 0
     override var carbsReqWithin = 0
     override var variableSens: Double? = null
+    override var isfMgdlForCarbs: Double? = null
     override var inputConstraints: Constraint<Double>? = null
     override var rateConstraint: Constraint<Double>? = null
     override var percentConstraint: Constraint<Int>? = null
@@ -82,6 +84,7 @@ open class APSResultObject(protected val injector: HasAndroidInjector) : APSResu
     override var glucoseStatus: GlucoseStatus? = null
     override var currentTemp: CurrentTemp? = null
     override var oapsProfile: OapsProfile? = null
+    override var oapsProfileAutoIsf: OapsProfileAutoIsf? = null
     override var mealData: MealData? = null
     override var autosensResult: AutosensResult? = null
 
@@ -304,7 +307,7 @@ open class APSResultObject(protected val injector: HasAndroidInjector) : APSResu
                 }
                 // always report high temp
                 if (pump.pumpDescription.tempBasalStyle == PumpDescription.PERCENT) {
-                    val pumpLimit = pump.pumpDescription.pumpType.tbrSettings?.maxDose ?: 0.0
+                    val pumpLimit = pump.pumpDescription.pumpType.tbrSettings()?.maxDose ?: 0.0
                     if (percent.toDouble() == pumpLimit) {
                         aapsLogger.debug(LTag.APS, "TRUE: Pump limit")
                         return true
@@ -340,7 +343,7 @@ open class APSResultObject(protected val injector: HasAndroidInjector) : APSResu
                 }
                 // always report high temp
                 if (pump.pumpDescription.tempBasalStyle == PumpDescription.ABSOLUTE) {
-                    val pumpLimit = pump.pumpDescription.pumpType.tbrSettings?.maxDose ?: 0.0
+                    val pumpLimit = pump.pumpDescription.pumpType.tbrSettings()?.maxDose ?: 0.0
                     if (rate == pumpLimit) {
                         aapsLogger.debug(LTag.APS, "TRUE: Pump limit")
                         return true

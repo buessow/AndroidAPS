@@ -3,6 +3,11 @@ package app.aaps.implementation.queue
 import android.content.Context
 import android.os.Handler
 import android.os.PowerManager
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.testing.TestListenableWorkerBuilder
 import app.aaps.core.data.model.BS
 import app.aaps.core.interfaces.androidPermissions.AndroidPermission
 import app.aaps.core.interfaces.configuration.Config
@@ -25,6 +30,7 @@ import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.keys.Preferences
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.implementation.queue.commands.CommandBolus
 import app.aaps.implementation.queue.commands.CommandCancelExtendedBolus
@@ -41,14 +47,18 @@ import app.aaps.implementation.queue.commands.CommandTempBasalPercent
 import app.aaps.implementation.queue.commands.CommandUpdateTime
 import app.aaps.shared.tests.TestBaseWithProfile
 import com.google.common.truth.Truth.assertThat
+import com.google.common.util.concurrent.ListenableFuture
 import dagger.android.HasAndroidInjector
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mock
+import org.mockito.Mockito
 import org.mockito.Mockito.anyLong
+import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
 import org.mockito.invocation.InvocationOnMock
+import org.mockito.stubbing.Answer
 import java.util.Calendar
 
 class CommandQueueImplementationTest : TestBaseWithProfile() {
@@ -58,6 +68,9 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
     @Mock lateinit var uiInteraction: UiInteraction
     @Mock lateinit var androidPermission: AndroidPermission
     @Mock lateinit var persistenceLayer: PersistenceLayer
+    @Mock lateinit var jobName: CommandQueueName
+    @Mock lateinit var workManager: WorkManager
+    @Mock lateinit var infos: ListenableFuture<List<WorkInfo>>
 
     class CommandQueueMocked(
         injector: HasAndroidInjector,
@@ -70,6 +83,7 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         activePlugin: ActivePlugin,
         context: Context,
         sp: SP,
+        preferences: Preferences,
         config: Config,
         dateUtil: DateUtil,
         fabricPrivacy: FabricPrivacy,
@@ -77,11 +91,13 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         uiInteraction: UiInteraction,
         persistenceLayer: PersistenceLayer,
         decimalFormatter: DecimalFormatter,
-        instantiator: Instantiator
+        instantiator: Instantiator,
+        jobName: CommandQueueName,
+        workManager: WorkManager
     ) : CommandQueueImplementation(
         injector, aapsLogger, rxBus, aapsSchedulers, rh, constraintChecker, profileFunction,
-        activePlugin, context, sp, config, dateUtil, fabricPrivacy, androidPermission,
-        uiInteraction, persistenceLayer, decimalFormatter, instantiator
+        activePlugin, context, sp, preferences, config, dateUtil, fabricPrivacy, androidPermission,
+        uiInteraction, persistenceLayer, decimalFormatter, instantiator, jobName, workManager
     ) {
 
         override fun notifyAboutNewCommand(): Boolean = true
@@ -156,6 +172,18 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
                 it.rh = rh
                 it.activePlugin = activePlugin
             }
+            if (it is QueueWorker) {
+                it.aapsLogger = aapsLogger
+                it.queue = commandQueue
+                it.context = context
+                it.rxBus = rxBus
+                it.activePlugin = activePlugin
+                it.rh = rh
+                it.sp = sp
+                it.preferences = preferences
+                it.androidPermission = androidPermission
+                it.config = config
+            }
         }
     }
 
@@ -165,45 +193,55 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
     fun prepare() {
         commandQueue = CommandQueueMocked(
             injector, aapsLogger, rxBus, aapsSchedulers, rh, constraintChecker, profileFunction, activePlugin, context,
-            sp, config, dateUtil, fabricPrivacy, androidPermission, uiInteraction, persistenceLayer, decimalFormatter, instantiator
+            sp, preferences, config, dateUtil, fabricPrivacy, androidPermission, uiInteraction, persistenceLayer, decimalFormatter, instantiator, jobName, workManager
         )
         testPumpPlugin.pumpDescription.basalMinimumRate = 0.1
+        testPumpPlugin.connected = true
 
-        `when`(context.getSystemService(Context.POWER_SERVICE)).thenReturn(powerManager)
-        `when`(activePlugin.activePump).thenReturn(testPumpPlugin)
-        `when`(persistenceLayer.getEffectiveProfileSwitchActiveAt(anyLong())).thenReturn(effectiveProfileSwitch)
-        `when`(persistenceLayer.getNewestBolus()).thenReturn(
+        Mockito.`when`(context.getSystemService(Context.POWER_SERVICE)).thenReturn(powerManager)
+        Mockito.`when`(activePlugin.activePump).thenReturn(testPumpPlugin)
+        Mockito.`when`(persistenceLayer.getEffectiveProfileSwitchActiveAt(anyLong())).thenReturn(effectiveProfileSwitch)
+        Mockito.`when`(persistenceLayer.getNewestBolus()).thenReturn(
             BS(
                 timestamp = Calendar.getInstance().also { it.set(2000, 0, 1) }.timeInMillis,
                 type = BS.Type.NORMAL,
                 amount = 0.0
             )
         )
-        `when`(profileFunction.getProfile()).thenReturn(validProfile)
+        Mockito.`when`(profileFunction.getProfile()).thenReturn(validProfile)
 
         val bolusConstraint = ConstraintObject(0.0, aapsLogger)
-        `when`(constraintChecker.applyBolusConstraints(anyObject())).thenReturn(bolusConstraint)
-        `when`(constraintChecker.applyExtendedBolusConstraints(anyObject())).thenReturn(bolusConstraint)
+        Mockito.`when`(constraintChecker.applyBolusConstraints(anyObject())).thenReturn(bolusConstraint)
+        Mockito.`when`(constraintChecker.applyExtendedBolusConstraints(anyObject())).thenReturn(bolusConstraint)
         val carbsConstraint = ConstraintObject(0, aapsLogger)
-        `when`(constraintChecker.applyCarbsConstraints(anyObject())).thenReturn(carbsConstraint)
+        Mockito.`when`(constraintChecker.applyCarbsConstraints(anyObject())).thenReturn(carbsConstraint)
         val rateConstraint = ConstraintObject(0.0, aapsLogger)
-        `when`(constraintChecker.applyBasalConstraints(anyObject(), anyObject())).thenReturn(rateConstraint)
+        Mockito.`when`(constraintChecker.applyBasalConstraints(anyObject(), anyObject())).thenReturn(rateConstraint)
         val percentageConstraint = ConstraintObject(0, aapsLogger)
-        `when`(constraintChecker.applyBasalPercentConstraints(anyObject(), anyObject())).thenReturn(percentageConstraint)
-        `when`(rh.gs(app.aaps.core.ui.R.string.connectiontimedout)).thenReturn("Connection timed out")
-        `when`(rh.gs(app.aaps.core.ui.R.string.format_insulin_units)).thenReturn("%1\$.2f U")
-        `when`(rh.gs(app.aaps.core.ui.R.string.goingtodeliver)).thenReturn("Going to deliver %1\$.2f U")
+        Mockito.`when`(constraintChecker.applyBasalPercentConstraints(anyObject(), anyObject())).thenReturn(percentageConstraint)
+        Mockito.`when`(rh.gs(app.aaps.core.ui.R.string.connectiontimedout)).thenReturn("Connection timed out")
+        Mockito.`when`(rh.gs(app.aaps.core.ui.R.string.format_insulin_units)).thenReturn("%1\$.2f U")
+        Mockito.`when`(rh.gs(app.aaps.core.ui.R.string.goingtodeliver)).thenReturn("Going to deliver %1\$.2f U")
+        Mockito.`when`(workManager.getWorkInfosForUniqueWork(anyObject())).thenReturn(infos)
+        doAnswer(Answer { invocation: InvocationOnMock ->
+            Thread {
+                val work = TestListenableWorkerBuilder<QueueWorker>(context).build()
+                runBlocking { work.doWorkAndLog() }
+            }.start()
+            null
+        } as Answer<*>).`when`(workManager).enqueueUniqueWork(anyObject<String>(), anyObject<ExistingWorkPolicy>(), anyObject<OneTimeWorkRequest>())
+        Mockito.`when`(infos.get()).thenReturn(emptyList<WorkInfo>())
     }
 
     @Test
     fun commandIsPickedUp() {
-        val commandQueue = CommandQueueImplementation(
+        commandQueue = CommandQueueImplementation(
             injector, aapsLogger, rxBus, aapsSchedulers, rh,
-            constraintChecker, profileFunction, activePlugin, context, sp,
-            config, dateUtil, fabricPrivacy, androidPermission, uiInteraction, persistenceLayer, decimalFormatter, instantiator
+            constraintChecker, profileFunction, activePlugin, context, sp, preferences,
+            config, dateUtil, fabricPrivacy, androidPermission, uiInteraction, persistenceLayer, decimalFormatter, instantiator, jobName, workManager
         )
         val handler = mock(Handler::class.java)
-        `when`(handler.post(anyObject())).thenAnswer { invocation: InvocationOnMock ->
+        Mockito.`when`(handler.post(anyObject())).thenAnswer { invocation: InvocationOnMock ->
             (invocation.arguments[0] as Runnable).run()
             true
         }
@@ -217,7 +255,7 @@ class CommandQueueImplementationTest : TestBaseWithProfile() {
         assertThat(commandQueue.size()).isEqualTo(1)
 
         commandQueue.waitForFinishedThread()
-        Thread.sleep(1000)
+        Thread.sleep(3000)
 
         assertThat(commandQueue.size()).isEqualTo(0)
     }

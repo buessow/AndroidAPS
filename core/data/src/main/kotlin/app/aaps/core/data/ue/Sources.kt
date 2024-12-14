@@ -20,6 +20,7 @@ enum class Sources {
     Exercise,
     Question,
     Announcement,
+    SettingsExport,
     Actions,            //From Actions plugin
     Automation,         //From Automation plugin
     Autotune,           //From Autotune plugin
@@ -56,6 +57,7 @@ enum class Sources {
     OmnipodEros,
     OmnipodDash,        //No entry currently
     EOPatch2,
+    Equil,
     Medtrum,
     MDI,
     VirtualPump,
@@ -66,10 +68,13 @@ enum class Sources {
     Food,               //From Food plugin
     ConfigBuilder,      //From ConfigBuilder Plugin
     Overview,           //From OverViewPlugin
-    Stats,               //From Stat Activity
+    Ottai,              //From Ottai Plugin
+    Stats,              //From Stat Activity
     Aaps,               // MainApp
     BgFragment,
     Garmin,
-    Unknown             //if necessary
+    Database,           // for PersistenceLayer
+    Unknown,             //if necessary
+    SyaiTag
     ;
 }

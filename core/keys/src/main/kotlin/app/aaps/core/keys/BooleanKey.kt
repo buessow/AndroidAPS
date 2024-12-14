@@ -87,6 +87,7 @@ enum class BooleanKey(
     NsClientAcceptTbrEb("ns_receive_tbr_eb", false, showInNsClientMode = false, engineeringModeOnly = true),
     NsClientNotificationsFromAlarms("ns_alarms", false, calculatedDefaultValue = true),
     NsClientNotificationsFromAnnouncements("ns_announcements", false, calculatedDefaultValue = true),
+    NsClientReceiveHeartRate(key = "ns_client_receive_hr", defaultValue = true),
     NsClientUseCellular("ns_cellular", true),
     NsClientUseRoaming("ns_allow_roaming", true, dependency = NsClientUseCellular),
     NsClientUseWifi("ns_wifi", true),

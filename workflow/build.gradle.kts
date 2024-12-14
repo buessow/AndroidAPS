@@ -12,6 +12,9 @@ android {
 }
 
 dependencies {
+    api("cc.outabout.glumagic:input:1.0.+") {
+        isTransitive = false
+    }
     implementation(project(":core:data"))
     implementation(project(":core:graph"))
     implementation(project(":core:graphview"))
@@ -21,6 +24,7 @@ dependencies {
     implementation(project(":core:objects"))
     implementation(project(":core:ui"))
     implementation(project(":core:utils"))
+    // implementation(project(":plugins:main"))
 
     ksp(libs.com.google.dagger.compiler)
     ksp(libs.com.google.dagger.android.processor)

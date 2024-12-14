@@ -99,13 +99,13 @@ class CalculationWorkflowImpl @Inject constructor(
                     .setInputData(dataWorkerStorage.storeInputData(PrepareTemporaryTargetDataWorker.PrepareTemporaryTargetData(overviewData)))
                     .build()
             )
-            .then(
-                OneTimeWorkRequest.Builder(PrepareMlPredictionWorker::class.java)
-                    .setInputData(
-                        dataWorkerStorage.storeInputData(
-                            PrepareMlPredictionWorker.WorkerState(overviewData)))
-                    .build()
-            )
+            // .then(
+            //     OneTimeWorkRequest.Builder(PrepareMlPredictionWorker::class.java)
+            //         .setInputData(
+            //             dataWorkerStorage.storeInputData(
+            //                 PrepareMlPredictionWorker.WorkerState(overviewData)))
+            //         .build()
+            // )
             .then(
                 OneTimeWorkRequest.Builder(UpdateGraphWorker::class.java)
                     .setInputData(Data.Builder().putString(JOB, job).putInt(PASS, CalculationWorkflow.ProgressData.DRAW_TT.pass).build())

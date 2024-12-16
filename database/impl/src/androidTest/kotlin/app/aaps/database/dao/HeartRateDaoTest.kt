@@ -60,18 +60,22 @@ class HeartRateDaoTest {
 
     @Test
     fun getLastId() {
-        createDatabase().use { db ->
+        val db = createDatabase()
+        try {
             assertNull(db.heartRateDao.getLastId())
             val ids = (0 until 4).map { i ->
                 db.heartRateDao.insert(createHeartRate(1000L + i, 80.0 + i))
             }
             assertEquals(ids.last(), db.heartRateDao.getLastId())
+        } finally {
+            db.close()
         }
     }
 
     @Test
     fun getNextAfter() {
-        createDatabase().use { db ->
+        val db = createDatabase()
+        try {
             assertNull(db.heartRateDao.getNextAfter(0L))
             val ids = (0 until 4).map { i ->
                 db.heartRateDao.insert(createHeartRate(1000L + i, 80.0 + i))
@@ -80,12 +84,15 @@ class HeartRateDaoTest {
                 val hr = db.heartRateDao.getNextAfter(ids[i])
                 assertEquals(ids.getOrNull(i + 1), hr?.id)
             }
+        } finally {
+            db.close()
         }
     }
 
     @Test
     fun getNewEntriesSince() {
-        createDatabase().use { db ->
+        val db = createDatabase()
+        try {
             assertNull(db.heartRateDao.getNextAfter(0L))
             val hrs = (0 until 4).map { i ->
                 val hr = createHeartRate(1000L + i, 80.0 + i)
@@ -104,11 +111,14 @@ class HeartRateDaoTest {
             assertEquals(
                 listOf(hrs[2]),
                 db.heartRateDao.getNewEntriesSince(hrs[0].timestamp, hrs[3].timestamp, 1, 1))
+        } finally {
+            db.close()
         }
     }
 
     fun getByNSId() {
-        createDatabase().use { db ->
+        val db = createDatabase()
+        try {
             val hrs = (0 until 4).map { i ->
                 val hr = createHeartRate(1000L + i, 80.0 + i)
                 hr.id = db.heartRateDao.insert(hr)
@@ -118,6 +128,8 @@ class HeartRateDaoTest {
                 assertEquals(hr, db.heartRateDao.findByNSId(hr.interfaceIDs.nightscoutId!!))
             }
             assertNull(db.heartRateDao.findByNSId("foo"))
+        } finally {
+            db.close()
         }
     }
 

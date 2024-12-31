@@ -247,7 +247,8 @@ class NSClientV3Service : DaggerService() {
                 storeDataForDb.storeHeartRatesToDb()
             }
 
-            "settings"     -> {}
+            "settings"     -> { /* nothing to do for now */
+            }
         }
     }
 
@@ -258,11 +259,11 @@ class NSClientV3Service : DaggerService() {
         val identifier = response.optString("identifier") ?: return@Listener
         rxBus.send(EventNSClientNewLog("◄ WS DELETE", "$collection $identifier"))
         if (collection == "treatments") {
-            storeDataForDb.deleteTreatment.add(identifier)
+            storeDataForDb.addToDeleteTreatment(identifier)
             storeDataForDb.updateDeletedTreatmentsInDb()
         }
         if (collection == "entries") {
-            storeDataForDb.deleteGlucoseValue.add(identifier)
+            storeDataForDb.addToDeleteGlucoseValue(identifier)
             storeDataForDb.updateDeletedGlucoseValuesInDb()
         }
     }

@@ -622,7 +622,7 @@ class NSClientV3Plugin @Inject constructor(
             }
             result.identifier?.let {
                 dataPair.value.ids.nightscoutId = it
-                storeDataForDb.nsIdHeartRates.add(dataPair.value)
+                storeDataForDb.addToNsIdHeartRates(dataPair.value)
             }
             slowDown()
         } catch (e: Exception) {

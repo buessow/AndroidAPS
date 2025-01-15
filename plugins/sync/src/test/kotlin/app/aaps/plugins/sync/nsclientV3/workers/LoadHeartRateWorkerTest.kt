@@ -30,6 +30,8 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
+import org.mockito.internal.matchers.Any
+import org.mockito.kotlin.any
 import org.mockito.kotlin.verifyNoMoreInteractions
 import java.time.Instant
 
@@ -76,7 +78,9 @@ class LoadHeartRateWorkerTest: TestBase() {
             `when`(nsClientV3Plugin.lastLoadedSrvModified).thenReturn(lastModified)
             `when`(nsClientV3Plugin.maxAge).thenReturn(maxAge)
             `when`(dateUtil.now()).thenReturn(now)
-            `when`(storeDataForDb.heartRates).thenReturn(hrToStore)
+            `when`(storeDataForDb.addToHeartRates(any())).then { inv ->
+                hrToStore.addAll(inv.getArgument<List<HR>>(0))
+            }
         }
     }
 
@@ -89,7 +93,7 @@ class LoadHeartRateWorkerTest: TestBase() {
         verify(worker.nsClientV3Plugin, atLeast(1)).isFirstLoad(
             NsClient.Collection.HEART_RATE)
         verify(worker.nsClientV3Plugin, atLeast(1)).lastLoadedSrvModified
-        verify(worker.storeDataForDb, atLeast(1)).heartRates
+        verify(worker.storeDataForDb, atLeast(1)).addToHeartRates(any())
         verify(worker.nsClientV3Plugin, atLeast(1)).maxAge
 
         verifyNoMoreInteractions(androidClient)
@@ -103,7 +107,7 @@ class LoadHeartRateWorkerTest: TestBase() {
         val nsHr = createNSHeartRate(now - 100L)
         `when`(worker.nsClientV3Plugin.isFirstLoad(NsClient.Collection.HEART_RATE)).thenReturn(true)
         `when`(androidClient.getHeartRatesModifiedSince(now - maxAge, NSClientV3Plugin.RECORDS_TO_LOAD))
-                   .thenReturn(listOf(nsHr))
+            .thenReturn(listOf(nsHr))
         // Make sure state changes happen before state is saved.
         doAnswer { assertEquals(listOf(nsHr.toHeartRate()), hrToStore) }
             .`when`(worker.storeDataForDb).storeHeartRatesToDb()

@@ -67,7 +67,7 @@ class LoadHeartRateWorker (
                     "◄ RECV",
                     "${nsHeartRates.size} HRs from NS start ${dateUtil.toISOString(from)} " +
                         "${mod(nsHeartRates.first())}..${mod(nsHeartRates.last())}"))
-                storeDataForDb.heartRates.addAll(
+                storeDataForDb.addToHeartRates(
                     nsHeartRates.map(NSHeartRate::toHeartRate).filter { hr -> hr.dateCreated > skipBefore })
                 storeDataForDb.storeHeartRatesToDb()
                 from = nsHeartRates.last().srvModified!!

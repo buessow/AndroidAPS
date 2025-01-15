@@ -281,7 +281,7 @@ class NsIncomingDataProcessor @Inject constructor(
 
     fun processHeartRate(nsHeartRates: List<NSHeartRate>) {
         if (preferences.get(BooleanKey.NsClientReceiveHeartRate)) {
-            storeDataForDb.heartRates.addAll(nsHeartRates.map { nsHr -> nsHr.toHeartRate() })
+            storeDataForDb.addToHeartRates(nsHeartRates.map { nsHr -> nsHr.toHeartRate() })
         }
     }
 }

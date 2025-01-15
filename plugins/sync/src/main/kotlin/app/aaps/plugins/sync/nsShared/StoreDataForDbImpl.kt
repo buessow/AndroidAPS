@@ -634,6 +634,8 @@ class StoreDataForDbImpl @Inject constructor(
     override fun addToProfileSwitches(payload: PS): Boolean = synchronized(profileSwitches) { profileSwitches.add(payload) }
     override fun addToOfflineEvents(payload: OE): Boolean = synchronized(offlineEvents) { offlineEvents.add(payload) }
     override fun addToFoods(payload: MutableList<FD>): Boolean = synchronized(foods) { foods.addAll(payload) }
+    override fun addToHeartRates(payload: List<HR>): Boolean = synchronized(heartRates) { heartRates.addAll(payload) }
+
     override fun addToNsIdGlucoseValues(payload: GV): Boolean = synchronized(nsIdGlucoseValues) { nsIdGlucoseValues.add(payload) }
     override fun addToNsIdBoluses(payload: BS): Boolean = synchronized(nsIdBoluses) { nsIdBoluses.add(payload) }
     override fun addToNsIdCarbs(payload: CA): Boolean = synchronized(nsIdCarbs) { nsIdCarbs.add(payload) }
@@ -647,6 +649,8 @@ class StoreDataForDbImpl @Inject constructor(
     override fun addToNsIdOfflineEvents(payload: OE): Boolean = synchronized(nsIdOfflineEvents) { nsIdOfflineEvents.add(payload) }
     override fun addToNsIdDeviceStatuses(payload: DS): Boolean = synchronized(nsIdDeviceStatuses) { nsIdDeviceStatuses.add(payload) }
     override fun addToNsIdFoods(payload: FD): Boolean = synchronized(nsIdFoods) { nsIdFoods.add(payload) }
+    override fun addToNsIdHeartRates(payload: HR): Boolean = synchronized(nsIdHeartRates) { nsIdHeartRates.add(payload) }
+
     override fun addToDeleteTreatment(payload: String): Boolean = synchronized(deleteTreatment) { deleteTreatment.add(payload) }
     override fun addToDeleteGlucoseValue(payload: String): Boolean = synchronized(deleteGlucoseValue) { deleteGlucoseValue.add(payload) }
 

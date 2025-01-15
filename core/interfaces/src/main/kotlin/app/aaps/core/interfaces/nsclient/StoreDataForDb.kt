@@ -29,7 +29,7 @@ interface StoreDataForDb {
     fun addToProfileSwitches(payload: PS): Boolean
     fun addToOfflineEvents(payload: OE): Boolean
     fun addToFoods(payload: MutableList<FD>): Boolean
-    fun addToHeartRates(payload: MutableList<HR>): Boolean
+    fun addToHeartRates(payload: List<HR>): Boolean
 
     fun addToNsIdGlucoseValues(payload: GV): Boolean
     fun addToNsIdBoluses(payload: BS): Boolean

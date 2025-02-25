@@ -25,6 +25,7 @@ import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.keys.Preferences
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.UnitDoubleKey
+import app.aaps.core.objects.extensions.convertedToPercent
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import java.time.Clock
@@ -41,13 +42,13 @@ class LoopHubImpl @Inject constructor(
     private val commandQueue: CommandQueue,
     private val constraintChecker: ConstraintsChecker,
     private val iobCobCalculator: IobCobCalculator,
-    private val processedTbrEbData: ProcessedTbrEbData,
     private val loop: Loop,
     private val profileFunction: ProfileFunction,
     private val profileUtil: ProfileUtil,
     private val persistenceLayer: PersistenceLayer,
     private val userEntryLogger: UserEntryLogger,
-    private val preferences: Preferences
+    private val preferences: Preferences,
+    private val processedTbrEbData: ProcessedTbrEbData
 ) : LoopHub {
 
     val disposable = CompositeDisposable()
@@ -91,8 +92,10 @@ class LoopHubImpl @Inject constructor(
     /** Returns the factor by which the basal rate is currently raised (> 1) or lowered (< 1). */
     override val temporaryBasal: Double
         get() {
-            val tbr = processedTbrEbData.getTempBasalIncludingConvertedExtended(System.currentTimeMillis())?.rate
-            return if (tbr == null) Double.NaN else tbr / 100.0
+            return currentProfile?.let {
+                val tb = processedTbrEbData.getTempBasalIncludingConvertedExtended(clock.millis())
+                tb?.convertedToPercent(clock.millis(), it)?.div(100.0)
+            } ?: Double.NaN
         }
 
     override val lowGlucoseMark get() = profileUtil.convertToMgdl(

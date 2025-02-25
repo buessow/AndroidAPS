@@ -247,9 +247,8 @@ import kotlin.math.max
         if (useForScale) {
             maxY = overviewData.maxVarSensValueFound
             minY = overviewData.minVarSensValueFound
-        } else {
-            overviewData.varSensScale.multiplier = maxY * scale / overviewData.maxVarSensValueFound
         }
+        overviewData.varSensScale.multiplier = maxY * scale / overviewData.maxVarSensValueFound
         addSeries(overviewData.varSensSeries as LineGraphSeries<ScaledDataPoint>)
     }
 
@@ -301,7 +300,7 @@ import kotlin.math.max
     fun addSteps(useForScale: Boolean, scale: Double) {
         val maxSteps = (overviewData.stepsCountGraphSeries as PointsWithLabelGraphSeries<DataPointWithLabelInterface>).highestValueY
         if (useForScale) {
-            minY = 30.0
+            minY = 0.0
             maxY = maxSteps
         }
         addSeries(overviewData.stepsCountGraphSeries as PointsWithLabelGraphSeries<DataPointWithLabelInterface>)

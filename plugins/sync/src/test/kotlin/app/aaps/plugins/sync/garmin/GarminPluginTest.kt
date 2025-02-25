@@ -8,7 +8,6 @@ import app.aaps.core.data.model.TrendArrow
 import app.aaps.core.interfaces.rx.events.EventNewBG
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.IntKey
-import app.aaps.core.keys.StringKey
 import app.aaps.core.validators.preferences.AdaptiveIntPreference
 import app.aaps.core.validators.preferences.AdaptiveStringPreference
 import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
@@ -254,7 +253,7 @@ class GarminPluginTest : TestBaseWithProfile() {
 
     @Test
     fun requestHandler_KeyRequired() {
-        gp.garminMessenger = mock(GarminMessenger::class.java)
+        gp.garminMessengerField = mock(GarminMessenger::class.java)
 
         `when`(preferences.get(StringKey.GarminRequestKey)).thenReturn("foo")
         val uri = createUri(emptyMap())

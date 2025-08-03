@@ -17,7 +17,6 @@ import app.aaps.core.interfaces.sync.DataSyncSelector
 import app.aaps.core.interfaces.sync.NsClient
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.BooleanKey
-import app.aaps.core.keys.Preferences
 import app.aaps.plugins.sync.R
 import app.aaps.plugins.sync.nsShared.StoreDataForDbImpl
 import app.aaps.plugins.sync.nsclientV3.keys.NsclientLongKey
@@ -36,24 +35,19 @@ import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.internal.verification.Times
 import org.mockito.kotlin.clearInvocations
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
 import kotlin.collections.remove
 
 class DataSyncSelectorV3Test : TestBaseWithProfile() {
 
-    @Mock lateinit var activePlugin: ActivePlugin
     @Mock lateinit var nsClient: NsClient
     @Mock lateinit var sp: SP
-    @Mock lateinit var preferences: Preferences
-    @Mock lateinit var dateUtil: DateUtil
-    @Mock lateinit var config: Config
-    @Mock lateinit var profileFunction: ProfileFunction
     @Mock lateinit var persistenceLayer: PersistenceLayer
     @Mock lateinit var uel: UserEntryLogger
     @Mock lateinit var virtualPump: VirtualPump
     @Mock lateinit var nsClientSource: NSClientSource
     @Mock lateinit var rxBux: RxBus
-    @Mock lateinit var storeDataForDb: StoreDataForDb
 
     private lateinit var storeDataForDb: StoreDataForDb
     private lateinit var sut: DataSyncSelectorV3
@@ -64,22 +58,18 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
         sut = DataSyncSelectorV3(preferences, aapsLogger, dateUtil, profileFunction, activePlugin, persistenceLayer, rxBus, storeDataForDb, config)
         `when`(activePlugin.activeNsClient).thenReturn(nsClient)
         `when`(nsClient.supportsHeartRate).thenReturn(true)
-        verify(sp, atLeast(0)).getLong(anyInt(), anyLong())
         verifyNoMoreInteractions(sp)
     }
 
     @AfterEach
-    fun verify() {
-        verify(nsClient, atLeast(1)).supportsHeartRate
-        verifyNoMoreInteractions(persistenceLayer)
-        verifyNoMoreInteractions(nsClient)
+    fun verifyCalls() {
     }
 
     @Test
-     fun processChangedHeartRate_addOne() = runBlocking {
+     fun processChangedHeartRate_addOne(): Unit = runBlocking {
         val hr = createHeartRate(1L)
         `when`(persistenceLayer.getLastHeartRateId()).thenReturn(1L)
-        `when`(sp.getLong(R.string.key_ns_heart_rate_last_synced_id, 0L)).thenReturn(0L)
+        `when`(preferences.get(NsclientLongKey.HeartRateLastSyncId)).thenReturn(0L)
         `when`(persistenceLayer.getNextSyncElementHeartRate(anyLong())).thenReturn(Maybe.empty())
         `when`(persistenceLayer.getNextSyncElementHeartRate(0L)).thenReturn(Maybe.just(hr to null))
         `when`(nsClient.nsAdd(
@@ -94,14 +84,17 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
             "heartrate",
             DataSyncSelector.PairHeartRate(hr, hr.id),
             "1/1")
-        verify(sp).putLong(R.string.key_ns_heart_rate_last_synced_id, 1L)
+        verify(preferences).put(NsclientLongKey.HeartRateLastSyncId, 1L)
+        verify(nsClient, atLeast(1)).supportsHeartRate
+        verifyNoMoreInteractions(persistenceLayer)
+        verifyNoMoreInteractions(nsClient)
     }
 
     @Test
-    fun processChangedHeartRate_addOneFails() = runBlocking {
+    fun processChangedHeartRate_addOneFails(): Unit = runBlocking {
         val hr = createHeartRate(1L)
         `when`(persistenceLayer.getLastHeartRateId()).thenReturn(1L)
-        `when`(sp.getLong(R.string.key_ns_heart_rate_last_synced_id, 0L)).thenReturn(0L)
+        `when`(preferences.get(NsclientLongKey.HeartRateLastSyncId)).thenReturn(0L)
         `when`(persistenceLayer.getNextSyncElementHeartRate(0L)).thenReturn(Maybe.just(hr to null))
         `when`(nsClient.nsAdd(
             "heartrate",
@@ -115,37 +108,43 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
             "heartrate",
             DataSyncSelector.PairHeartRate(hr, hr.id),
             "1/1")
-        verify(sp).getLong(R.string.key_ns_heart_rate_last_synced_id, 0L)
-        verify(sp).putLong(R.string.key_ns_heart_rate_last_synced_id, 0L)
+        verify(preferences).get(NsclientLongKey.HeartRateLastSyncId)
+        verify(preferences).put(NsclientLongKey.HeartRateLastSyncId, 0L)
         verifyNoMoreInteractions(sp)
+        verify(nsClient, atLeast(1)).supportsHeartRate
+        verifyNoMoreInteractions(persistenceLayer)
+        verifyNoMoreInteractions(nsClient)
     }
 
     @Test
-    fun processChangedHeartRate_ignoreNightscoutImport() = runBlocking {
+    fun processChangedHeartRate_ignoreNightscoutImport(): Unit = runBlocking {
         val hr = createHeartRate(1L).apply { ids.nightscoutId = "foo" }
         `when`(persistenceLayer.getLastHeartRateId()).thenReturn(1L)
-        `when`(sp.getLong(R.string.key_ns_heart_rate_last_synced_id, 0L)).thenReturn(0L)
+        `when`(preferences.get(NsclientLongKey.HeartRateLastSyncId)).thenReturn(0L)
         `when`(persistenceLayer.getNextSyncElementHeartRate(anyLong())).thenReturn(Maybe.empty())
         `when`(persistenceLayer.getNextSyncElementHeartRate(0L)).thenReturn(Maybe.just(hr to null))
         sut.processChangedHeartRate()
         verify(persistenceLayer).getLastHeartRateId()
         verify(persistenceLayer, atLeast(0)).getNextSyncElementHeartRate(anyLong())
-        verify(sp).putLong(R.string.key_ns_heart_rate_last_synced_id, 1L)
+        verify(preferences).put(NsclientLongKey.HeartRateLastSyncId, 1L)
+        verify(nsClient, atLeast(1)).supportsHeartRate
+        verifyNoMoreInteractions(persistenceLayer)
+        verifyNoMoreInteractions(nsClient)
     }
 
     @Test
-    fun processChangedHeartRate_UpdateOne() = runBlocking {
+    fun processChangedHeartRate_UpdateOne(): Unit = runBlocking {
         val newHr = createHeartRate(1L).apply { beatsPerMinute = 99.0; ids.nightscoutId = "id1" }
         val refHr = createHeartRate(2L).apply { referenceId = 1L }
         `when`(persistenceLayer.getNextSyncElementHeartRate(anyLong())).thenReturn(Maybe.empty())
         `when`(persistenceLayer.getLastHeartRateId()).thenReturn(2L)
-        `when`(sp.getLong(R.string.key_ns_heart_rate_last_synced_id, 0L)).thenReturn(1L)
+        `when`(preferences.get(NsclientLongKey.HeartRateLastSyncId)).thenReturn(1L)
         `when`(persistenceLayer.getNextSyncElementHeartRate(1L)).thenReturn(Maybe.just(newHr to refHr))
         `when`(nsClient.nsUpdate(
             "heartrate",
             DataSyncSelector.PairHeartRate(newHr, refHr.id),
             "2/2")).thenReturn(true)
-        dss.processChangedHeartRate()
+        sut.processChangedHeartRate()
 
         verify(persistenceLayer).getLastHeartRateId()
         verify(persistenceLayer, atLeast(0)).getNextSyncElementHeartRate(anyLong())
@@ -153,11 +152,14 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
             "heartrate",
             DataSyncSelector.PairHeartRate(newHr, refHr.id),
             "2/2")
-        verify(sp).putLong(R.string.key_ns_heart_rate_last_synced_id, 2L)
+        verify(preferences).put(NsclientLongKey.HeartRateLastSyncId, 2L)
+        verify(nsClient, atLeast(1)).supportsHeartRate
+        verifyNoMoreInteractions(persistenceLayer)
+        verifyNoMoreInteractions(nsClient)
     }
 
     @Test
-    fun processChangedHeartRate_addMultiple() = runBlocking {
+    fun processChangedHeartRate_addMultiple(): Unit = runBlocking {
         val hrs = listOf(3L, 4L, 6L).map { id -> createHeartRate(id) }
         `when`(persistenceLayer.getNextSyncElementHeartRate(anyLong())).thenAnswer { invocation ->
             val id = invocation.getArgument<Long>(0)
@@ -172,9 +174,9 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
                 "${hr.id}/6")).thenReturn(true)
         }
         `when`(persistenceLayer.getLastHeartRateId()).thenReturn(6L)
-        `when`(sp.getLong(R.string.key_ns_heart_rate_last_synced_id, 0L)).thenReturn(2L)
+        `when`(preferences.get(NsclientLongKey.HeartRateLastSyncId)).thenReturn(2L)
 
-        dss.processChangedHeartRate()
+        sut.processChangedHeartRate()
 
         verify(persistenceLayer).getLastHeartRateId()
         verify(persistenceLayer, atLeast(0)).getNextSyncElementHeartRate(anyLong())
@@ -183,12 +185,14 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
                 "heartrate", DataSyncSelector.PairHeartRate(hr, hr.id), "${hr.id}/6"
             )
         }
-        verify(sp).putLong(R.string.key_ns_heart_rate_last_synced_id, 6L)
+        verify(preferences).put(NsclientLongKey.HeartRateLastSyncId, 6L)
+        verify(nsClient, atLeast(1)).supportsHeartRate
+        verifyNoMoreInteractions(persistenceLayer)
+        verifyNoMoreInteractions(nsClient)
     }
 
     @Test
     fun bgUploadEnabledTest() {
-
         class NSClientSourcePlugin() : NSClientSource, BgSource {
 
             override fun isEnabled(): Boolean = true

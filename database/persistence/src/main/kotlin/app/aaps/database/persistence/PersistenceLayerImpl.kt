@@ -98,7 +98,6 @@ import app.aaps.database.transactions.UpdateNsIdExtendedBolusTransaction
 import app.aaps.database.transactions.UpdateNsIdFoodTransaction
 import app.aaps.database.transactions.UpdateNsIdGlucoseValueTransaction
 import app.aaps.database.transactions.UpdateNsIdHeartRateTransaction
-import app.aaps.database.transactions.UpdateNsIdOfflineEventTransaction
 import app.aaps.database.transactions.UpdateNsIdProfileSwitchTransaction
 import app.aaps.database.transactions.UpdateNsIdRunningModeTransaction
 import app.aaps.database.transactions.UpdateNsIdTemporaryBasalTransaction

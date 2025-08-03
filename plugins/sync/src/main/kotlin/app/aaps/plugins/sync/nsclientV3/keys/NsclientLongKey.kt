@@ -21,5 +21,6 @@ enum class NsclientLongKey(
     ProfileSwitchLastSyncedId("ns_profile_switch_last_synced_id", 0L),
     EffectiveProfileSwitchLastSyncedId("ns_effective_profile_switch_last_synced_id", 0L),
     RunningModeLastSyncedId("ns_running_mode_last_synced_id", 0L),
-    ProfileStoreLastSyncedId("ns_profile_store_last_synced_timestamp", 0L),
+    HeartRateLastSyncId(key = "ns_heart_rate_last_synced_id", defaultValue = 0L),
+    ProfileStoreLastSyncedId("ns_profile_store_last_synced_timestamp", 0L)
 }

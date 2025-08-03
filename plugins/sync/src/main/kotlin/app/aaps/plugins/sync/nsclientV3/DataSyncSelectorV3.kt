@@ -53,7 +53,7 @@ class DataSyncSelectorV3 @Inject constructor(
         var pssRemaining: Long = -1L,
         var epssRemaining: Long = -1L,
         var oesRemaining: Long = -1L,
-        var hrRemaining: Long = -1L
+        var hrRemaining: Long = -1L,
         var rmsRemaining: Long = -1L
     ) {
 
@@ -273,21 +273,18 @@ class DataSyncSelectorV3 @Inject constructor(
             aapsLogger.warn(LTag.NSCLIENT, "Heart rate sync is not supported by Nightscout server")
             return
         }
-        var id: Long? = sp.getLong(R.string.key_ns_heart_rate_last_synced_id, 0L)
+        var id: Long? = preferences.get(NsclientLongKey.HeartRateLastSyncId)
         if (id!! > lastDbId) {
             aapsLogger.info(LTag.NSCLIENT, "Resetting HR startId: $id lastDbId: $lastDbId")
             id = 0
         }
         while (id != null) {
-            sp.putLong(R.string.key_ns_heart_rate_last_synced_id, id)
+            preferences.put(NsclientLongKey.HeartRateLastSyncId, id)
             queueCounter.hrRemaining = lastDbId - id
             id = updateOneHeartRate(id, lastDbId, nsClient)
         }
     }
 
-    private fun confirmLastBolusCalculatorResultsIdIfGreater(lastSynced: Long) {
-        if (lastSynced > sp.getLong(R.string.key_ns_bolus_calculator_result_last_synced_id, 0)) {
-            sp.putLong(R.string.key_ns_bolus_calculator_result_last_synced_id, lastSynced)
     @OpenForTesting
     fun confirmLastBolusCalculatorResultsIdIfGreater(lastSynced: Long) {
         if (lastSynced > preferences.get(NsclientLongKey.BolusCalculatorLastSyncedId)) {

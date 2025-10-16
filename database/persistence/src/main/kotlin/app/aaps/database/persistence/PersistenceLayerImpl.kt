@@ -117,6 +117,7 @@ import java.util.Collections.emptyList
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Provider
+import kotlin.math.roundToInt
 
 @Reusable
 class PersistenceLayerImpl @Inject constructor(
@@ -1756,7 +1757,13 @@ class PersistenceLayerImpl @Inject constructor(
             Maybe.just(it.first.fromDb() to it.second?.fromDb()) } ?: Maybe.empty()
 
     override fun syncNsHeartRate(heartRates: List<HR>): Single<PersistenceLayer.TransactionResult<HR>> {
-        val l = {a: Action, hr: HeartRate -> log(hr.timestamp, a, Sources.NSClient) }
+        val l = {a: Action, hr: HeartRate -> UE(
+            timestamp = hr.timestamp,
+            action = a,
+            source = Sources.NSClient,
+            values = listOf(ValueWithUnit.SimpleInt(hr.beatsPerMinute.roundToInt())),
+            note = "")
+        }
         return repository.runTransactionForResult(
             SyncNsHeartRatesTransaction(heartRates.map(HR::toDb))
         ).map { tr ->

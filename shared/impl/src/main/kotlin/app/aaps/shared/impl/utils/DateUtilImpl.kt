@@ -7,6 +7,8 @@ import app.aaps.core.interfaces.R
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.SafeParse
+import app.aaps.core.utils.pump.ThreadUtil
+import org.apache.commons.lang3.ThreadUtils
 import org.apache.commons.lang3.time.DateUtils.isSameDay
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
@@ -146,7 +148,7 @@ class DateUtilImpl @Inject constructor(private val context: Context) : DateUtil 
 
     override fun timeString(): String = timeString(now())
     override fun timeString(mills: Long): String {
-        var format = "hh:mma"
+        var format = "hh:mm a"
         if (android.text.format.DateFormat.is24HourFormat(context)) {
             format = "HH:mm"
         }
@@ -191,7 +193,7 @@ class DateUtilImpl @Inject constructor(private val context: Context) : DateUtil 
         DateTime(mills).toString(DateTimeFormat.forPattern("ww"))
 
     override fun timeStringWithSeconds(mills: Long): String {
-        var format = "hh:mm:ssa"
+        var format = "hh:mm:ss a"
         if (android.text.format.DateFormat.is24HourFormat(context)) {
             format = "HH:mm:ss"
         }
@@ -218,6 +220,17 @@ class DateUtilImpl @Inject constructor(private val context: Context) : DateUtil 
         if (time == null) return ""
         val minutes = ((now() - time) / 1000 / 60).toInt()
         return if (abs(minutes) > 9999) "" else rh.gs(R.string.minago, minutes)
+    }
+
+    override fun minOrSecAgo(rh: ResourceHelper, time: Long?): String {
+        if (time == null) return ""
+        //val minutes = ((now() - time) / 1000 / 60).toInt()
+        val seconds = (now() - time) / 1000
+        if (seconds > 119) {
+            return rh.gs(R.string.minago, (seconds / 60).toInt())
+        } else {
+            return rh.gs(R.string.secago, seconds.toInt())
+        }
     }
 
     override fun minAgoShort(time: Long?): String {
@@ -344,9 +357,9 @@ class DateUtilImpl @Inject constructor(private val context: Context) : DateUtil 
         var hours = " " + rh.gs(R.string.hours) + " "
         var minutes = " " + rh.gs(R.string.unit_minutes) + " "
         if (useShortText) {
-            days = rh.gs(R.string.shortday)
-            hours = rh.gs(R.string.shorthour)
-            minutes = rh.gs(R.string.shortminute)
+            days = " " + rh.gs(R.string.shortday) + " "
+            hours = " " + rh.gs(R.string.shorthour) + " "
+            minutes = " " + rh.gs(R.string.shortminute) + " "
         }
         if (T.msecs(milliseconds).days() > 1000) return rh.gs(R.string.forever)
         var result = ""
@@ -405,7 +418,7 @@ class DateUtilImpl @Inject constructor(private val context: Context) : DateUtil 
         }
         val thisDf: DecimalFormat?
         // use singleton if on ui thread otherwise allocate new as DecimalFormat is not thread safe
-        if (Thread.currentThread().id == 1L) {
+        if (ThreadUtil.threadId() == 1L) {
             if (df == null) {
                 val localDf = DecimalFormat("#", dfs)
                 localDf.minimumIntegerDigits = 1

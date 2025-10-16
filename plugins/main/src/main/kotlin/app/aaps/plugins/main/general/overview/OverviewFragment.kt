@@ -108,19 +108,18 @@ import app.aaps.plugins.main.general.overview.notifications.events.EventUpdateOv
 import app.aaps.plugins.main.general.overview.ui.StatusLightHandler
 import app.aaps.plugins.main.skins.SkinProvider
 import com.jjoe64.graphview.GraphView
-import dagger.android.HasAndroidInjector
 import dagger.android.support.DaggerFragment
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import javax.inject.Provider
 import kotlin.math.abs
 import kotlin.math.min
 
 class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickListener {
 
-    @Inject lateinit var injector: HasAndroidInjector
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var aapsSchedulers: AapsSchedulers
     @Inject lateinit var preferences: Preferences
@@ -156,6 +155,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
     @Inject lateinit var bgQualityCheck: BgQualityCheck
     @Inject lateinit var uiInteraction: UiInteraction
     @Inject lateinit var decimalFormatter: DecimalFormatter
+    @Inject lateinit var graphDataProvider: Provider<GraphData>
 
     private val disposable = CompositeDisposable()
 
@@ -385,6 +385,8 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        secondaryGraphs.clear()
+        secondaryGraphsLabel.clear()
     }
 
     override fun onClick(v: View) {
@@ -448,14 +450,15 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                                 runOnUiThread {
                                     protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable {
                                         if (isAdded)
-                                            OKDialog.showConfirmation(activity, rh.gs(app.aaps.core.ui.R.string.tempbasal_label), lastRun.constraintsProcessed?.resultAsSpanned()
-                                                ?: "".toSpanned(), {
-                                                                          uel.log(Action.ACCEPTS_TEMP_BASAL, Sources.Overview)
-                                                                          (context?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.cancel(Constants.notificationID)
-                                                                          rxBus.send(EventMobileToWear(EventData.CancelNotification(dateUtil.now())))
-                                                                          handler.post { loop.acceptChangeRequest() }
-                                                                          binding.buttonsLayout.acceptTempButton.visibility = View.GONE
-                                                                      })
+                                            OKDialog.showConfirmation(
+                                                activity, rh.gs(app.aaps.core.ui.R.string.tempbasal_label), lastRun.constraintsProcessed?.resultAsSpanned()
+                                                    ?: "".toSpanned(), {
+                                                    uel.log(Action.ACCEPTS_TEMP_BASAL, Sources.Overview)
+                                                    (context?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)?.cancel(Constants.notificationID)
+                                                    rxBus.send(EventMobileToWear(EventData.CancelNotification(dateUtil.now())))
+                                                    handler.post { loop.acceptChangeRequest() }
+                                                    binding.buttonsLayout.acceptTempButton.visibility = View.GONE
+                                                })
                                     })
                                 }
                             }
@@ -549,7 +552,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         val quickWizardEntry = quickWizard.getActive()
         runOnUiThread {
             _binding ?: return@runOnUiThread
-            if (quickWizardEntry != null && lastBG != null && profile != null && pump.isInitialized() && !loop.runningMode.isSuspended()) {
+            if (quickWizardEntry != null && lastBG != null && profile != null && pump.isInitialized() && loop.runningMode != RM.Mode.DISCONNECTED_PUMP && !pump.isSuspended()) {
                 binding.buttonsLayout.quickWizardButton.visibility = View.VISIBLE
                 val wizard = quickWizardEntry.doCalc(profile, profileName, lastBG)
                 binding.buttonsLayout.quickWizardButton.text = quickWizardEntry.buttonText() + "\n" + rh.gs(app.aaps.core.objects.R.string.format_carbs, quickWizardEntry.carbs()) +
@@ -579,12 +582,12 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             // **** Various treatment buttons ****
             binding.buttonsLayout.carbsButton.visibility =
                 (profile != null && preferences.get(BooleanKey.OverviewShowCarbsButton)).toVisibility()
-            binding.buttonsLayout.treatmentButton.visibility = (!loop.runningMode.isSuspended() && pump.isInitialized() && profile != null
+            binding.buttonsLayout.treatmentButton.visibility = (loop.runningMode != RM.Mode.DISCONNECTED_PUMP && !pump.isSuspended() && pump.isInitialized() && profile != null
                 && preferences.get(BooleanKey.OverviewShowTreatmentButton)).toVisibility()
-            binding.buttonsLayout.wizardButton.visibility = (!loop.runningMode.isSuspended() && pump.isInitialized() && profile != null
+            binding.buttonsLayout.wizardButton.visibility = (loop.runningMode != RM.Mode.DISCONNECTED_PUMP && !pump.isSuspended() && pump.isInitialized() && profile != null
                 && preferences.get(BooleanKey.OverviewShowWizardButton)).toVisibility()
             binding.buttonsLayout.insulinButton.visibility = (profile != null && preferences.get(BooleanKey.OverviewShowInsulinButton)).toVisibility()
-            if (loop.runningMode.isSuspended() || !pump.isInitialized()) {
+            if (loop.runningMode == RM.Mode.DISCONNECTED_PUMP || pump.isSuspended() || !pump.isInitialized()) {
                 setRibbon(
                     binding.buttonsLayout.insulinButton,
                     app.aaps.core.ui.R.attr.ribbonTextWarningColor,
@@ -635,11 +638,11 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                                     l.setMargins(rh.dpToPx(1), 0, rh.dpToPx(1), 0)
                                 }
                                 it.setPadding(rh.dpToPx(1), it.paddingTop, rh.dpToPx(1), it.paddingBottom)
-                                it.setCompoundDrawablePadding(rh.dpToPx(-4))
+                                it.compoundDrawablePadding = rh.dpToPx(-4)
                                 it.setCompoundDrawablesWithIntrinsicBounds(
                                     null,
-                                    rh.gd(event.firstActionIcon() ?: app.aaps.core.ui.R.drawable.ic_user_options_24dp).also {
-                                        it?.setBounds(rh.dpToPx(20), rh.dpToPx(20), rh.dpToPx(20), rh.dpToPx(20))
+                                    rh.gd(event.firstActionIcon() ?: app.aaps.core.ui.R.drawable.ic_user_options_24dp).also { icon ->
+                                        icon?.setBounds(rh.dpToPx(20), rh.dpToPx(20), rh.dpToPx(20), rh.dpToPx(20))
                                     }, null, null
                                 )
                                 it.text = event.title
@@ -758,8 +761,8 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             // rebuild needed
             secondaryGraphs.clear()
             secondaryGraphsLabel.clear()
-            binding.graphsLayout.iobGraph.removeAllViews()
-            (1 until numOfGraphs).forEach {
+            binding.graphsLayout.secondaryGraphs.removeAllViews()
+            (1 until numOfGraphs).forEach { _ ->
                 val relativeLayout = RelativeLayout(context)
                 relativeLayout.layoutParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
 
@@ -782,7 +785,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 relativeLayout.addView(label)
                 secondaryGraphsLabel.add(label)
 
-                binding.graphsLayout.iobGraph.addView(relativeLayout)
+                binding.graphsLayout.secondaryGraphs.addView(relativeLayout)
                 secondaryGraphs.add(graph)
             }
         }
@@ -842,7 +845,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
             val outDate = (if (!isActualBg) rh.gs(R.string.a11y_bg_outdated) else "")
             binding.infoLayout.bg.contentDescription = rh.gs(R.string.a11y_blood_glucose) + " " + binding.infoLayout.bg.text.toString() + " " + lastBgDescription + " " + outDate
 
-            binding.infoLayout.timeAgo.text = dateUtil.minAgo(rh, lastBg?.timestamp)
+            binding.infoLayout.timeAgo.text = dateUtil.minOrSecAgo(rh, lastBg?.timestamp)
             binding.infoLayout.timeAgo.contentDescription = dateUtil.minAgoLong(rh, lastBg?.timestamp)
             binding.infoLayout.timeAgoShort.text = dateUtil.minAgoShort(lastBg?.timestamp)
 
@@ -1036,7 +1039,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
     private fun updateGraph() {
         _binding ?: return
         val pump = activePlugin.activePump
-        val graphData = GraphData(injector, binding.graphsLayout.bgGraph, overviewData)
+        val graphData = graphDataProvider.get().with(binding.graphsLayout.bgGraph, overviewData)
         val menuChartSettings = overviewMenus.setting
         if (menuChartSettings.isEmpty()) return
         graphData.addInRangeArea(
@@ -1070,7 +1073,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
 
         val now = System.currentTimeMillis()
         for (g in 0 until min(secondaryGraphs.size, menuChartSettings.size - 1)) {
-            val secondGraphData = GraphData(injector, secondaryGraphs[g], overviewData)
+            val secondGraphData = graphDataProvider.get().with(secondaryGraphs[g], overviewData)
             var useABSForScale = false
             var useIobForScale = false
             var useCobForScale = false

@@ -100,7 +100,6 @@ enum class BooleanKey(
     NsClientCreateAnnouncementsFromCarbsReq("ns_create_announcements_from_carbs_req", false, calculatedDefaultValue = true, showInNsClientMode = false),
     NsClientSlowSync("ns_sync_slow", false),
     NsClient3UseWs("ns_use_ws", true),
-    TidepoolUseTestServers("tidepool_dev_servers", false),
     OpenHumansWifiOnly("oh_wifi_only", true),
     OpenHumansChargingOnly("oh_charging_only", false),
     XdripSendStatus("xdrip_send_status", false),
@@ -119,4 +118,7 @@ enum class BooleanKey(
     WizardCorrectionPercent("wizard_correction_percent", defaultValue = false),
     WizardIncludeCob("wizard_include_cob", defaultValue = false),
     WizardIncludeTrend("wizard_include_trend_bg", defaultValue = false),
+    SiteRotationManagePump("site_rotation_manage_pump", defaultValue = false),
+    SiteRotationManageCgm("site_rotation_manage_cgm", defaultValue = false),
+
 }

@@ -11,6 +11,7 @@ import app.aaps.core.interfaces.constraints.PluginConstraints
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.profiling.Profiler
+import app.aaps.core.interfaces.protection.PasswordCheck
 import app.aaps.core.interfaces.pump.DetailedBolusInfoStorage
 import app.aaps.core.interfaces.pump.PumpSync
 import app.aaps.core.interfaces.pump.TemporaryBasalStorage
@@ -21,13 +22,22 @@ import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.StringKey
-import app.aaps.implementation.iob.GlucoseStatusProviderImpl
 import app.aaps.plugins.aps.openAPSAMA.DetermineBasalAMA
 import app.aaps.plugins.aps.openAPSAMA.OpenAPSAMAPlugin
 import app.aaps.plugins.aps.openAPSSMB.DetermineBasalSMB
+import app.aaps.plugins.aps.openAPSSMB.GlucoseStatusCalculatorSMB
 import app.aaps.plugins.aps.openAPSSMB.OpenAPSSMBPlugin
 import app.aaps.plugins.constraints.objectives.ObjectivesPlugin
-import app.aaps.plugins.constraints.objectives.objectives.Objective
+import app.aaps.plugins.constraints.objectives.objectives.Objective0
+import app.aaps.plugins.constraints.objectives.objectives.Objective1
+import app.aaps.plugins.constraints.objectives.objectives.Objective2
+import app.aaps.plugins.constraints.objectives.objectives.Objective3
+import app.aaps.plugins.constraints.objectives.objectives.Objective4
+import app.aaps.plugins.constraints.objectives.objectives.Objective5
+import app.aaps.plugins.constraints.objectives.objectives.Objective6
+import app.aaps.plugins.constraints.objectives.objectives.Objective7
+import app.aaps.plugins.constraints.objectives.objectives.Objective8
+import app.aaps.plugins.constraints.objectives.objectives.Objective9
 import app.aaps.plugins.constraints.safety.SafetyPlugin
 import app.aaps.plugins.source.GlimpPlugin
 import app.aaps.pump.dana.DanaPump
@@ -69,6 +79,7 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
     @Mock lateinit var determineBasalSMB: DetermineBasalSMB
     @Mock lateinit var determineBasalAMA: DetermineBasalAMA
     @Mock lateinit var loop: Loop
+    @Mock lateinit var passwordCheck: PasswordCheck
 
     private lateinit var danaPump: DanaPump
     private lateinit var insightDbHelper: InsightDbHelper
@@ -80,15 +91,6 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
     private lateinit var insightPlugin: InsightPlugin
     private lateinit var openAPSSMBPlugin: OpenAPSSMBPlugin
     private lateinit var openAPSAMAPlugin: OpenAPSAMAPlugin
-
-    init {
-        addInjector {
-            if (it is Objective) {
-                it.preferences = preferences
-                it.dateUtil = dateUtil
-            }
-        }
-    }
 
     @BeforeEach
     fun prepare() {
@@ -126,36 +128,47 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
         //SafetyPlugin
         constraintChecker = ConstraintsCheckerImpl(activePlugin, aapsLogger)
 
-        val glucoseStatusProvider = GlucoseStatusProviderImpl(aapsLogger, iobCobCalculator, dateUtil, decimalFormatter)
-
         insightDbHelper = InsightDbHelper(insightDatabaseDao)
-        danaPump = DanaPump(aapsLogger, preferences, dateUtil, instantiator, decimalFormatter)
-        objectivesPlugin = ObjectivesPlugin(injector, aapsLogger, rh, preferences)
+        danaPump = DanaPump(aapsLogger, preferences, dateUtil, decimalFormatter, profileStoreProvider)
+        val objectives = listOf(
+            Objective0(preferences, rh, dateUtil, activePlugin, virtualPumpPlugin, persistenceLayer, loop, iobCobCalculator, passwordCheck),
+            Objective1(preferences, rh, dateUtil, activePlugin),
+            Objective2(preferences, rh, dateUtil),
+            Objective3(preferences, rh, dateUtil),
+            Objective4(preferences, rh, dateUtil, profileFunction),
+            Objective5(preferences, rh, dateUtil),
+            Objective6(preferences, rh, dateUtil, constraintsChecker, loop),
+            Objective7(preferences, rh, dateUtil),
+            Objective8(preferences, rh, dateUtil),
+            Objective9(preferences, rh, dateUtil)
+        )
+        objectivesPlugin = ObjectivesPlugin(aapsLogger, rh, preferences, config, objectives)
         objectivesPlugin.onStart()
         danaRPlugin = DanaRPlugin(
             aapsLogger, rh, preferences, commandQueue, aapsSchedulers, rxBus, context, constraintChecker, activePlugin, danaPump, dateUtil, fabricPrivacy, pumpSync,
-            uiInteraction, danaHistoryDatabase, decimalFormatter, instantiator
+            uiInteraction, danaHistoryDatabase, decimalFormatter, pumpEnactResultProvider
         )
         danaRSPlugin =
             DanaRSPlugin(
                 aapsLogger, rh, preferences, commandQueue, aapsSchedulers, rxBus, context, constraintChecker, profileFunction,
                 danaPump, pumpSync, detailedBolusInfoStorage, temporaryBasalStorage,
-                fabricPrivacy, dateUtil, uiInteraction, danaHistoryDatabase, decimalFormatter, instantiator
+                fabricPrivacy, dateUtil, uiInteraction, danaHistoryDatabase, decimalFormatter, pumpEnactResultProvider
             )
         insightPlugin = InsightPlugin(
             aapsLogger, rh, preferences, commandQueue, rxBus, profileFunction,
-            context, dateUtil, insightDbHelper, pumpSync, insightDatabase, instantiator
+            context, dateUtil, insightDbHelper, pumpSync, insightDatabase, pumpEnactResultProvider
         )
         openAPSSMBPlugin =
             OpenAPSSMBPlugin(
-                injector, aapsLogger, rxBus, constraintChecker, rh, profileFunction, profileUtil, config, activePlugin, iobCobCalculator,
-                hardLimits, preferences, dateUtil, processedTbrEbData, persistenceLayer, glucoseStatusProvider, tddCalculator, bgQualityCheck,
-                uiInteraction, determineBasalSMB, profiler
+                aapsLogger, rxBus, constraintChecker, rh, profileFunction, profileUtil, config, activePlugin, iobCobCalculator,
+                hardLimits, preferences, dateUtil, processedTbrEbData, persistenceLayer, smbGlucoseStatusProvider, tddCalculator, bgQualityCheck,
+                uiInteraction, determineBasalSMB, profiler, GlucoseStatusCalculatorSMB(aapsLogger, iobCobCalculator, dateUtil, decimalFormatter, deltaCalculator), apsResultProvider
             )
         openAPSAMAPlugin =
             OpenAPSAMAPlugin(
-                injector, aapsLogger, rxBus, constraintChecker, rh, config, profileFunction, activePlugin, iobCobCalculator, processedTbrEbData,
-                hardLimits, dateUtil, persistenceLayer, glucoseStatusProvider, preferences, determineBasalAMA
+                aapsLogger, rxBus, constraintChecker, rh, config, profileFunction, activePlugin, iobCobCalculator, processedTbrEbData,
+                hardLimits, dateUtil, persistenceLayer, smbGlucoseStatusProvider, preferences, determineBasalAMA,
+                GlucoseStatusCalculatorSMB(aapsLogger, iobCobCalculator, dateUtil, decimalFormatter, deltaCalculator), apsResultProvider
             )
         safetyPlugin =
             SafetyPlugin(
@@ -189,9 +202,9 @@ class ConstraintsCheckerImplTest : TestBaseWithProfile() {
         `when`(config.isEngineeringModeOrRelease()).thenReturn(true)
         `when`(loop.runningMode).thenReturn(RM.Mode.CLOSED_LOOP)
         objectivesPlugin.objectives[Objectives.CLOSED_LOOP_OBJECTIVE].startedOn = 0
-        var c: Constraint<Boolean> = constraintChecker.isClosedLoopAllowed()
+        val c: Constraint<Boolean> = constraintChecker.isClosedLoopAllowed()
         aapsLogger.debug("Reason list: " + c.reasonList.toString())
-        assertThat(c.reasonList[0].toString()).contains("Objectives: Objective 7 not started") // Safety & Objectives
+        assertThat(c.reasonList[0]).contains("Objectives: Objective 7 not started") // Safety & Objectives
         assertThat(c.value()).isFalse()
     }
 

@@ -147,10 +147,10 @@ class DataSyncSelectorXdripImpl @Inject constructor(
         while (true) {
             if (!isEnabled) return
             var startId = preferences.get(XdripLongKey.GlucoseValueLastSyncedId)
-            if (startId > lastDbId) {
-                preferences.put(XdripLongKey.GlucoseValueLastSyncedId, 0)
-                startId = 0
-            }
+            // if (startId > lastDbId) {
+            //     preferences.put(XdripLongKey.GlucoseValueLastSyncedId, 0)
+            //     startId = 0
+            // }
             queueCounter.gvsRemaining = lastDbId - startId
             progress = "$startId/$lastDbId"
             persistenceLayer.getNextSyncElementGlucoseValue(startId).blockingGet()?.let { gv ->

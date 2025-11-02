@@ -143,6 +143,11 @@ android {
         dataBinding = true
         buildConfig = true
     }
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
 }
 
 allprojects {

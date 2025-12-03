@@ -172,14 +172,10 @@ class UiInteractionImpl @Inject constructor(
             .show(fragmentManager, "CareDialog")
     }
 
-    override fun runBolusProgressDialog(fragmentManager: FragmentManager, insulin: Double, id: Long) {
+    override fun runBolusProgressDialog(fragmentManager: FragmentManager) {
         // Activity may be destroyed before Dialog pop up so try/catch
         try {
-            BolusProgressDialog().also {
-                it.setInsulin(insulin)
-                it.setId(id)
-                it.show(fragmentManager, "BolusProgress")
-            }
+            BolusProgressDialog().show(fragmentManager, "BolusProgress")
         } catch (_: Exception) {
             // do nothing
         }
@@ -243,7 +239,7 @@ class UiInteractionImpl @Inject constructor(
         )
     }
 
-    override fun showToastAndNotification(ctx: Context?, string: String, soundID: Int) {
+    override fun showToastAndNotification(ctx: Context, string: String, soundID: Int) {
         ToastUtils.showToastInUiThread(ctx, string)
         ToastUtils.playSound(ctx, soundID)
         addNotification(Notification.TOAST_ALARM, string, Notification.URGENT)

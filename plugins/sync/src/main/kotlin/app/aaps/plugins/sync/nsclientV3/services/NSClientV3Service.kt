@@ -341,7 +341,7 @@ class NSClientV3Service : DaggerService() {
     }
 
     fun handleClearAlarm(originalAlarm: NSAlarm, silenceTimeInMilliseconds: Long) {
-        alarmSocket?.emit("ack", originalAlarm.level(), originalAlarm.group(), silenceTimeInMilliseconds)
-        rxBus.send(EventNSClientNewLog("► ALARMACK ", "${originalAlarm.level()} ${originalAlarm.group()} $silenceTimeInMilliseconds"))
+        alarmSocket?.emit("ack", originalAlarm.level, originalAlarm.group, silenceTimeInMilliseconds)
+        rxBus.send(EventNSClientNewLog("► ALARMACK ", "${originalAlarm.level} ${originalAlarm.group} $silenceTimeInMilliseconds"))
     }
 }

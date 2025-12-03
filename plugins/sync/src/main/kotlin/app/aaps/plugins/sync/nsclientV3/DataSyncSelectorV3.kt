@@ -44,7 +44,8 @@ class DataSyncSelectorV3 @Inject constructor(
         var carbsRemaining: Long = -1L,
         var bcrRemaining: Long = -1L,
         var ttsRemaining: Long = -1L,
-        var foodsRemaining: Long = -1L,
+// NSCv3 doesn't support food update
+//        var foodsRemaining: Long = -1L,
         var gvsRemaining: Long = -1L,
         var tesRemaining: Long = -1L,
         var dssRemaining: Long = -1L,
@@ -62,7 +63,8 @@ class DataSyncSelectorV3 @Inject constructor(
                 carbsRemaining +
                 bcrRemaining +
                 ttsRemaining +
-                foodsRemaining +
+// NSCv3 doesn't support food update
+//                foodsRemaining +
                 gvsRemaining +
                 tesRemaining +
                 dssRemaining +
@@ -90,7 +92,8 @@ class DataSyncSelectorV3 @Inject constructor(
             queueCounter.carbsRemaining = (persistenceLayer.getLastCarbsId() ?: 0L) - preferences.get(NsclientLongKey.CarbsLastSyncedId)
             queueCounter.bcrRemaining = (persistenceLayer.getLastBolusCalculatorResultId() ?: 0L) - preferences.get(NsclientLongKey.BolusCalculatorLastSyncedId)
             queueCounter.ttsRemaining = (persistenceLayer.getLastTemporaryTargetId() ?: 0L) - preferences.get(NsclientLongKey.TemporaryTargetLastSyncedId)
-            queueCounter.foodsRemaining = (persistenceLayer.getLastFoodId() ?: 0L) - preferences.get(NsclientLongKey.FoodLastSyncedId)
+// NSCv3 doesn't support food update
+//            queueCounter.foodsRemaining = (persistenceLayer.getLastFoodId() ?: 0L) - preferences.get(NsclientLongKey.FoodLastSyncedId)
             queueCounter.gvsRemaining = (persistenceLayer.getLastGlucoseValueId() ?: 0L) - preferences.get(NsclientLongKey.GlucoseValueLastSyncedId)
             queueCounter.tesRemaining = (persistenceLayer.getLastTherapyEventId() ?: 0L) - preferences.get(NsclientLongKey.TherapyEventLastSyncedId)
             queueCounter.dssRemaining = (persistenceLayer.getLastDeviceStatusId() ?: 0L) - preferences.get(NsclientLongKey.DeviceStatusLastSyncedId)
@@ -109,7 +112,8 @@ class DataSyncSelectorV3 @Inject constructor(
             processChangedProfileSwitches()
             processChangedEffectiveProfileSwitches()
             processChangedTempTargets()
-            processChangedFoods()
+// NSCv3 doesn't support food update
+//            processChangedFoods()
             processChangedTherapyEvents()
             processChangedDeviceStatuses()
             processChangedRunningModes()
@@ -191,7 +195,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedCarbs() {
+    @OpenForTesting
+    suspend fun processChangedCarbs() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -292,7 +297,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedBolusCalculatorResults() {
+    @OpenForTesting
+    suspend fun processChangedBolusCalculatorResults() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -342,7 +348,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedTempTargets() {
+    @OpenForTesting
+    suspend fun processChangedTempTargets() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -376,7 +383,7 @@ class DataSyncSelectorV3 @Inject constructor(
             }
         }
     }
-
+/*
     @OpenForTesting
     fun confirmLastFoodIdIfGreater(lastSynced: Long) {
         if (lastSynced > preferences.get(NsclientLongKey.FoodLastSyncedId)) {
@@ -384,7 +391,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedFoods() {
+    @OpenForTesting
+    suspend fun processChangedFoods() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -418,7 +426,7 @@ class DataSyncSelectorV3 @Inject constructor(
             }
         }
     }
-
+*/
     @OpenForTesting
     fun confirmLastGlucoseValueIdIfGreater(lastSynced: Long) {
         if (lastSynced > preferences.get(NsclientLongKey.GlucoseValueLastSyncedId)) {
@@ -426,7 +434,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedGlucoseValues() {
+    @OpenForTesting
+    suspend fun processChangedGlucoseValues() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -470,7 +479,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedTherapyEvents() {
+    @OpenForTesting
+    suspend fun processChangedTherapyEvents() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -512,7 +522,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedDeviceStatuses() {
+    @OpenForTesting
+    suspend fun processChangedDeviceStatuses() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -542,7 +553,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedTemporaryBasals() {
+    @OpenForTesting
+    suspend fun processChangedTemporaryBasals() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -585,7 +597,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedExtendedBoluses() {
+    @OpenForTesting
+    suspend fun processChangedExtendedBoluses() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -630,7 +643,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedProfileSwitches() {
+    @OpenForTesting
+    suspend fun processChangedProfileSwitches() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -672,7 +686,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedEffectiveProfileSwitches() {
+    @OpenForTesting
+    suspend fun processChangedEffectiveProfileSwitches() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -714,7 +729,8 @@ class DataSyncSelectorV3 @Inject constructor(
         }
     }
 
-    private suspend fun processChangedRunningModes() {
+    @OpenForTesting
+    suspend fun processChangedRunningModes() {
         var cont = true
         while (cont) {
             if (isPaused) return
@@ -758,7 +774,8 @@ class DataSyncSelectorV3 @Inject constructor(
         preferences.put(NsclientLongKey.ProfileStoreLastSyncedId, timestamp)
     }
 
-    private suspend fun processChangedProfileStore() {
+    @OpenForTesting
+    suspend fun processChangedProfileStore() {
         if (isPaused) return
         val lastSync = preferences.get(NsclientLongKey.ProfileStoreLastSyncedId)
         val lastChange = preferences.get(LongNonKey.LocalProfileLastChange)

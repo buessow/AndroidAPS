@@ -29,6 +29,7 @@ import app.aaps.core.data.model.RM
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
+import app.aaps.core.graph.data.GraphViewWithCleanup
 import app.aaps.core.interfaces.aps.IobTotal
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.automation.Automation
@@ -52,7 +53,9 @@ import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.protection.ProtectionCheck
+import app.aaps.core.interfaces.pump.BolusProgressData
 import app.aaps.core.interfaces.pump.defs.determineCorrectBolusStepSize
+import app.aaps.core.interfaces.queue.CommandQueue
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
 import app.aaps.core.interfaces.rx.bus.RxBus
@@ -156,6 +159,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
     @Inject lateinit var uiInteraction: UiInteraction
     @Inject lateinit var decimalFormatter: DecimalFormatter
     @Inject lateinit var graphDataProvider: Provider<GraphData>
+    @Inject lateinit var commandQueue: CommandQueue
 
     private val disposable = CompositeDisposable()
 
@@ -243,6 +247,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         binding.activeProfile.setOnLongClickListener(this)
         binding.tempTarget.setOnClickListener(this)
         binding.tempTarget.setOnLongClickListener(this)
+        binding.pumpStatusLayout.setOnClickListener(this)
         binding.buttonsLayout.acceptTempButton.setOnClickListener(this)
         binding.buttonsLayout.treatmentButton.setOnClickListener(this)
         binding.buttonsLayout.wizardButton.setOnClickListener(this)
@@ -256,14 +261,12 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         binding.infoLayout.apsMode.setOnLongClickListener(this)
     }
 
-    @Synchronized
     override fun onPause() {
         super.onPause()
         disposable.clear()
         handler.removeCallbacksAndMessages(null)
     }
 
-    @Synchronized
     override fun onResume() {
         super.onResume()
         disposable += activePlugin.activeOverview.overviewBus
@@ -360,6 +363,8 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
         handler.post { refreshAll() }
         updatePumpStatus()
         updateCalcProgress()
+
+        popupBolusDialogIfRunning(onClick = false)
     }
 
     fun refreshAll() {
@@ -384,9 +389,26 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
     @Synchronized
     override fun onDestroyView() {
         super.onDestroyView()
+        // Remove listeners and detach series to prevent memory leaks
+        _binding?.graphsLayout?.bgGraph?.let { graph ->
+            graph.setOnLongClickListener(null)
+            graph.removeAllSeries()
+        }
+        for (graph in secondaryGraphs) {
+            graph.setOnLongClickListener(null)
+            graph.removeAllSeries()
+        }
         _binding = null
+        carbAnimation?.stop()
+        carbAnimation = null
         secondaryGraphs.clear()
         secondaryGraphsLabel.clear()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        handler.removeCallbacksAndMessages(null)
+        handler.looper.quitSafely()
     }
 
     override fun onClick(v: View) {
@@ -470,6 +492,11 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                     protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable {
                         if (isAdded) uiInteraction.runLoopDialog(childFragmentManager, 1)
                     })
+                }
+
+                R.id.pump_status_layout  -> {
+                    // Check if there is a bolus in progress
+                    popupBolusDialogIfRunning(onClick = true)
                 }
             }
         }
@@ -709,6 +736,13 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                         binding.infoLayout.apsModeText.visibility = View.VISIBLE
                     }
 
+                    RM.Mode.SUSPENDED_BY_DST -> {
+                        binding.infoLayout.apsMode.setImageResource(app.aaps.core.ui.R.drawable.ic_loop_paused)
+                        apsModeSetA11yLabel(app.aaps.core.ui.R.string.loop_suspended_by_dst)
+                        binding.infoLayout.apsModeText.text = dateUtil.age(loop.minutesToEndOfSuspend() * 60000L, true, rh)
+                        binding.infoLayout.apsModeText.visibility = View.VISIBLE
+                    }
+
                     RM.Mode.CLOSED_LOOP_LGS   -> {
                         binding.infoLayout.apsMode.setImageResource(app.aaps.core.ui.R.drawable.ic_loop_lgs)
                         apsModeSetA11yLabel(app.aaps.core.ui.R.string.uel_lgs_loop_mode)
@@ -766,7 +800,7 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
                 val relativeLayout = RelativeLayout(context)
                 relativeLayout.layoutParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
 
-                val graph = GraphView(context)
+                val graph = GraphViewWithCleanup(requireContext())
                 graph.layoutParams =
                     LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, rh.dpToPx(skinProvider.activeSkin().secondaryGraphHeight)).also { it.setMargins(0, rh.dpToPx(15), 0, rh.dpToPx(10)) }
                 graph.gridLabelRenderer?.gridColor = rh.gac(context, app.aaps.core.ui.R.attr.graphGrid)
@@ -1240,5 +1274,22 @@ class OverviewFragment : DaggerFragment(), View.OnClickListener, OnLongClickList
     private fun updateNotification() {
         _binding ?: return
         binding.notifications.let { notificationStore.updateNotifications(it) }
+    }
+
+    fun popupBolusDialogIfRunning(onClick: Boolean) {
+        // Check if bolus is in progress and show dialog if needed
+        // Only show for manual bolus (not SMB) with progress > 0
+        if (commandQueue.bolusInQueue()) {
+
+            // Show bolus progress dialog automatically only for manual bolus with progress
+            if (!BolusProgressData.bolusEnded && (!BolusProgressData.isSMB || onClick)) {
+                activity?.let { activity ->
+                    protectionCheck.queryProtection(activity, ProtectionCheck.Protection.BOLUS, UIRunnable {
+                        if (isAdded)
+                            uiInteraction.runBolusProgressDialog(childFragmentManager)
+                    })
+                }
+            }
+        }
     }
 }

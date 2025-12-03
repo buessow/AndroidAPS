@@ -118,7 +118,10 @@ data class UserEntry(
         EXIT_AAPS,
         PLUGIN_ENABLED,
         PLUGIN_DISABLED,
-        UNKNOWN,
+        RUNNING_MODE,
+        RUNNING_MODE_REMOVED,
+        RUNNING_MODE_UPDATED,
+        UNKNOWN
         ;
     }
 
@@ -193,6 +196,8 @@ data class UserEntry(
         Overview,           //From OverViewPlugin
         Ottai,              //From Ottai plugin
         SyaiTag,            //From Syai Tag plugin
+        SiBionic,
+        Sino,
         Stats,              //From Stat Activity
         Aaps,               // MainApp
         BgFragment,

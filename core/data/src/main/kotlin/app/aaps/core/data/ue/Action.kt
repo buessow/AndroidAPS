@@ -93,6 +93,9 @@ enum class Action(val colorGroup: ColorGroup) {
     PLUGIN_DISABLED(ColorGroup.Aaps),
     HEART_RATE(ColorGroup.CarbTreatment),
     HEART_RATE_REMOVED(ColorGroup.CarbTreatment),
+    RUNNING_MODE(ColorGroup.RunningMode),
+    RUNNING_MODE_REMOVED(ColorGroup.RunningMode),
+    RUNNING_MODE_UPDATED(ColorGroup.RunningMode),
     UNKNOWN(ColorGroup.Aaps)
     ;
 
@@ -110,6 +113,7 @@ enum class Action(val colorGroup: ColorGroup) {
         Loop,
         Careportal,
         Pump,
-        Aaps
+        Aaps,
+        RunningMode
     }
 }

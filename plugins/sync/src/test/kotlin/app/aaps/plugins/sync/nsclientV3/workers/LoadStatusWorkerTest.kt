@@ -102,7 +102,8 @@ internal class LoadStatusWorkerTest : TestBaseWithProfile() {
                 food = ApiPermission(create = true, read = true, update = true, delete = true),
                 profile = ApiPermission(create = true, read = true, update = true, delete = true),
                 settings = ApiPermission(create = true, read = true, update = true, delete = true),
-                treatments = ApiPermission(create = true, read = true, update = true, delete = true)
+                treatments = ApiPermission(create = true, read = true, update = true, delete = true),
+                heartRate = ApiPermission(create = true, read = true, update = true, delete = true)
             )
         )
         whenever(nsAndroidClient.getStatus()).thenReturn(status)
@@ -148,7 +149,8 @@ internal class LoadStatusWorkerTest : TestBaseWithProfile() {
                 food = ApiPermission(create = true, read = true, update = true, delete = true),
                 profile = ApiPermission(create = true, read = true, update = true, delete = true),
                 settings = ApiPermission(create = true, read = true, update = true, delete = true),
-                treatments = ApiPermission(create = true, read = true, update = true, delete = true)
+                treatments = ApiPermission(create = true, read = true, update = true, delete = true),
+                heartRate = ApiPermission(create = true, read = true, update = true, delete = true)
             )
         )
         whenever(nsAndroidClient.getStatus()).thenReturn(status)
@@ -177,7 +179,8 @@ internal class LoadStatusWorkerTest : TestBaseWithProfile() {
                 food = ApiPermission(create = true, read = true, update = true, delete = true),
                 profile = ApiPermission(create = true, read = true, update = true, delete = true),
                 settings = ApiPermission(create = true, read = true, update = true, delete = true),
-                treatments = ApiPermission(create = true, read = true, update = true, delete = true)
+                treatments = ApiPermission(create = true, read = true, update = true, delete = true),
+                heartRate = ApiPermission(create = true, read = true, update = true, delete = true)
             )
         )
         whenever(nsAndroidClient.getStatus()).thenReturn(status)
@@ -251,7 +254,8 @@ internal class LoadStatusWorkerTest : TestBaseWithProfile() {
                 food = ApiPermission(create = true, read = true, update = true, delete = true),
                 profile = ApiPermission(create = true, read = true, update = true, delete = true),
                 settings = ApiPermission(create = true, read = true, update = true, delete = true),
-                treatments = ApiPermission(create = true, read = true, update = true, delete = true)
+                treatments = ApiPermission(create = true, read = true, update = true, delete = true),
+                heartRate = ApiPermission(create = true, read = true, update = true, delete = true)
             )
         )
         whenever(nsAndroidClient.getStatus()).thenReturn(status)

@@ -3,13 +3,10 @@ package app.aaps.plugins.sync.nsclientV3
 import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.CA
 import app.aaps.core.data.model.GV
-import app.aaps.core.data.model.IDs
 import app.aaps.core.data.model.HR
-import app.aaps.core.interfaces.configuration.Config
+import app.aaps.core.data.model.IDs
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.nsclient.StoreDataForDb
-import app.aaps.core.interfaces.plugin.ActivePlugin
-import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.pump.VirtualPump
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.sharedPreferences.SP
@@ -17,11 +14,7 @@ import app.aaps.core.interfaces.source.BgSource
 import app.aaps.core.interfaces.source.NSClientSource
 import app.aaps.core.interfaces.sync.DataSyncSelector
 import app.aaps.core.interfaces.sync.NsClient
-import app.aaps.core.interfaces.sync.DataSyncSelector
-import app.aaps.core.interfaces.sync.NsClient
-import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.BooleanKey
-import app.aaps.plugins.sync.R
 import app.aaps.plugins.sync.nsShared.StoreDataForDbImpl
 import app.aaps.plugins.sync.nsclientV3.keys.NsclientBooleanKey
 import app.aaps.plugins.sync.nsclientV3.keys.NsclientLongKey
@@ -32,7 +25,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mock
 import org.mockito.Mockito.atLeast
@@ -44,8 +36,6 @@ import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.clearInvocations
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoMoreInteractions
-import kotlin.collections.remove
 import org.mockito.kotlin.whenever
 
 class DataSyncSelectorV3Test : TestBaseWithProfile() {
@@ -55,8 +45,6 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
     @Mock lateinit var persistenceLayer: PersistenceLayer
     @Mock lateinit var virtualPump: VirtualPump
     @Mock lateinit var nsClientSource: NSClientSource
-    @Mock lateinit var nsClient: NsClient
-    @Mock lateinit var rxBux: RxBus
 
     private lateinit var storeDataForDb: StoreDataForDb
     private lateinit var sut: DataSyncSelectorV3
@@ -403,7 +391,7 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
     @Test
     fun queueSizeTest() {
         // All counters initialized to -1, so total should be -13 (13 fields)
-        assertThat(sut.queueSize()).isEqualTo(-12)
+        assertThat(sut.queueSize()).isEqualTo(-14)
     }
 
     @Test
@@ -451,6 +439,7 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
         whenever(persistenceLayer.getLastProfileSwitchId()).thenReturn(15L)
         whenever(persistenceLayer.getLastEffectiveProfileSwitchId()).thenReturn(60L)
         whenever(persistenceLayer.getLastRunningModeId()).thenReturn(5L)
+        whenever(persistenceLayer.getLastHeartRateId()).thenReturn(1L)
 
         // Mock all the sync preferences to 0
         whenever(preferences.get(NsclientLongKey.BolusLastSyncedId)).thenReturn(0L)
@@ -466,6 +455,7 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
         whenever(preferences.get(NsclientLongKey.ProfileSwitchLastSyncedId)).thenReturn(0L)
         whenever(preferences.get(NsclientLongKey.EffectiveProfileSwitchLastSyncedId)).thenReturn(0L)
         whenever(preferences.get(NsclientLongKey.RunningModeLastSyncedId)).thenReturn(0L)
+        whenever(preferences.get(NsclientLongKey.HeartRateLastSyncId)).thenReturn(0L)
 
         // Mock all the getNextSyncElement methods to return empty
         whenever(persistenceLayer.getNextSyncElementBolus(0)).thenReturn(Maybe.empty())
@@ -481,6 +471,7 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
         whenever(persistenceLayer.getNextSyncElementProfileSwitch(0)).thenReturn(Maybe.empty())
         whenever(persistenceLayer.getNextSyncElementEffectiveProfileSwitch(0)).thenReturn(Maybe.empty())
         whenever(persistenceLayer.getNextSyncElementRunningMode(0)).thenReturn(Maybe.empty())
+        whenever(persistenceLayer.getNextSyncElementHeartRate(0)).thenReturn(Maybe.empty())
 
         sut.doUpload()
 
@@ -492,6 +483,7 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
     fun doUploadWithPartialSyncTest() = runBlocking {
         whenever(preferences.get(NsclientBooleanKey.NsPaused)).thenReturn(false)
         whenever(preferences.get(BooleanKey.NsClientUploadData)).thenReturn(true)
+        whenever(preferences.get(BooleanKey.NsClientReceiveHeartRate)).thenReturn(false)
 
         whenever(persistenceLayer.getLastBolusId()).thenReturn(100L)
         whenever(preferences.get(NsclientLongKey.BolusLastSyncedId)).thenReturn(50L)
@@ -536,11 +528,12 @@ class DataSyncSelectorV3Test : TestBaseWithProfile() {
         whenever(persistenceLayer.getNextSyncElementProfileSwitch(0)).thenReturn(Maybe.empty())
         whenever(persistenceLayer.getNextSyncElementEffectiveProfileSwitch(0)).thenReturn(Maybe.empty())
         whenever(persistenceLayer.getNextSyncElementRunningMode(0)).thenReturn(Maybe.empty())
+        whenever(persistenceLayer.getNextSyncElementHeartRate(0)).thenReturn(Maybe.empty())
 
         sut.doUpload()
 
         // Only boluses should have remaining items (100 - 50 = 50)
-        assertThat(sut.queueSize()).isEqualTo(50L)
+        assertThat(sut.queueSize()).isEqualTo(49L)
     }
 
     @Test

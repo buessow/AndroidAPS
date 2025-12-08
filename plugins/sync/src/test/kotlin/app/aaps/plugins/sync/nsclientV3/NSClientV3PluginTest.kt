@@ -243,12 +243,12 @@ internal class NSClientV3PluginTest : TestBaseWithProfile() {
         )
         val dataPair = DataSyncSelector.PairHeartRate(hr, 1000)
         // create
-        Mockito.`when`(nsAndroidClient.createHeartRate(anyObject()))
+        whenever(nsAndroidClient.createHeartRate(anyOrNull()))
             .thenReturn(CreateUpdateResponse(201, "aaa"))
         sut.nsAdd("heartrate", dataPair, "1/3")
         assertThat(storeDataForDb.nsIdHeartRates).hasSize(1)
         // update
-        Mockito.`when`(nsAndroidClient.updateHeartRate(anyObject()))
+        whenever(nsAndroidClient.updateHeartRate(anyOrNull()))
             .thenReturn(CreateUpdateResponse(200, "aaa"))
         sut.nsUpdate("heartrate", dataPair, "1/3")
         assertThat(storeDataForDb.nsIdHeartRates).hasSize(2)

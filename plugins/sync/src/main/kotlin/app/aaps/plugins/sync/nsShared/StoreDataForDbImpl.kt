@@ -400,19 +400,13 @@ class StoreDataForDbImpl @Inject constructor(
                     nsIdUpdated.add(TE::class.java.simpleName, result.updatedNsId.size)
                 }
         }
-        persistenceLayer.updateNsIdHeartRateTransaction(nsIdHeartRates)
-            .doOnError { error ->
-                aapsLogger.error(LTag.DATABASE, "Updated nsId of heart rate failed", error)
-            }
-            .blockingGet()
-            .also { result ->
-                nsIdFoods.clear()
-                result.updatedNsId.forEach {
-                    aapsLogger.debug(LTag.DATABASE, "Updated nsId of heart rate $it")
-                    nsIdUpdated.inc(HR::class.java.simpleName)
+        synchronized(nsIdHeartRates) {
+            if (nsIdHeartRates.isNotEmpty())
+                persistenceLayer.updateNsIdHeartRateTransaction(nsIdHeartRates).blockingGet().also { result ->
+                    nsIdHeartRates.clear()
+                    nsIdUpdated.add(HR::class.java.simpleName, result.updatedNsId.size)
                 }
-            }
-
+        }
         synchronized(nsIdBoluses) {
             if (nsIdBoluses.isNotEmpty())
                 persistenceLayer.updateBolusesNsIds(nsIdBoluses).blockingGet().also { result ->

@@ -56,6 +56,7 @@ import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
 import app.aaps.pump.medtrum.comm.enums.MedtrumPumpState
 import app.aaps.pump.medtrum.comm.enums.ModelType
 import app.aaps.pump.medtrum.keys.MedtrumBooleanKey
+import app.aaps.pump.medtrum.keys.MedtrumBooleanNonKey
 import app.aaps.pump.medtrum.keys.MedtrumDoubleNonKey
 import app.aaps.pump.medtrum.keys.MedtrumIntKey
 import app.aaps.pump.medtrum.keys.MedtrumIntNonKey
@@ -101,7 +102,8 @@ class MedtrumPlugin @Inject constructor(
         .description(R.string.medtrum_pump_description),
     ownPreferences = listOf(
         MedtrumStringKey::class.java, MedtrumIntKey::class.java, MedtrumBooleanKey::class.java,
-        MedtrumIntNonKey::class.java, MedtrumLongNonKey::class.java, MedtrumStringNonKey::class.java, MedtrumDoubleNonKey::class.java
+        MedtrumIntNonKey::class.java, MedtrumLongNonKey::class.java, MedtrumStringNonKey::class.java, MedtrumDoubleNonKey::class.java,
+        MedtrumBooleanNonKey::class.java
     ),
     aapsLogger, rh, preferences, commandQueue
 ), Pump, Medtrum {
@@ -314,7 +316,7 @@ class MedtrumPlugin @Inject constructor(
     override val lastBolusAmount: Double? get() = medtrumPump.lastBolusAmount
     override val baseBasalRate: Double get() = medtrumPump.baseBasalRate
     override val reservoirLevel: Double get() = medtrumPump.reservoir
-    override val batteryLevel: Int get() = 0 // We cannot determine battery level (yet)
+    override val batteryLevel: Int? = null // We cannot determine battery level (yet)
 
     @Synchronized
     override fun deliverTreatment(detailedBolusInfo: DetailedBolusInfo): PumpEnactResult {

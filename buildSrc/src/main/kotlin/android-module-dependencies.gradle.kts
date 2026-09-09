@@ -35,6 +35,10 @@ android {
         targetCompatibility = Versions.javaVersion
     }
 
+    kotlin {
+        jvmToolchain(21)
+    }
+
     kotlinOptions {
         freeCompilerArgs = freeCompilerArgs + "-opt-in=kotlin.time.ExperimentalTime"
     }
